@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 
 import 'firebase_options.dart';        // flutterfire configure üretir
 import 'views/log_in.dart';              // SENİN GÖNDERDİĞİN LoginPage
-import 'views/sign_up.dart';
 
 
 Future<void> main() async {

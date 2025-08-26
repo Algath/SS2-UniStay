@@ -1,0 +1,39 @@
+name: CI Test
+
+on:
+  push:
+    branches:
+      - test
+      - main
+  pull_request:
+    branches:
+      - test
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Install dependencies from YAML
+        run: |
+          python - <<EOF
+          import yaml
+          with open("pubspec.yaml") as f:
+              data = yaml.safe_load(f)
+          for pkg in data.get("dependencies", []):
+              print(f"Installing {pkg}")
+              import subprocess
+              subprocess.run(["pip", "install", pkg], check=True)
+          EOF
+      - name: Run tests
+        run: pytest
+      - name: Run tests
+        run: pytest

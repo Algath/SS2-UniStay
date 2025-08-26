@@ -1,4 +1,4 @@
-name: CI Test
+name: Flutter CI
 
 on:
   push:
@@ -7,54 +7,24 @@ on:
       - main
   pull_request:
     branches:
-      - test
       - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
         with:
-          python-version: '3.11'
-      name: CI Test
+          flutter-version: '3.35.1' # or the version you need
 
-on:
-  push:
-    branches:
-      - test
-      - main
-  pull_request:
-    branches:
-      - test
-      - main
+      - name: Install dependencies
+        run: flutter pub get
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - name: Install PyYAML
-        run: pip install pyyaml
-
-      - name: Install dependencies from YAML
-        run: |
-          python - <<EOF
-          import yaml
-          with open("pubspec.yaml") as f:
-              data = yaml.safe_load(f)
-          for pkg in data.get("dependencies", []):
-              print(f"Installing {pkg}")
-              import subprocess
-              subprocess.run(["pip", "install", pkg], check=True)
-          EOF
       - name: Run tests
-        run: pytest
-      - name: Run tests
-        run: pytest
+        run: flutter test
+

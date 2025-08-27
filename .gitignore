@@ -16,7 +16,9 @@ migrate_working_dir/
 firebase.json
 android/app/google-services.json
 lib/firebase_options.dart
-
+android/app/upload-keystore.jks
+build/app/outputs/bundle/release/app-release.aab
+android/key.properties
 
 # IntelliJ related
 *.iml

@@ -17,6 +17,7 @@ import 'views/profile_student.dart';
 import 'views/profile_owner.dart';
 import 'views/about_page.dart';
 import 'views/add_property.dart';
+import 'views/edit_room.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +57,7 @@ class UniStayApp extends StatelessWidget {
         ProfileOwnerPage.route: (_) => const ProfileOwnerPage(),
         AboutPage.route: (_) => const AboutPage(),
         AddPropertyPage.route: (_) => const AddPropertyPage(),
+        // dynamic route for edit room is created via MaterialPageRoute where used
       },
     );
   }

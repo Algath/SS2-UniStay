@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'package:unistay/models/room.dart';
@@ -44,7 +45,48 @@ class PropertyDetailPage extends StatelessWidget {
                 Text(room.address),
                 const SizedBox(height: 16),
                 Row(children: [
-                  Expanded(child: ElevatedButton(onPressed: () {/* reserve flow */}, child: const Text('Reserve'))),
+                  Expanded(child: ElevatedButton(onPressed: () async {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please log in first')));
+                      return;
+                    }
+                    final now = DateTime.now();
+                    final fromLim = room.availabilityFrom ?? now;
+                    final toLim = room.availabilityTo ?? now.add(const Duration(days: 365));
+                    final range = await showDateRangePicker(
+                      context: context,
+                      firstDate: fromLim.isAfter(now) ? fromLim : now,
+                      lastDate: toLim,
+                      helpText: 'Select stay period',
+                    );
+                    if (range == null) return;
+                    // Guard: chosen range must be inside availability
+                    if ((room.availabilityFrom != null && range.start.isBefore(room.availabilityFrom!)) ||
+                        (room.availabilityTo != null && range.end.isAfter(room.availabilityTo!))) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selected dates are outside availability')));
+                      return;
+                    }
+                    final data = {
+                      'roomId': room.id,
+                      'ownerUid': room.ownerUid,
+                      'studentUid': user.uid,
+                      'from': Timestamp.fromDate(range.start),
+                      'to': Timestamp.fromDate(range.end),
+                      'status': 'pending',
+                      'createdAt': FieldValue.serverTimestamp(),
+                    };
+                    try {
+                      await FirebaseFirestore.instance.collection('bookings').add(data);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking request sent')));
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Booking failed: $e')));
+                      }
+                    }
+                  }, child: const Text('Reserve'))),
                   const SizedBox(width: 12),
                   Expanded(child: FilledButton(onPressed: () {/* message */}, child: const Text('Message'))),
                 ]),

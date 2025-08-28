@@ -18,6 +18,7 @@ import 'views/profile_owner.dart';
 import 'views/about_page.dart';
 import 'views/add_property.dart';
 import 'views/edit_room.dart';
+import 'views/main_navigation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,6 +51,7 @@ class UniStayApp extends StatelessWidget {
         LoginPage.route: (_) => const LoginPage(),
         SignUpPage.route: (_) => const SignUpPage(),
         HomePage.route: (_) => const HomePage(),
+        MainNavigation.route: (_) => const MainNavigation(),
         EditProfilePage.route: (_) => const EditProfilePage(),
         MapPageOSM.route: (_) => const MapPageOSM(),
         ProfileGate.route: (_) => const ProfileGate(),

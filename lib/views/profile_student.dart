@@ -186,21 +186,6 @@ class _ProfileStudentPageState extends State<ProfileStudentPage> {
                 );
               }),
       ),
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: Colors.white,
-        selectedIndex: _navIndex,
-        onDestinationSelected: (i) {
-          if (i == _navIndex) return;
-          setState(() => _navIndex = i);
-          if (i == 0) Navigator.of(context).pushReplacementNamed(MapPageOSM.route);
-          if (i == 1) Navigator.of(context).pushReplacementNamed(HomePage.route);
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Map'),
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_filled), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
     );
   }
 

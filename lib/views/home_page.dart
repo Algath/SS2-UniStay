@@ -399,19 +399,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _navIndex,
-        onDestinationSelected: (i) {
-          setState(() => _navIndex = i);
-          if (i == 2) Navigator.of(context).pushNamed(ProfileGate.route);
-          if (i == 0) Navigator.of(context).pushNamed(MapPageOSM.route);
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.map_outlined), label: 'Map'),
-          NavigationDestination(icon: Icon(Icons.home_filled), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
-        ],
-      ),
     );
   }
 }

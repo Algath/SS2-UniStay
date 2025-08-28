@@ -5,11 +5,10 @@ class HomeViewModel {
   final _fs = FirebaseFirestore.instance;
 
   Stream<List<Room>> streamRooms() {
-    // Minimal filter: just order by createdAt; if some docs lack createdAt,
-    // we still get them by not using 'where' that excludes.
+    // OrderBy kaldırıldı: Index gereksinimi nedeniyle yüklenememe durumlarını önlemek için.
+    // İleride composite index eklendiğinde tekrar eklenebilir.
     return _fs
-        .collection('rooms')                      // <— burada 'rooms' olduğundan emin olun
-        .orderBy('createdAt', descending: true)
+        .collection('rooms')
         .snapshots()
         .map((q) => q.docs.map((d) => Room.fromFirestore(d)).toList());
   }

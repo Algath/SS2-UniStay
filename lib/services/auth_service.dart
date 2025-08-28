@@ -5,6 +5,5 @@ class AuthService {
 
   String? get uid => _auth.currentUser?.uid;
   Stream<User?> authState() => _auth.authStateChanges();
-
   Future<void> signOut() => _auth.signOut();
 }

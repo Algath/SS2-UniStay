@@ -88,7 +88,7 @@ class _MapPageOSMState extends State<MapPageOSM> {
           TileLayer(
             urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             subdomains: const ['a','b','c'],
-            userAgentPackageName: 'com.example.unistay',
+            userAgentPackageName: 'com.summerschool.unistay',
           ),
           MarkerLayer(markers: _markers),
         ],

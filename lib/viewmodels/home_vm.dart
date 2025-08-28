@@ -1,16 +1,18 @@
-import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/room.dart';
-import '../services/firestore_service.dart';
 
 class HomeViewModel {
-  final _fs = FirestoreService();
-  late final StreamSubscription _sub;
-  List<Room> _rooms = [];
-  List<Room> get rooms => _rooms;
+  final _fs = FirebaseFirestore.instance;
 
-  Stream<List<Room>> streamRooms() => _fs.roomsStream();
-
-  void dispose() {
-    _sub.cancel();
+  Stream<List<Room>> streamRooms() {
+    // Minimal filter: just order by createdAt; if some docs lack createdAt,
+    // we still get them by not using 'where' that excludes.
+    return _fs
+        .collection('rooms')                      // <— burada 'rooms' olduğundan emin olun
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((q) => q.docs.map((d) => Room.fromFirestore(d)).toList());
   }
+
+  void dispose() {}
 }

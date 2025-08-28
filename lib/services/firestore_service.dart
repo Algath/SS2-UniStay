@@ -1,25 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/room.dart';
 
 class FirestoreService {
-  final _db = FirebaseFirestore.instance;
+  final _fs = FirebaseFirestore.instance;
 
-  // USERS
-  Stream<DocumentSnapshot<Map<String, dynamic>>> userDocStream(String uid) =>
-      _db.collection('users').doc(uid).snapshots();
+  /// Adds a room; returns new doc id
+  Future<String> addRoom(Map<String, dynamic> data) async {
+    // Ensure createdAt exists; Home orderBy uses it
+    data['createdAt'] ??= FieldValue.serverTimestamp();
+    final doc = await _fs.collection('rooms').add(data);
+    return doc.id;
+  }
 
-  Future<void> setUserRole(String uid, String role) =>
-      _db.collection('users').doc(uid).set({'role': role}, SetOptions(merge: true));
-
-  // ROOMS
-  Stream<List<Room>> roomsStream() => _db
-      .collection('rooms')
-      .orderBy('createdAt', descending: true)
-      .snapshots()
-      .map((s) => s.docs.map((d) => Room.fromMap(d.id, d.data() as Map<String, dynamic>)).toList());
-
-  Future<void> addRoom(Room r) => _db.collection('rooms').add({
-    ...r.toMap(),
-    'createdAt': FieldValue.serverTimestamp(),
-  });
+  Future<void> updateUser(String uid, Map<String, dynamic> data) {
+    return _fs.collection('users').doc(uid).set(data, SetOptions(merge: true));
+  }
 }

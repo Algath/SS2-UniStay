@@ -1,4 +1,3 @@
-// Basic user profile document.
 class UserProfile {
   final String uid;
   final String email;

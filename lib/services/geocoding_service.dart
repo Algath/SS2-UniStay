@@ -1,7 +1,7 @@
 import 'package:geocoding/geocoding.dart';
 
 class GeocodingService {
-  /// Forward geocoding. Returns (lat, lng) for a given human-readable address.
+  /// Forward geocoding. Returns (lat, lng) for a given address string.
   Future<(double lat, double lng)> resolve(String address) async {
     final list = await locationFromAddress(address);
     if (list.isEmpty) return (0.0, 0.0);

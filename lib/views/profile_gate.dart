@@ -21,16 +21,8 @@ class ProfileGate extends StatelessWidget {
         }
 
         final data = snap.data!.data() ?? {};
-        // Fallback to 'student' if role is missing
+        // Fallback to 'student' if role is missing; do not override if set later
         final role = (data['role'] as String?) ?? 'student';
-
-        // If the doc misses 'role', set it silently once
-        if (!data.containsKey('role')) {
-          FirebaseFirestore.instance
-              .collection('users')
-              .doc(uid)
-              .set({'role': role}, SetOptions(merge: true));
-        }
 
         if (role == 'homeowner') {
           return const ProfileOwnerPage();

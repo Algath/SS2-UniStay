@@ -53,25 +53,39 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _save() async {
     setState(() => _saving = true);
     final uid = FirebaseAuth.instance.currentUser!.uid;
+    try {
+      String? newUrl = _photoUrl;
+      if (_localFile != null || _webBytes != null) {
+        // Web için ekstra güvenlik: çok büyük görselleri yüklemeyi önlemek
+        if (kIsWeb && _webBytes != null && _webBytes!.lengthInBytes > 1000 * 1024) {
+          _webBytes = _webBytes!.sublist(0, 1000 * 1024);
+        }
+        newUrl = await StorageService().uploadImageFlexible(
+          file: _localFile,
+          bytes: _webBytes,
+          path: 'users/$uid',
+          filename: 'avatar.jpg',
+        );
+      }
 
-    String? newUrl = _photoUrl;
-    if (_localFile != null || _webBytes != null) {
-      // only upload if user changed the photo
-      newUrl = await StorageService().uploadImageFlexible(
-        file: _localFile, bytes: _webBytes, path: 'users/$uid', filename: 'avatar.jpg',
-      );
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'name': _name.text.trim(),
+        'lastname': _lastname.text.trim(),
+        'homeAddress': _homeAddress.text.trim(),
+        'uniAddress': _uniAddress.text.trim(),
+        'photoUrl': newUrl ?? '',
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved')));
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Profile save failed: $e')));
     }
-
-    await FirebaseFirestore.instance.collection('users').doc(uid).set({
-      'name': _name.text.trim(),
-      'lastname': _lastname.text.trim(),
-      'homeAddress': _homeAddress.text.trim(),
-      'uniAddress': _uniAddress.text.trim(),
-      'photoUrl': newUrl ?? '',
-    }, SetOptions(merge: true));
-
-    setState(() => _saving = false);
-    if (mounted) Navigator.of(context).pop();
   }
 
   @override
@@ -79,6 +93,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
     final avatar = _webBytes != null
         ? CircleAvatar(radius: 56, backgroundImage: MemoryImage(_webBytes!))
         : (_localFile != null
@@ -102,11 +117,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
             const SizedBox(height: 12),
             TextField(controller: _homeAddress, decoration: const InputDecoration(labelText: 'Home Address')),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: swissUniversities.keys.contains(_uniAddress.text) ? _uniAddress.text : null,
-              decoration: const InputDecoration(labelText: 'University (Switzerland, optional)'),
-              items: swissUniversities.keys.map((k) => DropdownMenuItem(value: k, child: Text(k))).toList(),
-              onChanged: (k) { if (k == null) return; _uniAddress.text = swissUniversities[k]!; setState(() {}); },
+            StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance.collection('users').doc(user!.uid).snapshots(),
+              builder: (context, snap) {
+                final role = (snap.data?.data() ?? const {})['role'] as String? ?? 'student';
+                // Homeowner ise üniversite alanını opsiyonel ve boş bırakılabilir şekilde göster; Student ise seçilebilir dropdown
+                if (role == 'homeowner') {
+                  return TextField(
+                    controller: _uniAddress,
+                    decoration: const InputDecoration(labelText: 'University (optional) — can be empty'),
+                  );
+                }
+                return DropdownButtonFormField<String>(
+                  value: swissUniversities.keys.contains(_uniAddress.text) ? _uniAddress.text : null,
+                  decoration: const InputDecoration(labelText: 'University (Switzerland, optional)'),
+                  items: swissUniversities.keys.map((k) => DropdownMenuItem(value: k, child: Text(k))).toList(),
+                  onChanged: (k) { if (k == null) return; _uniAddress.text = swissUniversities[k]!; setState(() {}); },
+                );
+              },
             ),
             const SizedBox(height: 16),
             ElevatedButton(

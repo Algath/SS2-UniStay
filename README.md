@@ -1,4 +1,4 @@
-# UniStay
+# ss2_unit_stud
 
 A new Flutter project.
 

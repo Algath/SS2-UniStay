@@ -1,8 +1,16 @@
-import 'package:firebase_auth/firebase_auth.dart';
+// log_in.dart
+// Email/password login. "Sign up" link is under login button.
+// Subtitle uses a handwriting-like font (Pacifico).
+
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import 'home_page.dart';
+import '../views/sign_up.dart';
 
 class LoginPage extends StatefulWidget {
+  static const route = '/login';
   const LoginPage({super.key});
 
   @override
@@ -12,55 +20,31 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
-  bool _obscure = true;
+  final _passwordCtrl = TextEditingController();
   bool _loading = false;
+  String? _error;
 
   @override
   void dispose() {
     _emailCtrl.dispose();
-    _passCtrl.dispose();
+    _passwordCtrl.dispose();
     super.dispose();
-  }
-
-  String? _validateEmail(String? v) {
-    if (v == null || v.trim().isEmpty) return 'Email is required.';
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(v.trim())) {
-      return 'Enter a valid email.';
-    }
-    return null;
-  }
-
-  String? _validatePass(String? v) {
-    if (v == null || v.isEmpty) return 'Password is required.';
-    return null;
   }
 
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailCtrl.text.trim(),
-        password: _passCtrl.text,
+        password: _passwordCtrl.text.trim(),
       );
-      if (mounted) context.pushReplacement('/');
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed(HomePage.route);
     } on FirebaseAuthException catch (e) {
-      final msg = switch (e.code) {
-        'user-not-found' => 'No user found for that email.',
-        'wrong-password' => 'Wrong password.',
-        'invalid-email' => 'Invalid email.',
-        'user-disabled' => 'This user has been disabled.',
-        _ => 'Login failed: ${e.message ?? e.code}',
-      };
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Unexpected error: $e')));
-      }
+      setState(() => _error = e.message ?? 'Authentication failed');
+    } catch (_) {
+      setState(() => _error = 'Something went wrong. Please try again.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -68,122 +52,79 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Form(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 12),
+              const Text('UniStay',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Text('Welcome back',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              CircleAvatar(
+                radius: 44,
+                backgroundColor: cs.primaryContainer.withOpacity(.6),
+                child: const Text('U', style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 8),
+              const Text('Unistay',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Text('student housing',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.pacifico(textStyle: TextStyle(color: cs.primary, fontSize: 18))),
+              const SizedBox(height: 24),
+              Form(
                 key: _formKey,
-                child: ListView(
+                child: Column(
                   children: [
-                    const SizedBox(height: 16),
-                    Text(
-                      'UniStray',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Welcome back',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Email
                     TextFormField(
                       controller: _emailCtrl,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        border: UnderlineInputBorder(),
-                      ),
-                      validator: _validateEmail,
+                      decoration: const InputDecoration(labelText: 'Email'),
+                      validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
                     ),
-                    const SizedBox(height: 16),
-
-                    // Password
+                    const SizedBox(height: 12),
                     TextFormField(
-                      controller: _passCtrl,
-                      obscureText: _obscure,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        border: const UnderlineInputBorder(),
-                        suffixIcon: IconButton(
-                          onPressed: () => setState(() => _obscure = !_obscure),
-                          icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
-                        ),
-                      ),
-                      validator: _validatePass,
+                      controller: _passwordCtrl,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'Password'),
+                      validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
                     ),
-
-                    // Forgot password
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          final uri = Uri(
-                            path: '/sign-in/forgot-password',
-                            queryParameters: {'email': _emailCtrl.text.trim()},
-                          );
-                          context.push(uri.toString()); // mevcut ForgotPasswordScreen rotana gider
-                        },
-                        child: const Text('Forgot password?'),
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Log in
-                    FilledButton(
+                    const SizedBox(height: 12),
+                    if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
+                    const SizedBox(height: 6),
+                    ElevatedButton(
                       onPressed: _loading ? null : _signIn,
                       child: _loading
-                          ? const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: SizedBox(
-                          height: 22, width: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                          : const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Text('Log in'),
-                      ),
+                          ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Text('Log in'),
                     ),
-
-                    const SizedBox(height: 12),
-
-                    // Sign up
-                    OutlinedButton(
-                      onPressed: _loading ? null : () => context.push('/sign-up'),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Text("Don't have an account? Sign up"),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Face ID placeholder
-                    const Divider(),
                     const SizedBox(height: 8),
-                    Column(
-                      children: [
-                        Icon(Icons.face, size: 36),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Face ID (coming soon)',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pushNamed(SignUpPage.route),
+                      child: const Text("Don't have an account? Sign up"),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton(
+                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Face ID sign-in is coming soon 👋')),
+                      ),
+                      child: const Text('Face ID'),
                     ),
                   ],
                 ),
               ),
-            ),
+              const Spacer(),
+            ],
           ),
         ),
       ),

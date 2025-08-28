@@ -11,6 +11,7 @@ import 'package:latlong2/latlong.dart' as ll;
 import 'package:unistay/services/geocoding_service.dart';
 import 'package:unistay/services/storage_service.dart';
 import 'package:unistay/services/utils.dart';
+import 'package:unistay/views/profile_gate.dart';
 
 class AddPropertyPage extends StatefulWidget {
   static const route = '/add-property';
@@ -43,7 +44,6 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
   final _desc = TextEditingController();
   final Map<String, bool> _amen = {
     'Internet': false,
-    'Furnished': false,
     'Private bathroom': false,
     'Kitchen access': false,
   };
@@ -58,7 +58,10 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
   bool _saving = false;
 
   Future<void> _resolveAddress() async {
-    if (_address.text.trim().isEmpty) return;
+    if (_address.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter address first')));
+      return;
+    }
     final (lat, lng) = await GeocodingService().resolve(_address.text.trim());
     if (lat == 0 && lng == 0) return;
     _pos = ll.LatLng(lat, lng);
@@ -80,61 +83,73 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_pos == null) await _resolveAddress();
-    setState(() => _saving = true);
+    try {
+      if (_pos == null) await _resolveAddress();
+      setState(() => _saving = true);
 
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+      final uid = FirebaseAuth.instance.currentUser!.uid;
 
-    // Upload photos (flexible for web/mobile)
-    final urls = <String>[];
-    final st = StorageService();
-    if (kIsWeb) {
-      for (int i = 0; i < _webPhotos.length; i++) {
-        urls.add(await st.uploadImageFlexible(bytes: _webPhotos[i], path: 'rooms/$uid', filename: 'p$i.jpg'));
+      // Upload photos (flexible for web/mobile)
+      final urls = <String>[];
+      final st = StorageService();
+      if (kIsWeb) {
+        for (int i = 0; i < _webPhotos.length; i++) {
+          final bytes = _webPhotos[i];
+          // Web için basit boyut sınırı
+          final safeBytes = bytes.lengthInBytes > 1200 * 1024 ? bytes.sublist(0, 1200 * 1024) : bytes;
+          final url = await st.uploadImageFlexible(bytes: safeBytes, path: 'rooms/$uid', filename: 'p$i.jpg');
+          urls.add(url);
+        }
+      } else {
+        for (int i = 0; i < _localPhotos.length; i++) {
+          final url = await st.uploadImageFlexible(file: _localPhotos[i], path: 'rooms/$uid', filename: 'p$i.jpg');
+          urls.add(url);
+        }
       }
-    } else {
-      for (int i = 0; i < _localPhotos.length; i++) {
-        urls.add(await st.uploadImageFlexible(file: _localPhotos[i], path: 'rooms/$uid', filename: 'p$i.jpg'));
-      }
+
+      final amenities = _amen.entries.where((e) => e.value).map((e) => e.key).toList();
+
+      final data = {
+        // required
+        'ownerUid': uid,
+        'title': _title.text.trim(),
+        'price': num.tryParse(_price.text.trim()) ?? 0,
+        'address': _address.text.trim(),
+        'lat': _pos?.latitude ?? 0.0,
+        'lng': _pos?.longitude ?? 0.0,
+        'type': _type,
+        'furnished': _furnished,
+        'sizeSqm': int.tryParse(_sizeSqm.text.trim()) ?? 0,
+        'rooms': int.tryParse(_rooms.text.trim()) ?? 1,
+        'bathrooms': int.tryParse(_bathrooms.text.trim()) ?? 1,
+
+        // optional
+        if (_yearBuilt.text.isNotEmpty) 'yearBuilt': int.tryParse(_yearBuilt.text.trim()),
+        if (_floor.text.isNotEmpty) 'floor': int.tryParse(_floor.text.trim()),
+        if (_heatingType != null) 'heatingType': _heatingType,
+        'utilitiesIncluded': _utilitiesIncluded,
+
+        // UI
+        'description': _desc.text.trim(),
+        'amenities': amenities,
+        'photos': urls,
+        'walkMins': _walkMins ?? 10,
+        'availabilityFrom': _availFrom,
+        'availabilityTo': _availTo,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      await FirebaseFirestore.instance.collection('rooms').add(data);
+
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Property saved')));
+      Navigator.of(context).pushNamedAndRemoveUntil(ProfileGate.route, (route) => route.isFirst);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e')));
     }
-
-    final amenities = _amen.entries.where((e) => e.value).map((e) => e.key).toList();
-
-    final data = {
-      // required
-      'ownerUid': uid,
-      'title': _title.text.trim(),
-      'price': num.tryParse(_price.text.trim()) ?? 0,
-      'address': _address.text.trim(),
-      'lat': _pos?.latitude ?? 0.0,
-      'lng': _pos?.longitude ?? 0.0,
-      'type': _type,
-      'furnished': _furnished,
-      'sizeSqm': int.tryParse(_sizeSqm.text.trim()) ?? 0,
-      'rooms': int.tryParse(_rooms.text.trim()) ?? 1,
-      'bathrooms': int.tryParse(_bathrooms.text.trim()) ?? 1,
-
-      // optional
-      if (_yearBuilt.text.isNotEmpty) 'yearBuilt': int.tryParse(_yearBuilt.text.trim()),
-      if (_floor.text.isNotEmpty) 'floor': int.tryParse(_floor.text.trim()),
-      if (_heatingType != null) 'heatingType': _heatingType,
-      'utilitiesIncluded': _utilitiesIncluded,
-
-      // UI
-      'description': _desc.text.trim(),
-      'amenities': amenities,
-      'photos': urls,
-      'walkMins': _walkMins ?? 10,
-      'availabilityFrom': _availFrom,
-      'availabilityTo': _availTo,
-      'createdAt': FieldValue.serverTimestamp(),
-    };
-
-    await FirebaseFirestore.instance.collection('rooms').add(data);
-
-    if (!mounted) return;
-    setState(() => _saving = false);
-    Navigator.of(context).pop();
   }
 
   @override

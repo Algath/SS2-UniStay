@@ -6,23 +6,28 @@ import 'profile_student.dart';
 import 'profile_owner.dart';
 
 class ProfileGate extends StatelessWidget {
-  static const route = '/profile';
+  static const route = '/profile-gate';
   const ProfileGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return const Scaffold(body: Center(child: Text('Not signed in')));
+    final uid = FirebaseAuth.instance.currentUser!.uid;
 
-    return StreamBuilder<DocumentSnapshot>(
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
       builder: (context, snap) {
         if (!snap.hasData) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
-        final role = (snap.data!.get('role') ?? 'student') as String;
-        // Display correct profile immediately
-        return role == 'homeowner' ? const ProfileOwnerPage() : const ProfileStudentPage();
+
+        final data = snap.data!.data() ?? {};
+        // Fallback to 'student' if role is missing; do not override if set later
+        final role = (data['role'] as String?) ?? 'student';
+
+        if (role == 'homeowner') {
+          return const ProfileOwnerPage();
+        }
+        return const ProfileStudentPage();
       },
     );
   }

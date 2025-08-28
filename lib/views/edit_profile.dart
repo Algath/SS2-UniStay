@@ -1,14 +1,13 @@
-// edit_profile.dart
-// Load & save profile (name, lastname, addresses) + change avatar via camera/gallery.
-
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io' show File;
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'home_page.dart';
+import 'package:unistay/services/storage_service.dart';
+import 'package:unistay/services/utils.dart';
 
 class EditProfilePage extends StatefulWidget {
   static const route = '/edit-profile';
@@ -19,170 +18,131 @@ class EditProfilePage extends StatefulWidget {
 }
 
 class _EditProfilePageState extends State<EditProfilePage> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _lastnameCtrl = TextEditingController();
-  final _homeCtrl = TextEditingController();
-  final _uniCtrl = TextEditingController();
+  final _name = TextEditingController();
+  final _lastname = TextEditingController();
+  final _homeAddress = TextEditingController();
+  final _uniAddress = TextEditingController();
 
-  bool _loading = true;
+  final _picker = ImagePicker();
+
+  File? _localFile; Uint8List? _webBytes; String? _photoUrl;
   bool _saving = false;
-  String? _photoUrl;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
+  void initState() { super.initState(); _load(); }
+  Future<void> _load() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final m = (await FirebaseFirestore.instance.collection('users').doc(uid).get()).data() ?? {};
+    setState(() {
+      _name.text = (m['name'] ?? '') as String;
+      _lastname.text = (m['lastname'] ?? '') as String;
+      _homeAddress.text = (m['homeAddress'] ?? '') as String;
+      _uniAddress.text = (m['uniAddress'] ?? '') as String;
+      _photoUrl = (m['photoUrl'] ?? '') as String;
+    });
   }
 
-  Future<void> _load() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-    final data = doc.data();
-    if (data != null) {
-      _nameCtrl.text = (data['name'] ?? '').toString();
-      _lastnameCtrl.text = (data['lastname'] ?? '').toString();
-      _homeCtrl.text = (data['homeAddress'] ?? '').toString();
-      _uniCtrl.text = (data['uniAddress'] ?? '').toString();
-      _photoUrl = (data['photoUrl'] ?? '').toString().isEmpty ? null : (data['photoUrl'] as String);
-    }
-    if (mounted) setState(() => _loading = false);
+  Future<void> _pickPhoto() async {
+    final x = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (x == null) return;
+    if (kIsWeb) { _webBytes = await x.readAsBytes(); _localFile = null; }
+    else { _localFile = File(x.path); _webBytes = null; }
+    setState(() {});
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
     setState(() => _saving = true);
-    await FirebaseFirestore.instance.collection('users').doc(uid).set({
-      'name': _nameCtrl.text.trim(),
-      'lastname': _lastnameCtrl.text.trim(),
-      'homeAddress': _homeCtrl.text.trim(),
-      'uniAddress': _uniCtrl.text.trim(),
-      'photoUrl': _photoUrl ?? '',
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-    if (!mounted) return;
-    setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved')));
-  }
-
-  Future<void> _changePhoto() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Wrap(children: [
-          ListTile(
-            leading: const Icon(Icons.photo_library_outlined),
-            title: const Text('Choose from gallery'),
-            onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_camera_outlined),
-            title: const Text('Take a photo'),
-            onTap: () => Navigator.pop(ctx, ImageSource.camera),
-          ),
-        ]),
-      ),
-    );
-    if (source == null) return;
-
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 85);
-    if (picked == null) return;
-
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    final ref = FirebaseStorage.instance.ref().child('users/$uid/avatar.jpg');
-    await ref.putFile(File(picked.path));
-    final url = await ref.getDownloadURL();
-    setState(() => _photoUrl = url);
+    try {
+      String? newUrl = _photoUrl;
+      if (_localFile != null || _webBytes != null) {
+        // Web için ekstra güvenlik: çok büyük görselleri yüklemeyi önlemek
+        if (kIsWeb && _webBytes != null && _webBytes!.lengthInBytes > 1000 * 1024) {
+          _webBytes = _webBytes!.sublist(0, 1000 * 1024);
+        }
+        newUrl = await StorageService().uploadImageFlexible(
+          file: _localFile,
+          bytes: _webBytes,
+          path: 'users/$uid',
+          filename: 'avatar.jpg',
+        );
+      }
 
-    await FirebaseFirestore.instance.collection('users').doc(uid).set({'photoUrl': url}, SetOptions(merge: true));
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'name': _name.text.trim(),
+        'lastname': _lastname.text.trim(),
+        'homeAddress': _homeAddress.text.trim(),
+        'uniAddress': _uniAddress.text.trim(),
+        'photoUrl': newUrl ?? '',
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved')));
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Profile save failed: $e')));
+    }
   }
 
   @override
-  void dispose() {
-    _nameCtrl.dispose();
-    _lastnameCtrl.dispose();
-    _homeCtrl.dispose();
-    _uniCtrl.dispose();
-    super.dispose();
-  }
+  void dispose() { _name.dispose(); _lastname.dispose(); _homeAddress.dispose(); _uniAddress.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final avatar = _webBytes != null
+        ? CircleAvatar(radius: 56, backgroundImage: MemoryImage(_webBytes!))
+        : (_localFile != null
+        ? CircleAvatar(radius: 56, backgroundImage: FileImage(_localFile!))
+        : (_photoUrl?.isNotEmpty == true
+        ? CircleAvatar(radius: 56, backgroundImage: NetworkImage(_photoUrl!))
+        : const CircleAvatar(radius: 56, child: Icon(Icons.person, size: 56))));
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              children: [
-                const SizedBox(height: 8),
-                Center(
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 56,
-                        backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
-                        child: _photoUrl == null ? const Icon(Icons.person, size: 56) : null,
-                      ),
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: InkWell(
-                          onTap: _changePhoto,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            padding: const EdgeInsets.all(8),
-                            child: const Icon(Icons.edit, color: Colors.white, size: 18),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                TextFormField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
-                const SizedBox(height: 12),
-                TextFormField(controller: _lastnameCtrl, decoration: const InputDecoration(labelText: 'Lastname')),
-                const SizedBox(height: 12),
-                TextFormField(controller: _homeCtrl, decoration: const InputDecoration(labelText: 'Home Address')),
-                const SizedBox(height: 12),
-                TextFormField(controller: _uniCtrl, decoration: const InputDecoration(labelText: 'Uni Address')),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _saving ? null : _save,
-                  child: _saving
-                      ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Save'),
-                ),
-              ],
+      appBar: AppBar(centerTitle: true, title: const Text('Edit Profile')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Center(child: avatar),
+            const SizedBox(height: 8),
+            TextButton.icon(onPressed: _pickPhoto, icon: const Icon(Icons.photo_camera_outlined), label: const Text('Change photo')),
+            const SizedBox(height: 12),
+            TextField(controller: _name, decoration: const InputDecoration(labelText: 'Name')),
+            const SizedBox(height: 12),
+            TextField(controller: _lastname, decoration: const InputDecoration(labelText: 'Lastname')),
+            const SizedBox(height: 12),
+            TextField(controller: _homeAddress, decoration: const InputDecoration(labelText: 'Home Address')),
+            const SizedBox(height: 12),
+            StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance.collection('users').doc(user!.uid).snapshots(),
+              builder: (context, snap) {
+                final role = (snap.data?.data() ?? const {})['role'] as String? ?? 'student';
+                // Homeowner ise üniversite alanını opsiyonel ve boş bırakılabilir şekilde göster; Student ise seçilebilir dropdown
+                if (role == 'homeowner') {
+                  return TextField(
+                    controller: _uniAddress,
+                    decoration: const InputDecoration(labelText: 'University (optional) — can be empty'),
+                  );
+                }
+                return DropdownButtonFormField<String>(
+                  value: swissUniversities.keys.contains(_uniAddress.text) ? _uniAddress.text : null,
+                  decoration: const InputDecoration(labelText: 'University (Switzerland, optional)'),
+                  items: swissUniversities.keys.map((k) => DropdownMenuItem(value: k, child: Text(k))).toList(),
+                  onChanged: (k) { if (k == null) return; _uniAddress.text = swissUniversities[k]!; setState(() {}); },
+                );
+              },
             ),
-          ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _saving ? null : _save,
+              child: _saving ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save'),
+            ),
+          ],
         ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 2,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.map_outlined), label: 'Map'),
-          NavigationDestination(icon: Icon(Icons.home_filled), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
-        ],
-        onDestinationSelected: (i) {
-          if (i == 1) Navigator.of(context).pushReplacementNamed(HomePage.route);
-        },
       ),
     );
   }

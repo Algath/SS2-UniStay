@@ -49,8 +49,6 @@ class ProfileViewModel {
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true))
         .timeout(const Duration(seconds: 12));
-
-    // Optionally ensure role exists (older docs)
-    await _fs.collection('users').doc(uid).set({'role': 'student'}, SetOptions(merge: true));
+    // Do not override existing role here; keep user's chosen role (student/homeowner)
   }
 }

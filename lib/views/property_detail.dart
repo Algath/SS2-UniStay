@@ -40,9 +40,25 @@ class PropertyDetailPage extends StatelessWidget {
                 Text('CHF ${room.price}/month · ${room.sizeSqm} m² · ${room.rooms} rooms',
                     style: const TextStyle(color: Colors.grey)),
                 const SizedBox(height: 12),
-                const Text('Description', style: TextStyle(fontWeight: FontWeight.w700)),
+                const Text('Address', style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 Text(room.address),
+                const SizedBox(height: 16),
+                if (room.availabilityFrom != null || room.availabilityTo != null) ...[
+                  const Text('Availability', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  Text(
+                    room.availabilityFrom != null && room.availabilityTo != null
+                        ? '${room.availabilityFrom!.toString().split(" ").first} → ${room.availabilityTo!.toString().split(" ").first}'
+                        : room.availabilityFrom != null
+                            ? 'From ${room.availabilityFrom!.toString().split(" ").first}'
+                            : 'Until ${room.availabilityTo!.toString().split(" ").first}',
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                const Text('Description', style: TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                Text(room.description.isNotEmpty ? room.description : '—'),
                 const SizedBox(height: 16),
                 Row(children: [
                   Expanded(child: ElevatedButton(onPressed: () async {

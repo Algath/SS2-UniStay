@@ -4,9 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as ll;
 
-import 'package:unistay/views/home_page.dart';
-import 'package:unistay/views/profile_gate.dart';
-
 class MapPageOSM extends StatefulWidget {
   static const route = '/map';
   const MapPageOSM({super.key});
@@ -92,7 +89,6 @@ class _MapPageOSMState extends State<MapPageOSM> {
   final _mapCtrl = MapController();
   final _markers = <Marker>[];
   University? _selectedUniversity;
-  int _navIndex = 0; // Map tab selected
 
   @override
   void initState() {

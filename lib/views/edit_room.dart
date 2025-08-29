@@ -18,6 +18,7 @@ class _EditRoomPageState extends State<EditRoomPage> {
   final _baths = TextEditingController();
   bool _furnished = false;
   bool _loading = true;
+  DateTime? _availFrom, _availTo;
 
   @override
   void initState() {
@@ -34,6 +35,10 @@ class _EditRoomPageState extends State<EditRoomPage> {
     _rooms.text = ((m['rooms'] ?? 1).toString());
     _baths.text = ((m['bathrooms'] ?? 1).toString());
     _furnished = (m['furnished'] ?? false) as bool;
+    final tsFrom = m['availabilityFrom'];
+    final tsTo = m['availabilityTo'];
+    _availFrom = tsFrom is Timestamp ? tsFrom.toDate() : null;
+    _availTo = tsTo is Timestamp ? tsTo.toDate() : null;
     if (mounted) setState(() => _loading = false);
   }
 
@@ -47,6 +52,8 @@ class _EditRoomPageState extends State<EditRoomPage> {
         'rooms': int.tryParse(_rooms.text.trim()) ?? 1,
         'bathrooms': int.tryParse(_baths.text.trim()) ?? 1,
         'furnished': _furnished,
+        'availabilityFrom': _availFrom,
+        'availabilityTo': _availTo,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       if (!mounted) return;
@@ -95,6 +102,29 @@ class _EditRoomPageState extends State<EditRoomPage> {
                     const SizedBox(height: 12),
                     SwitchListTile.adaptive(value: _furnished, onChanged: (v) => setState(() => _furnished = v), title: const Text('Furnished')),
                     const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final now = DateTime.now();
+                        final d = await showDateRangePicker(
+                          context: context,
+                          firstDate: now,
+                          lastDate: now.add(const Duration(days: 365)),
+                          helpText: 'Set availability range',
+                        );
+                        if (d != null) {
+                          setState(() {
+                            _availFrom = d.start;
+                            _availTo = d.end;
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.calendar_today_outlined, size: 18),
+                      label: Text(
+                        _availFrom == null
+                            ? 'Set availability'
+                            : '${_availFrom!.toString().split(" ").first} → ${_availTo!.toString().split(" ").first}',
+                      ),
+                    ),
                     ElevatedButton(onPressed: _save, child: const Text('Save')),
                   ]),
                 ),

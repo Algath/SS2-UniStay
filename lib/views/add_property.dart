@@ -651,9 +651,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                               border: Border.all(color: Colors.grey[300]!),
                             ),
                             child: SwitchListTile(
-                              title: const Text('Utilities Included'),
+                              title: const Text('Charges Included'),
                               subtitle: Text(
-                                _utilitiesIncluded ? 'Utilities are included in price' : 'Utilities paid separately',
+                                _utilitiesIncluded ? 'Charges are included in price' : 'Charges paid separately',
                                 style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                               ),
                               value: _utilitiesIncluded,

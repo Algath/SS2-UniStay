@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:unistay/services/storage_service.dart';
 import 'package:unistay/services/utils.dart';
+import 'package:unistay/views/main_navigation.dart';
 
 class EditProfilePage extends StatefulWidget {
   static const route = '/edit-profile';
@@ -53,10 +54,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _save() async {
     setState(() => _saving = true);
     final uid = FirebaseAuth.instance.currentUser!.uid;
+
     try {
       String? newUrl = _photoUrl;
+
+      // 🔹 Handle image upload
       if (_localFile != null || _webBytes != null) {
-        // Web için ekstra güvenlik: çok büyük görselleri yüklemeyi önlemek
         if (kIsWeb && _webBytes != null && _webBytes!.lengthInBytes > 1000 * 1024) {
           _webBytes = _webBytes!.sublist(0, 1000 * 1024);
         }
@@ -68,6 +71,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         );
       }
 
+      // 🔹 Save profile data to Firestore
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'name': _name.text.trim(),
         'lastname': _lastname.text.trim(),
@@ -79,14 +83,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved')));
-      Navigator.of(context).pop();
+
+      // 🔹 Notify user
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile saved')),
+      );
+
+      // 🔹 Go to main navigation after saving
+      Navigator.of(context).pushReplacementNamed(MainNavigation.route);
+
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Profile save failed: $e')));
+
+      // 🔹 Error handling
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Profile save failed: $e')),
+      );
     }
   }
+
 
   @override
   void dispose() { _name.dispose(); _lastname.dispose(); _homeAddress.dispose(); _uniAddress.dispose(); super.dispose(); }

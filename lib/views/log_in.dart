@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:unistay/services/auth_service.dart';
 import 'package:unistay/views/main_navigation.dart';
 
-import 'home_page.dart';
 import 'sign_up.dart';
 
 class LoginPage extends StatefulWidget {
@@ -17,20 +16,30 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+
   bool _loading = false;
   String? _error;
 
+  final _auth = AuthService();   // ✅ Use the service
+
   Future<void> _signIn() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final user = await _auth.login(
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text.trim(),
       );
+
       if (!mounted) return;
+
+      // ✅ After login → go to MainNavigation (homepage with navbar)
       Navigator.of(context).pushReplacementNamed(MainNavigation.route);
-    } on FirebaseAuthException catch (e) {
-      setState(() => _error = e.message ?? 'Login failed');
+    } catch (e) {
+      setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -65,14 +74,22 @@ class _LoginPageState extends State<LoginPage> {
                 decoration: const InputDecoration(labelText: 'Password'),
               ),
               const SizedBox(height: 20),
+
               if (_error != null)
                 Text(_error!, style: const TextStyle(color: Colors.red)),
+
               const SizedBox(height: 6),
               ElevatedButton(
                 onPressed: _loading ? null : _signIn,
                 child: _loading
                     ? const SizedBox(
-                    height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  height: 22,
+                  width: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
                     : const Text('Log in'),
               ),
               const SizedBox(height: 16),

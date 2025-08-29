@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'package:unistay/models/user_profile.dart';
 import 'package:unistay/views/edit_profile.dart';
 import 'package:unistay/views/about_page.dart';
-import 'package:unistay/views/map_page_osm.dart';
-import 'package:unistay/views/home_page.dart';
 import 'package:unistay/views/log_in.dart';
 
 class ProfileStudentPage extends StatefulWidget {
@@ -18,7 +15,6 @@ class ProfileStudentPage extends StatefulWidget {
 }
 
 class _ProfileStudentPageState extends State<ProfileStudentPage> {
-  int _navIndex = 2;
   UserProfile? userProfile;
   bool isLoading = true;
 

@@ -5,6 +5,7 @@ class Room {
   final String title;
   final num price;
   final String address;
+  final String description;
   final double lat;
   final double lng;
   final String ownerUid;
@@ -26,6 +27,7 @@ class Room {
     required this.title,
     required this.price,
     required this.address,
+    this.description = '',
     required this.lat,
     required this.lng,
     required this.ownerUid,
@@ -53,6 +55,7 @@ class Room {
       title: (m['title'] ?? '') as String,
       price: (m['price'] ?? 0) as num,
       address: (m['address'] ?? '') as String,
+      description: (m['description'] ?? '') as String,
       lat: ((m['lat'] ?? 0.0) as num).toDouble(),
       lng: ((m['lng'] ?? 0.0) as num).toDouble(),
       ownerUid: (m['ownerUid'] ?? '') as String,
@@ -76,6 +79,7 @@ class Room {
       'title': title,
       'price': price,
       'address': address,
+      if (description.isNotEmpty) 'description': description,
       'lat': lat,
       'lng': lng,
       'ownerUid': ownerUid,

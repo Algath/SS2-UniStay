@@ -285,14 +285,12 @@ class _MapPageOSMState extends State<MapPageOSM> {
               interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
             ),
             children: [
-              // Using OSM Bright style from Stamen/Stadia
+              // OpenStreetMap default tiles (no API key required)
               TileLayer(
-                urlTemplate: 'https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}{r}.png',
+                urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.summerschool.unistay',
-                maxZoom: 20,
-                additionalOptions: const {
-                  'r': '', // Can be @2x for retina but leaving empty for now
-                },
+                maxZoom: 19,
+                subdomains: const ['a', 'b', 'c'],
               ),
               MarkerLayer(markers: _markers),
             ],

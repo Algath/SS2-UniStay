@@ -29,7 +29,6 @@ class _MainNavigationState extends State<MainNavigation> {
         children: _pages,
       ),
       bottomNavigationBar: NavigationBar(
-        backgroundColor: Colors.white,
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
           setState(() {

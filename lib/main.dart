@@ -44,7 +44,7 @@ class UniStayApp extends StatelessWidget {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
-          return snap.data == null ? const LoginPage() : const HomePage();
+          return snap.data == null ? const LoginPage() : const MainNavigation();
         },
       ),
       routes: {

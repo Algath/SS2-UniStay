@@ -379,9 +379,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+
       appBar: AppBar(
-        backgroundColor: Colors.white,
+
         elevation: 0,
         title: const Text(
           'Add Property',

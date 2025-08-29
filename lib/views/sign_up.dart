@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-import 'home_page.dart';
+import 'package:unistay/services/auth_service.dart';   // ✅ use your service
+import 'edit_profile.dart';                            // ✅ where we go after signup
 import 'log_in.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -18,30 +16,37 @@ class _SignUpPageState extends State<SignUpPage> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
+
   bool _loading = false;
   String _role = 'student';
   String? _error;
+
+  final _auth = AuthService();   // ✅ use the service instead of raw Firebase
 
   Future<void> _createAccount() async {
     if (_passwordCtrl.text != _confirmCtrl.text) {
       setState(() => _error = 'Passwords do not match');
       return;
     }
-    setState(() { _loading = true; _error = null; });
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
     try {
-      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final user = await _auth.signUp(
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text.trim(),
+        role: _role,
       );
-      await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
-        'email': _emailCtrl.text.trim(),
-        'role': _role,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(HomePage.route);
-    } on FirebaseAuthException catch (e) {
-      setState(() => _error = e.message ?? 'Sign-up failed');
+
+      // ✅ After signup → go to EditProfilePage
+      Navigator.of(context).pushReplacementNamed(EditProfilePage.route);
+    } catch (e) {
+      setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -101,19 +106,28 @@ class _SignUpPageState extends State<SignUpPage> {
                 ],
               ),
               const SizedBox(height: 16),
+
               if (_error != null)
                 Text(_error!, style: const TextStyle(color: Colors.red)),
+
               const SizedBox(height: 6),
               ElevatedButton(
                 onPressed: _loading ? null : _createAccount,
                 child: _loading
                     ? const SizedBox(
-                    height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  height: 22,
+                  width: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
                     : const Text('Sign up'),
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => Navigator.of(context).pushReplacementNamed(LoginPage.route),
+                onPressed: () =>
+                    Navigator.of(context).pushReplacementNamed(LoginPage.route),
                 child: Text(
                   'Already have an account? Log in',
                   style: GoogleFonts.inter(

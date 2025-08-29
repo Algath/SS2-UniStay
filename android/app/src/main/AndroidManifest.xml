@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="ss2_unit_stud"
+        android:label="UniStay"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -22,9 +22,7 @@ class _HomePageState extends State<HomePage> {
   String _type = 'Any'; // room | whole | Any
   DateTimeRange? _avail;
   final Set<String> _amen = {};
-  bool? _furnished;
   int? _sizeMin, _sizeMax, _roomsMin, _bathsMin;
-  bool? _utilsIncluded;
 
   @override
   void dispose() {
@@ -148,7 +146,8 @@ class _HomePageState extends State<HomePage> {
                       'Internet',
                       'Furnished',
                       'Private bathroom',
-                      'Kitchen access'
+                      'Kitchen access',
+                      'Charges included'
                     ])
                       FilterChip(
                         label: Text(a),
@@ -160,40 +159,7 @@ class _HomePageState extends State<HomePage> {
                 ),
 
                 const SizedBox(height: 20),
-                // Furnished / Utilities
-                Row(children: [
-                  Expanded(
-                    child: DropdownButtonFormField<bool?>(
-                      value: _furnished,
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: null, child: Text('Furnished: Any')),
-                        DropdownMenuItem(value: true, child: Text('Furnished: Yes')),
-                        DropdownMenuItem(value: false, child: Text('Furnished: No')),
-                      ],
-                      onChanged: (v) => setM(() => _furnished = v),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<bool?>(
-                      value: _utilsIncluded,
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: null, child: Text('Utilities: Any')),
-                        DropdownMenuItem(value: true, child: Text('Utilities: Included')),
-                        DropdownMenuItem(value: false, child: Text('Utilities: Excluded')),
-                      ],
-                      onChanged: (v) => setM(() => _utilsIncluded = v),
-                    ),
-                  ),
-                ]),
+                // Size / Rooms / Baths
 
                 const SizedBox(height: 20),
                 // Size / Rooms / Baths
@@ -265,12 +231,10 @@ class _HomePageState extends State<HomePage> {
                           _type = 'Any';
                           _avail = null;
                           _amen.clear();
-                          _furnished = null;
                           _sizeMin = null;
                           _sizeMax = null;
                           _roomsMin = null;
                           _bathsMin = null;
-                          _utilsIncluded = null;
                           ctrlSizeMin.clear();
                           ctrlSizeMax.clear();
                           ctrlRoomsMin.clear();
@@ -314,12 +278,10 @@ class _HomePageState extends State<HomePage> {
         _type != 'Any' ||
         _avail != null ||
         _amen.isNotEmpty ||
-        _furnished != null ||
         _sizeMin != null ||
         _sizeMax != null ||
         _roomsMin != null ||
-        _bathsMin != null ||
-        _utilsIncluded != null;
+        _bathsMin != null;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -410,35 +372,33 @@ class _HomePageState extends State<HomePage> {
                             final rooms = (snap.data ?? []).where((r) {
                               final priceOk = r.price <= _priceMax;
                               final typeOk = _type == 'Any' ? true : r.type == _type;
-                              final amenOk =
-                              _amen.isEmpty ? true : _amen.every((a) => r.amenities.contains(a));
+                              final amenOk = _amen.isEmpty
+                                  ? true
+                                  : _amen.every((a) {
+                                      if (a == 'Furnished') return r.furnished == true;
+                                      if (a == 'Charges included') return r.utilitiesIncluded == true;
+                                      return r.amenities.contains(a);
+                                    });
                               final availOk = _avail == null
                                   ? true
                                   : ((r.availabilityFrom == null ||
-                                  r.availabilityFrom!.isBefore(_avail!.end)) &&
-                                  (r.availabilityTo == null ||
-                                      r.availabilityTo!.isAfter(_avail!.start)));
-                              final furnOk =
-                              _furnished == null ? true : r.furnished == _furnished;
+                                      !r.availabilityFrom!.isAfter(_avail!.end)) &&
+                                      (r.availabilityTo == null ||
+                                          !r.availabilityTo!.isBefore(_avail!.start)));
                               final sizeOk = (_sizeMin == null || r.sizeSqm >= _sizeMin!) &&
                                   (_sizeMax == null || r.sizeSqm <= _sizeMax!);
                               final roomsOk =
                               _roomsMin == null ? true : r.rooms >= _roomsMin!;
                               final bathsOk =
                               _bathsMin == null ? true : r.bathrooms >= _bathsMin!;
-                              final utilsOk = _utilsIncluded == null
-                                  ? true
-                                  : r.utilitiesIncluded == _utilsIncluded;
 
                               return priceOk &&
                                   typeOk &&
                                   amenOk &&
                                   availOk &&
-                                  furnOk &&
                                   sizeOk &&
                                   roomsOk &&
-                                  bathsOk &&
-                                  utilsOk;
+                                  bathsOk;
                             }).toList();
 
                             if (rooms.isEmpty) {
@@ -467,12 +427,12 @@ class _HomePageState extends State<HomePage> {
                                           _type = 'Any';
                                           _avail = null;
                                           _amen.clear();
-                                          _furnished = null;
+                                          // removed furnished dropdown
                                           _sizeMin = null;
                                           _sizeMax = null;
                                           _roomsMin = null;
                                           _bathsMin = null;
-                                          _utilsIncluded = null;
+                                          // removed charges dropdown
                                         });
                                       },
                                       child: const Text('Clear filters'),
@@ -609,23 +569,35 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 6),
 
-                      // Details with icons
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.directions_walk,
-                            size: 16,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${room.walkMins} min',
-                            style: TextStyle(
-                              fontSize: isTablet ? 14 : 13,
-                              color: Colors.grey[600],
+                      // Availability badge
+                      if (room.availabilityFrom != null || room.availabilityTo != null) ...[
+                        Row(children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              room.availabilityFrom != null && room.availabilityTo != null
+                                  ? 'Available: ${room.availabilityFrom!.toString().split(" ").first} → ${room.availabilityTo!.toString().split(" ").first}'
+                                  : room.availabilityFrom != null
+                                      ? 'Available from ${room.availabilityFrom!.toString().split(" ").first}'
+                                      : 'Available until ${room.availabilityTo!.toString().split(" ").first}',
+                              style: TextStyle(
+                                fontSize: isTablet ? 13 : 12,
+                                color: Colors.blue[700],
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                        ]),
+                        const SizedBox(height: 6),
+                      ],
+
+                      // Details with icons (removed walk mins)
+                      Row(
+                        children: [
                           Icon(
                             Icons.square_foot,
                             size: 16,

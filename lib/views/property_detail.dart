@@ -978,11 +978,13 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
               }
             }
           }
-        } else if (request.status == 'accepted') {
-          // Students see accepted bookings as booked (grey)
-          for (DateTime day = request.requestedRange.start; day.isBefore(request.requestedRange.end.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
-            final dateKey = DateTime(day.year, day.month, day.day);
-            statusMap[dateKey] = 'booked_student';
+        } else {
+          // Students only see available/unavailable
+          if (request.status == 'accepted' || request.status == 'pending') {
+            for (DateTime day = request.requestedRange.start; day.isBefore(request.requestedRange.end.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
+              final dateKey = DateTime(day.year, day.month, day.day);
+              statusMap[dateKey] = 'unavailable';
+            }
           }
         }
       }
@@ -1009,12 +1011,10 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
         return Colors.green;
       case 'booked':
         return Colors.blue; // Owner sees booked as blue
-      case 'booked_student':
-        return Colors.grey; // Student sees booked as grey
       case 'pending':
-        return Colors.orange;
+        return Colors.orange; // Owner sees pending as orange
       default:
-        return Colors.grey;
+        return Colors.grey; // All unavailable dates are grey
     }
   }
 
@@ -1201,11 +1201,6 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
                       _LegendItem(
                         color: Colors.orange,
                         label: 'Pending',
-                      ),
-                    ] else ...[
-                      _LegendItem(
-                        color: Colors.grey,
-                        label: 'Booked',
                       ),
                     ],
                     _LegendItem(

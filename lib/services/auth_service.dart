@@ -25,7 +25,14 @@ class AuthService {
     await _db.collection('users').doc(cred.user!.uid).set({
       'email': email,
       'role': role,
+      'isAdmin': false,  // 👈 ADD THIS LINE - All new users are not admin by default
       'createdAt': FieldValue.serverTimestamp(),
+      // Optional: Add other default fields to match your UserProfile model
+      'name': '',
+      'lastname': '',
+      'homeAddress': '',
+      'uniAddress': '',
+      'photoUrl': '',
     });
 
     return cred.user;

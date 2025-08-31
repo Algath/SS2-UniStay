@@ -39,11 +39,15 @@ class BookingService {
         .collection('booking_requests')
         .where('ownerUid', isEqualTo: ownerUid)
         .where('status', isEqualTo: 'pending')
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => BookingRequest.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+          final requests = snapshot.docs
+              .map((doc) => BookingRequest.fromFirestore(doc))
+              .toList();
+          // Sort in memory instead of using orderBy to avoid composite index requirement
+          requests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return requests;
+        });
   }
 
   // Get booking requests for a student
@@ -51,11 +55,15 @@ class BookingService {
     return _firestore
         .collection('booking_requests')
         .where('studentUid', isEqualTo: studentUid)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => BookingRequest.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+          final requests = snapshot.docs
+              .map((doc) => BookingRequest.fromFirestore(doc))
+              .toList();
+          // Sort in memory instead of using orderBy to avoid composite index requirement
+          requests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return requests;
+        });
   }
 
   // Accept a booking request

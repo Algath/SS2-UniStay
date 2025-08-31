@@ -252,13 +252,15 @@ class _EditRoomCalendarState extends State<_EditRoomCalendar> {
           ),
         ),
         Expanded(
-          child: TableCalendar(
-            firstDay: DateTime.now(),
-            lastDay: DateTime.now().add(const Duration(days: 365)),
-            focusedDay: _focusedDay,
-            rangeStartDay: _selectedRange?.start,
-            rangeEndDay: _selectedRange?.end,
-            rangeSelectionMode: RangeSelectionMode.toggledOn,
+                      child: TableCalendar(
+              firstDay: DateTime.now(),
+              lastDay: DateTime.now().add(const Duration(days: 365)),
+              focusedDay: _focusedDay,
+              rangeStartDay: _selectedRange?.start,
+              rangeEndDay: _selectedRange?.end,
+              rangeSelectionMode: RangeSelectionMode.toggledOn,
+              rowHeight: 35,
+              daysOfWeekHeight: 30,
             onDaySelected: (selectedDay, focusedDay) {
               if (_selectedRange == null) {
                 setState(() {

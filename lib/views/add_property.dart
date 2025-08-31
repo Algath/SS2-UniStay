@@ -1072,6 +1072,8 @@ class _AddPropertyCalendarState extends State<_AddPropertyCalendar> {
               rangeStartDay: _selectedRange?.start,
               rangeEndDay: _selectedRange?.end,
               rangeSelectionMode: RangeSelectionMode.toggledOn,
+              rowHeight: 35,
+              daysOfWeekHeight: 30,
               onDaySelected: (selectedDay, focusedDay) {
                 if (_selectedRange == null) {
                   setState(() {

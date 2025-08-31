@@ -1032,8 +1032,8 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
       child: Column(
         children: [
           Container(
-            height: isTablet ? 420 : 380,
-            padding: const EdgeInsets.all(16),
+            height: isTablet ? 450 : 400,
+            padding: const EdgeInsets.all(12),
             child: TableCalendar(
               firstDay: DateTime.now(),
               lastDay: DateTime.now().add(const Duration(days: 365)),
@@ -1042,6 +1042,8 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
               rangeStartDay: _rangeStart,
               rangeEndDay: _rangeEnd,
               rangeSelectionMode: RangeSelectionMode.toggledOn,
+              rowHeight: 35,
+              daysOfWeekHeight: 30,
               onDaySelected: (selectedDay, focusedDay) {
                 if (!widget.isOwner && _isDateSelectable(selectedDay)) {
                   setState(() {
@@ -1076,7 +1078,10 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
               },
               calendarStyle: const CalendarStyle(
                 outsideDaysVisible: false,
-                weekendTextStyle: TextStyle(color: Colors.red),
+                weekendTextStyle: TextStyle(color: Colors.red, fontSize: 13),
+                defaultTextStyle: TextStyle(fontSize: 13),
+                selectedTextStyle: TextStyle(fontSize: 13),
+                todayTextStyle: TextStyle(fontSize: 13),
                 selectedDecoration: BoxDecoration(
                   color: Color(0xFF6E56CF),
                   shape: BoxShape.circle,
@@ -1090,14 +1095,20 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
                   shape: BoxShape.circle,
                 ),
                 rangeHighlightColor: Color(0x336E56CF),
+                cellMargin: EdgeInsets.all(2),
+                cellPadding: EdgeInsets.all(0),
               ),
               headerStyle: const HeaderStyle(
                 formatButtonVisible: false,
                 titleCentered: true,
+                headerPadding: EdgeInsets.symmetric(vertical: 8),
                 titleTextStyle: TextStyle(
                   color: Color(0xFF2C3E50),
                   fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
+                leftChevronPadding: EdgeInsets.all(4),
+                rightChevronPadding: EdgeInsets.all(4),
               ),
               enabledDayPredicate: _isDateSelectable,
               eventLoader: (day) {

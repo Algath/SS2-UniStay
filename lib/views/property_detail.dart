@@ -71,6 +71,15 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
             }
             final room = Room.fromFirestore(snap.data!);
             final img = room.photos.isNotEmpty ? room.photos.first : null;
+            
+            // Debug: Check availability ranges
+            print('DEBUG: Room ID: ${room.id}');
+            print('DEBUG: Room title: ${room.title}');
+            print('DEBUG: Availability ranges count: ${room.availabilityRanges.length}');
+            for (int i = 0; i < room.availabilityRanges.length; i++) {
+              final range = room.availabilityRanges[i];
+              print('DEBUG: Range $i: ${range.start} to ${range.end}');
+            }
 
             return SingleChildScrollView(
               child: Column(

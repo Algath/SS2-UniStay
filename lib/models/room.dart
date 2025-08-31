@@ -81,22 +81,87 @@ class Room {
   factory Room.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final m = doc.data() ?? {};
     
+    print('DEBUG: Parsing room ${doc.id}');
+    print('DEBUG: Raw availabilityRanges data: ${m['availabilityRanges']}');
+    
     // Parse availability ranges
     List<DateTimeRange> ranges = [];
     final rangesData = m['availabilityRanges'] as List?;
+    print('DEBUG: rangesData type: ${rangesData.runtimeType}, length: ${rangesData?.length}');
+    
     if (rangesData != null) {
-      for (var rangeData in rangesData) {
+      for (int i = 0; i < rangesData.length; i++) {
+        final rangeData = rangesData[i];
+        print('DEBUG: Processing range $i: $rangeData (type: ${rangeData.runtimeType})');
+        
         if (rangeData is Map<String, dynamic>) {
-          final start = rangeData['start'] as Timestamp?;
-          final end = rangeData['end'] as Timestamp?;
+          final start = rangeData['start'];
+          final end = rangeData['end'];
+          print('DEBUG: start: $start (type: ${start.runtimeType})');
+          print('DEBUG: end: $end (type: ${end.runtimeType})');
+          
           if (start != null && end != null) {
+            DateTime startDate;
+            DateTime endDate;
+            
+            // Handle both Timestamp and DateTime
+            if (start is Timestamp) {
+              startDate = start.toDate();
+            } else if (start is DateTime) {
+              startDate = start;
+            } else {
+              print('DEBUG: Unknown start type: ${start.runtimeType}');
+              continue;
+            }
+            
+            if (end is Timestamp) {
+              endDate = end.toDate();
+            } else if (end is DateTime) {
+              endDate = end;
+            } else {
+              print('DEBUG: Unknown end type: ${end.runtimeType}');
+              continue;
+            }
+            
             ranges.add(DateTimeRange(
-              start: start.toDate(),
-              end: end.toDate(),
+              start: startDate,
+              end: endDate,
             ));
+            print('DEBUG: Added range: $startDate to $endDate');
           }
         }
       }
+    }
+    
+    print('DEBUG: Final ranges count: ${ranges.length}');
+    
+    // Migration: If no availability ranges and this is an old property, create a default range
+    if (ranges.isEmpty && m['availabilityFrom'] != null && m['availabilityTo'] != null) {
+      print('DEBUG: Migrating old availability format');
+      final availFrom = m['availabilityFrom'] as Timestamp?;
+      final availTo = m['availabilityTo'] as Timestamp?;
+      
+      if (availFrom != null && availTo != null) {
+        ranges.add(DateTimeRange(
+          start: availFrom.toDate(),
+          end: availTo.toDate(),
+        ));
+        print('DEBUG: Migrated range: ${availFrom.toDate()} to ${availTo.toDate()}');
+      }
+    }
+    
+    // If still no ranges, create a default 30-day range starting from today
+    if (ranges.isEmpty) {
+      print('DEBUG: No availability data found, creating default 30-day range');
+      final now = DateTime.now();
+      final startDate = DateTime(now.year, now.month, now.day);
+      final endDate = startDate.add(const Duration(days: 30));
+      
+      ranges.add(DateTimeRange(
+        start: startDate,
+        end: endDate,
+      ));
+      print('DEBUG: Created default range: $startDate to $endDate');
     }
 
     return Room(

@@ -43,254 +43,342 @@ class _HomePageState extends State<HomePage> {
         final ctrlRoomsMin = TextEditingController(text: _roomsMin?.toString() ?? '');
         final ctrlBathsMin = TextEditingController(text: _bathsMin?.toString() ?? '');
 
-        return StatefulBuilder(builder: (ctx, setM) {
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 16,
-              bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
+        return StatefulBuilder(
+          builder: (ctx, setM) {
+          return Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFF8F9FA), Colors.white],
+              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            child: SingleChildScrollView(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Center(
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 20,
+                bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Center(
+                    child: Container(
+                      width: 50,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+                        ),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.tune, color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Filters', 
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700, 
+                          fontSize: 26, 
+                          color: Color(0xFF2C3E50),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+
+                // Price range card
+                _buildFilterCard(
+                  title: 'Price Range (CHF / month)',
+                  child: Column(
+                    children: [
+                      RangeSlider(
+                        min: 200,
+                        max: 5000,
+                        divisions: (5000 - 200) ~/ 100,
+                        labels: RangeLabels(
+                          'CHF ${_priceMin.round()}',
+                          _priceMax == null ? 'Any' : 'CHF ${_priceMax!.round()}',
+                        ),
+                        values: RangeValues(_priceMin, _priceMax ?? 5000),
+                        onChanged: (values) => setM(() {
+                          _priceMin = values.start;
+                          _priceMax = values.end == 5000 ? null : values.end;
+                        }),
+                        activeColor: const Color(0xFF6E56CF),
+                        inactiveColor: const Color(0xFF6E56CF).withOpacity(0.3),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [const Color(0xFF6E56CF).withOpacity(0.1), const Color(0xFF9C88FF).withOpacity(0.1)],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFF6E56CF).withOpacity(0.3)),
+                            ),
+                            child: Text(
+                              'Min: CHF ${_priceMin.round()}', 
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600, 
+                                color: Color(0xFF6E56CF),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [const Color(0xFF6E56CF).withOpacity(0.1), const Color(0xFF9C88FF).withOpacity(0.1)],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFF6E56CF).withOpacity(0.3)),
+                            ),
+                            child: Text(
+                              _priceMax == null ? 'Max: Any' : 'Max: CHF ${_priceMax!.round()}', 
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600, 
+                                color: Color(0xFF6E56CF),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+                // Property Type card
+                _buildFilterCard(
+                  title: 'Property Type',
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildChoiceChip('Any', _type == 'Any', () => setM(() => _type = 'Any')),
+                      _buildChoiceChip('Single room', _type == 'room', () => setM(() => _type = 'room')),
+                      _buildChoiceChip('Whole property', _type == 'whole', () => setM(() => _type = 'whole')),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+                // Availability card
+                _buildFilterCard(
+                  title: 'Availability',
                   child: Container(
-                    width: 40,
-                    height: 4,
+                    width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text('Filters', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.black87)),
-                const SizedBox(height: 24),
-
-                // Price range slider
-                Text('Price Range (CHF / month)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[800])),
-                const SizedBox(height: 8),
-                RangeSlider(
-                  min: 200,
-                  max: 5000,
-                  divisions: (5000 - 200) ~/ 100,
-                  labels: RangeLabels(
-                    'CHF ${_priceMin.round()}',
-                    _priceMax == null ? 'Any' : 'CHF ${_priceMax!.round()}',
-                  ),
-                  values: RangeValues(_priceMin, _priceMax ?? 5000),
-                  onChanged: (values) => setM(() {
-                    _priceMin = values.start;
-                    _priceMax = values.end == 5000 ? null : values.end;
-                  }),
-                  activeColor: Theme.of(context).primaryColor,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(8),
+                      gradient: LinearGradient(
+                        colors: [const Color(0xFF6E56CF).withOpacity(0.05), const Color(0xFF9C88FF).withOpacity(0.05)],
                       ),
-                      child: Text('Min: CHF ${_priceMin.round()}', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.blue[700])),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF6E56CF).withOpacity(0.2)),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(8),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _showDateRangePicker(ctx, setM),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.calendar_today, color: Colors.white, size: 18),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _avail == null ? 'Any time' : 'Selected dates',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF2C3E50),
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    if (_avail != null) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${_avail!.start.toString().split(" ").first} → ${_avail!.end.toString().split(" ").first}',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Colors.grey[400],
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      child: Text(_priceMax == null ? 'Max: Any' : 'Max: CHF ${_priceMax!.round()}', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.blue[700])),
                     ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-                // Type
-                Text('Type', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[800])),
-                const SizedBox(height: 10),
-                Wrap(spacing: 8, children: [
-                  ChoiceChip(
-                      label: const Text('Any'),
-                      selected: _type == 'Any',
-                      onSelected: (_) => setM(() => _type = 'Any')),
-                  ChoiceChip(
-                      label: const Text('Single room'),
-                      selected: _type == 'room',
-                      onSelected: (_) => setM(() => _type = 'room')),
-                  ChoiceChip(
-                      label: const Text('Whole property'),
-                      selected: _type == 'whole',
-                      onSelected: (_) => setM(() => _type = 'whole')),
-                ]),
-
-                const SizedBox(height: 20),
-                // Availability
-                Text('Availability', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[800])),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final now = DateTime.now();
-                    final d = await showDateRangePicker(
-                      context: ctx,
-                      firstDate: now,
-                      lastDate: now.add(const Duration(days: 365)),
-                    );
-                    if (d != null) setM(() => _avail = d);
-                  },
-                  icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                  label: Text(_avail == null
-                      ? 'Any time'
-                      : '${_avail!.start.toString().split(" ").first} → ${_avail!.end.toString().split(" ").first}'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
 
                 const SizedBox(height: 20),
-                // Amenities
-                Text('Amenities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[800])),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final a in const [
-                      'Internet',
-                      'Furnished',
-                      'Private bathroom',
-                      'Kitchen access',
-                      'Charges included'
-                    ])
-                      FilterChip(
-                        label: Text(a),
-                        selected: _amen.contains(a),
-                        onSelected: (s) =>
-                            setM(() => s ? _amen.add(a) : _amen.remove(a)),
-                      ),
-                  ],
+                // Amenities card
+                _buildFilterCard(
+                  title: 'Amenities',
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final a in const [
+                        'Internet',
+                        'Furnished',
+                        'Private bathroom',
+                        'Kitchen access',
+                        'Charges included'
+                      ])
+                        _buildFilterChip(a, _amen.contains(a), (s) => setM(() => s ? _amen.add(a) : _amen.remove(a))),
+                    ],
+                  ),
                 ),
 
                 const SizedBox(height: 20),
-                // Size / Rooms / Baths
-                Text('Size (m²)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[800])),
-                const SizedBox(height: 10),
-                Row(children: [
-                  Expanded(
-                    child: TextField(
-                      controller: ctrlSizeMin,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Min',
-                        hintText: '15',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                // Size & Details card
+                _buildFilterCard(
+                  title: 'Size & Details',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Size (m²)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
+                        ),
                       ),
-                      onChanged: (s) {
-                        final value = int.tryParse(s);
-                        if (value != null && value >= 15 && value <= 500) {
-                          _sizeMin = value;
-                        } else if (value != null && (value < 15 || value > 500)) {
-                          // Show warning for unrealistic values
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(
-                              content: Text('Size should be between 15-500 m²'),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        }
-                      },
-                    ),
+                      const SizedBox(height: 12),
+                      Row(children: [
+                        Expanded(
+                          child: _buildModernTextField(
+                            controller: ctrlSizeMin,
+                            label: 'Min',
+                            hint: '15',
+                            onChanged: (s) {
+                              final value = int.tryParse(s);
+                              if (value != null && value >= 15 && value <= 500) {
+                                _sizeMin = value;
+                              } else if (value != null && (value < 15 || value > 500)) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Size should be between 15-500 m²'),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildModernTextField(
+                            controller: ctrlSizeMax,
+                            label: 'Max',
+                            hint: '200',
+                            onChanged: (s) {
+                              final value = int.tryParse(s);
+                              if (value != null && value >= 15 && value <= 500) {
+                                _sizeMax = value;
+                              } else if (value != null && (value < 15 || value > 500)) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Size should be between 15-500 m²'),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: 16),
+                      Row(children: [
+                        Expanded(
+                          child: _buildModernTextField(
+                            controller: ctrlRoomsMin,
+                            label: 'Min rooms',
+                            hint: '1',
+                            onChanged: (s) {
+                              final value = int.tryParse(s);
+                              if (value != null && value >= 1 && value <= 10) {
+                                _roomsMin = value;
+                              } else if (value != null && (value < 1 || value > 10)) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Room count should be between 1-10'),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildModernTextField(
+                            controller: ctrlBathsMin,
+                            label: 'Min bathrooms',
+                            hint: '1',
+                            onChanged: (s) {
+                              final value = int.tryParse(s);
+                              if (value != null && value >= 1 && value <= 5) {
+                                _bathsMin = value;
+                              } else if (value != null && (value < 1 || value > 5)) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Bathroom count should be between 1-5'),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      ]),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: ctrlSizeMax,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Max',
-                        hintText: '200',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      ),
-                      onChanged: (s) {
-                        final value = int.tryParse(s);
-                        if (value != null && value >= 15 && value <= 500) {
-                          _sizeMax = value;
-                        } else if (value != null && (value < 15 || value > 500)) {
-                          // Show warning for unrealistic values
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(
-                              content: Text('Size should be between 15-500 m²'),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 14),
-                Row(children: [
-                  Expanded(
-                    child: TextField(
-                      controller: ctrlRoomsMin,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Min rooms',
-                        hintText: '1',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      ),
-                      onChanged: (s) {
-                        final value = int.tryParse(s);
-                        if (value != null && value >= 1 && value <= 10) {
-                          _roomsMin = value;
-                        } else if (value != null && (value < 1 || value > 10)) {
-                          // Show warning for unrealistic values
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(
-                              content: Text('Room count should be between 1-10'),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: ctrlBathsMin,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Min bathrooms',
-                        hintText: '1',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      ),
-                      onChanged: (s) {
-                        final value = int.tryParse(s);
-                        if (value != null && value >= 1 && value <= 5) {
-                          _bathsMin = value;
-                        } else if (value != null && (value < 1 || value > 5)) {
-                          // Show warning for unrealistic values
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(
-                              content: Text('Bathroom count should be between 1-5'),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                ]),
+                ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 Row(children: [
                   Expanded(
                     child: OutlinedButton(
@@ -312,28 +400,66 @@ class _HomePageState extends State<HomePage> {
                         });
                       },
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        side: const BorderSide(color: Color(0xFF6E56CF), width: 1.5),
+                        foregroundColor: const Color(0xFF6E56CF),
                       ),
-                      child: const Text('Clear All'),
+                      child: const Text(
+                        'Clear All',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   Expanded(
-                    child: FilledButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF6E56CF).withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      child: const Text('Apply Filters'),
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                        child: const Text(
+                          'Apply Filters',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ]),
               ]),
+              ),
             ),
           );
-        });
+          }
+        );
       },
     ).then((_) => setState(() {}));
   }
@@ -541,6 +667,188 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // Helper method for modern date range picker
+  void _showDateRangePicker(BuildContext ctx, StateSetter setM) async {
+    final now = DateTime.now();
+    final d = await showDateRangePicker(
+      context: ctx,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: const Color(0xFF6E56CF),
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (d != null) setM(() => _avail = d);
+  }
+
+  // Helper method for filter cards
+  Widget _buildFilterCard({required String title, required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF2C3E50),
+            ),
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+
+  // Helper method for choice chips
+  Widget _buildChoiceChip(String label, bool selected, VoidCallback onTap) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: selected
+            ? const LinearGradient(
+                colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+              )
+            : null,
+        color: selected ? null : Colors.grey[100],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: selected ? Colors.transparent : Colors.grey[300]!,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.white : Colors.grey[700],
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper method for filter chips
+  Widget _buildFilterChip(String label, bool selected, Function(bool) onSelected) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: selected
+            ? const LinearGradient(
+                colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+              )
+            : null,
+        color: selected ? null : Colors.grey[100],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: selected ? Colors.transparent : Colors.grey[300]!,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onSelected(!selected),
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (selected) ...[
+                  const Icon(
+                    Icons.check,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: selected ? Colors.white : Colors.grey[700],
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper method for modern text fields
+  Widget _buildModernTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required Function(String) onChanged,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF6E56CF), width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+        ),
+        labelStyle: TextStyle(color: Colors.grey[600]),
+        hintStyle: TextStyle(color: Colors.grey[400]),
+      ),
+      onChanged: onChanged,
+    );
+  }
+
   Widget _buildPropertyCard({
     required Room room,
     required bool isTablet,
@@ -726,7 +1034,7 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
-
+            
                 // Arrow
                 Icon(
                   Icons.arrow_forward_ios,

@@ -515,7 +515,6 @@ class _ProfileOwnerPageState extends State<ProfileOwnerPage> {
                                     else
                                       ...docs.map((d) => _OwnerRoomCard(
                                         room: d.data(),
-                                        onDelete: (room) => _deleteProperty(context, room),
                                       )).toList(),
                                 ],
                               );
@@ -890,11 +889,9 @@ class _BookingRequestCard extends StatelessWidget {
 
 class _OwnerRoomCard extends StatelessWidget {
   final Room room;
-  final Function(Room) onDelete;
   
   const _OwnerRoomCard({
     required this.room,
-    required this.onDelete,
   });
 
   @override
@@ -972,26 +969,6 @@ class _OwnerRoomCard extends StatelessWidget {
                     style: const TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => EditRoomPage(roomId: room.id),
-                            ),
-                          );
-                        },
-                        child: const Text('Edit'),
-                      ),
-                      const SizedBox(width: 8),
-                      TextButton(
-                            onPressed: () => onDelete(room),
-                            style: TextButton.styleFrom(foregroundColor: Colors.red),
-                            child: const Text('Delete'),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),

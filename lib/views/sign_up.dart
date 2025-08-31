@@ -57,8 +57,11 @@ class _SignUpPageState extends State<SignUpPage> {
 
       if (!mounted) return;
 
-      // After successful signup → go to EditProfilePage
-      Navigator.of(context).pushReplacementNamed(EditProfilePage.route);
+      // After successful signup → go to EditProfilePage with fromSignup flag
+      Navigator.of(context).pushReplacementNamed(
+        EditProfilePage.route,
+        arguments: {'fromSignup': true}, // Pass argument to indicate signup flow
+      );
     } catch (e) {
       if (mounted) {
         setState(() {

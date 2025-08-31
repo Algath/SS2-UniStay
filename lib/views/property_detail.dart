@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unistay/models/room.dart';
+import 'package:unistay/models/booking_request.dart';
+import 'package:unistay/services/booking_service.dart';
 import 'package:unistay/views/edit_room.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-class PropertyDetailPage extends StatelessWidget {
+class PropertyDetailPage extends StatefulWidget {
   final String roomId;
   final bool isOwnerView;
   const PropertyDetailPage({
@@ -15,8 +17,15 @@ class PropertyDetailPage extends StatelessWidget {
   });
 
   @override
+  State<PropertyDetailPage> createState() => _PropertyDetailPageState();
+}
+
+class _PropertyDetailPageState extends State<PropertyDetailPage> {
+  DateTimeRange? _selectedRange;
+
+  @override
   Widget build(BuildContext context) {
-    final ref = FirebaseFirestore.instance.collection('rooms').doc(roomId);
+    final ref = FirebaseFirestore.instance.collection('rooms').doc(widget.roomId);
     final currentUser = FirebaseAuth.instance.currentUser;
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
@@ -35,12 +44,12 @@ class PropertyDetailPage extends StatelessWidget {
         foregroundColor: const Color(0xFF2C3E50),
         elevation: 0,
         centerTitle: true,
-        actions: isOwnerView ? [
+        actions: widget.isOwnerView ? [
           IconButton(
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => EditRoomPage(roomId: roomId),
+                  builder: (_) => EditRoomPage(roomId: widget.roomId),
                 ),
               );
             },
@@ -325,7 +334,7 @@ class PropertyDetailPage extends StatelessWidget {
                                   const SizedBox(height: 16),
 
                                   // Availability Section
-                                  if (room.availabilityFrom != null || room.availabilityTo != null) ...[
+                                  if (room.availabilityRanges.isNotEmpty) ...[
                                     Row(
                                       children: [
                                         Container(
@@ -360,16 +369,21 @@ class PropertyDetailPage extends StatelessWidget {
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(color: Colors.green[200]!),
                                       ),
-                                      child: Text(
-                                        room.availabilityFrom != null && room.availabilityTo != null
-                                            ? '${room.availabilityFrom!.toString().split(" ").first} → ${room.availabilityTo!.toString().split(" ").first}'
-                                            : room.availabilityFrom != null
-                                                ? 'From ${room.availabilityFrom!.toString().split(" ").first}'
-                                                : 'Until ${room.availabilityTo!.toString().split(" ").first}',
-                                        style: TextStyle(
-                                          color: Colors.green[700],
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          for (var range in room.availabilityRanges) ...[
+                                            if (range != room.availabilityRanges.first)
+                                              const SizedBox(height: 8),
+                                            Text(
+                                              '${range.start.toString().split(" ").first} → ${range.end.toString().split(" ").first}',
+                                              style: TextStyle(
+                                                color: Colors.green[700],
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ),
                                   ],
@@ -524,14 +538,52 @@ class PropertyDetailPage extends StatelessWidget {
                           ],
                         ),
                 const SizedBox(height: 12),
-                        _AvailabilityCalendar(
-                          room: room,
-                          isOwner: isOwnerView || (currentUser?.uid == room.ownerUid),
-                        ),
+                        room.availabilityRanges.isEmpty 
+                          ? Container(
+                              height: 200,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFE9ECEF)),
+                              ),
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 48,
+                                      color: Colors.grey[400],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      widget.isOwnerView || (currentUser?.uid == room.ownerUid)
+                                        ? 'No availability ranges set\nEdit property to add availability'
+                                        : 'No available dates\nCheck back later',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 16,
+                                        height: 1.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : _AvailabilityCalendar(
+                              room: room,
+                              isOwner: widget.isOwnerView || (currentUser?.uid == room.ownerUid),
+                              onRangeSelected: (range) {
+                                setState(() {
+                                  _selectedRange = range;
+                                });
+                              },
+                            ),
                         const SizedBox(height: 24),
 
                         // Action buttons
-                        if (isOwnerView) ...[
+                        if (widget.isOwnerView) ...[
                           // Owner action buttons
                           Row(
                             children: [
@@ -570,7 +622,7 @@ class PropertyDetailPage extends StatelessWidget {
                                     onPressed: () {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
-                                          builder: (_) => EditRoomPage(roomId: roomId),
+                                          builder: (_) => EditRoomPage(roomId: widget.roomId),
                                         ),
                                       );
                                     },
@@ -647,43 +699,66 @@ class PropertyDetailPage extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please log in first')),
       );
-                      return;
-                    }
-                    final now = DateTime.now();
-                    final fromLim = room.availabilityFrom ?? now;
-                    final toLim = room.availabilityTo ?? now.add(const Duration(days: 365));
-                    final range = await showDateRangePicker(
-                      context: context,
-                      firstDate: fromLim.isAfter(now) ? fromLim : now,
-                      lastDate: toLim,
-                      helpText: 'Select stay period',
-                    );
-                    if (range == null) return;
-                    // Guard: chosen range must be inside availability
-                    if ((room.availabilityFrom != null && range.start.isBefore(room.availabilityFrom!)) ||
-                        (room.availabilityTo != null && range.end.isAfter(room.availabilityTo!))) {
+      return;
+    }
+
+    // Check if user has selected dates in the calendar
+    if (_selectedRange == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select dates from the calendar above')),
+      );
+      return;
+    }
+
+    // Validate selected range is within available ranges
+    bool isValidRange = false;
+    for (var range in room.availabilityRanges) {
+      if (_selectedRange!.start.isAfter(range.start.subtract(const Duration(days: 1))) &&
+          _selectedRange!.end.isBefore(range.end.add(const Duration(days: 1)))) {
+        isValidRange = true;
+        break;
+      }
+    }
+
+    if (!isValidRange) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Selected dates are outside availability')),
       );
                       return;
                     }
-                    final data = {
-                      'roomId': room.id,
-                      'ownerUid': room.ownerUid,
-                      'studentUid': user.uid,
-                      'from': Timestamp.fromDate(range.start),
-                      'to': Timestamp.fromDate(range.end),
-                      'status': 'pending',
-                      'createdAt': FieldValue.serverTimestamp(),
-                    };
-                    try {
-                      await FirebaseFirestore.instance.collection('bookings').add(data);
-                      if (context.mounted) {
+
+    try {
+      final bookingService = BookingService();
+      
+      print('DEBUG: Creating booking request...');
+      print('DEBUG: Property ID: ${room.id}');
+      print('DEBUG: Owner UID: ${room.ownerUid}');
+      print('DEBUG: Student UID: ${user.uid}');
+      print('DEBUG: Student Name: ${user.displayName}');
+      print('DEBUG: Property Title: ${room.title}');
+      print('DEBUG: Selected Range: ${_selectedRange!.start} - ${_selectedRange!.end}');
+      
+      await bookingService.createBookingRequest(
+        propertyId: room.id,
+        requestedRange: _selectedRange!,
+        ownerUid: room.ownerUid,
+        studentName: user.displayName ?? 'Student',
+        propertyTitle: room.title,
+      );
+      
+      print('DEBUG: Booking request created successfully');
+
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking request sent')),
+          const SnackBar(content: Text('Booking request sent successfully!')),
         );
+        // Clear selected range after successful booking
+        setState(() {
+          _selectedRange = null;
+        });
       }
     } catch (e) {
+      print('DEBUG: Booking request failed: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Booking failed: $e')),
@@ -707,8 +782,8 @@ class PropertyDetailPage extends StatelessWidget {
           backgroundColor: Colors.orange,
         ),
       );
-      return;
-    }
+                      return;
+                    }
 
     final ok = await showDialog<bool>(
       context: context,
@@ -740,7 +815,7 @@ class PropertyDetailPage extends StatelessWidget {
         'status': 'deleted',
         'deletedAt': FieldValue.serverTimestamp(),
       });
-      if (context.mounted) {
+                      if (context.mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Listing deleted')),
@@ -802,10 +877,12 @@ class _FeatureRow extends StatelessWidget {
 class _AvailabilityCalendar extends StatefulWidget {
   final Room room;
   final bool isOwner;
+  final Function(DateTimeRange?)? onRangeSelected;
   
   const _AvailabilityCalendar({
     required this.room,
     required this.isOwner,
+    this.onRangeSelected,
   });
 
   @override
@@ -831,51 +908,58 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
   Future<void> _loadAvailabilityData() async {
     final Map<DateTime, String> statusMap = {};
     
-    // Load room availability
-    if (widget.room.availabilityFrom != null && widget.room.availabilityTo != null) {
-      final start = widget.room.availabilityFrom!;
-      final end = widget.room.availabilityTo!;
-      
-      for (DateTime day = start; day.isBefore(end.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
+    print('DEBUG: Loading availability data for room: ${widget.room.id}');
+    print('DEBUG: Room availability ranges: ${widget.room.availabilityRanges.length}');
+    
+    // Load room availability ranges
+    for (var range in widget.room.availabilityRanges) {
+      print('DEBUG: Processing range: ${range.start} to ${range.end}');
+      for (DateTime day = range.start; day.isBefore(range.end.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
         final dateKey = DateTime(day.year, day.month, day.day);
         statusMap[dateKey] = 'available';
+        print('DEBUG: Marked ${dateKey.toString().split(' ')[0]} as available');
       }
     }
 
-    // Load existing bookings
-    final bookingsQuery = await FirebaseFirestore.instance
-        .collection('bookings')
-        .where('roomId', isEqualTo: widget.room.id)
-        .get();
+    print('DEBUG: Total available dates: ${statusMap.length}');
 
-    for (final doc in bookingsQuery.docs) {
-      final from = (doc.data()['from'] as Timestamp).toDate();
-      final to = (doc.data()['to'] as Timestamp).toDate();
-      final status = doc.data()['status'] as String;
-      
-      if (widget.isOwner) {
-        // Owner sees all booking statuses
-        if (status == 'accepted') {
-          for (DateTime day = from; day.isBefore(to.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
-            final dateKey = DateTime(day.year, day.month, day.day);
-            statusMap[dateKey] = 'booked';
-          }
-        } else if (status == 'pending') {
-          for (DateTime day = from; day.isBefore(to.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
-            final dateKey = DateTime(day.year, day.month, day.day);
-            if (statusMap[dateKey] == 'available') {
-              statusMap[dateKey] = 'pending';
+    // Load existing booking requests
+    try {
+      final bookingService = BookingService();
+      final requests = await bookingService.getRequestsForProperty(widget.room.id).first;
+      print('DEBUG: Found ${requests.length} booking requests');
+
+      for (final request in requests) {
+        print('DEBUG: Processing request: ${request.status} for ${request.requestedRange.start} - ${request.requestedRange.end}');
+        if (widget.isOwner) {
+          // Owner sees all booking statuses
+          if (request.status == 'accepted') {
+            for (DateTime day = request.requestedRange.start; day.isBefore(request.requestedRange.end.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
+              final dateKey = DateTime(day.year, day.month, day.day);
+              statusMap[dateKey] = 'booked';
+            }
+          } else if (request.status == 'pending') {
+            for (DateTime day = request.requestedRange.start; day.isBefore(request.requestedRange.end.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
+              final dateKey = DateTime(day.year, day.month, day.day);
+              if (statusMap[dateKey] == 'available') {
+                statusMap[dateKey] = 'pending';
+              }
             }
           }
-        }
-      } else if (status == 'accepted') {
-        // Students only see accepted bookings as unavailable
-        for (DateTime day = from; day.isBefore(to.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
-          final dateKey = DateTime(day.year, day.month, day.day);
-          statusMap[dateKey] = 'unavailable';
+        } else if (request.status == 'accepted') {
+          // Students only see accepted bookings as unavailable
+          for (DateTime day = request.requestedRange.start; day.isBefore(request.requestedRange.end.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
+            final dateKey = DateTime(day.year, day.month, day.day);
+            statusMap[dateKey] = 'unavailable';
+          }
         }
       }
+    } catch (e) {
+      print('DEBUG: Error loading booking requests: $e');
     }
+
+    print('DEBUG: Final status map has ${statusMap.length} entries');
+    print('DEBUG: Available dates: ${statusMap.entries.where((e) => e.value == 'available').map((e) => e.key.toString().split(' ')[0]).toList()}');
 
     setState(() {
       _availabilityStatus = statusMap;
@@ -908,13 +992,17 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
     
     if (dayStart.isBefore(todayStart)) return false;
     
-    // Check if date is within room availability
-    if (widget.room.availabilityFrom != null && dayStart.isBefore(widget.room.availabilityFrom!)) {
-      return false;
+    // Check if date is within any availability range
+    bool isInRange = false;
+    for (var range in widget.room.availabilityRanges) {
+      if (dayStart.isAfter(range.start.subtract(const Duration(days: 1))) &&
+          dayStart.isBefore(range.end.add(const Duration(days: 1)))) {
+        isInRange = true;
+        break;
+      }
     }
-    if (widget.room.availabilityTo != null && dayStart.isAfter(widget.room.availabilityTo!)) {
-      return false;
-    }
+    
+    if (!isInRange) return false;
     
     // Check if date is available
     final status = _getEventForDay(day);
@@ -923,6 +1011,9 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -932,7 +1023,7 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
       child: Column(
         children: [
           Container(
-            height: 350,
+            height: isTablet ? 420 : 380,
             padding: const EdgeInsets.all(16),
             child: TableCalendar(
               firstDay: DateTime.now(),
@@ -960,6 +1051,13 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
                     _rangeStart = start;
                     _rangeEnd = end;
                   });
+                  
+                  // Notify parent widget about range selection
+                  if (start != null && end != null) {
+                    widget.onRangeSelected?.call(DateTimeRange(start: start, end: end));
+                  } else {
+                    widget.onRangeSelected?.call(null);
+                  }
                 }
               },
               onPageChanged: (focusedDay) {

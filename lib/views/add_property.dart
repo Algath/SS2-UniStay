@@ -88,7 +88,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
     'Private bathroom': false,
     'Kitchen access': false,
   };
-  DateTime? _availFrom, _availTo;
+  List<DateTimeRange> _availabilityRanges = [];
 
   ll.LatLng? _pos;
 
@@ -283,10 +283,10 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
 
 
-    if (_availFrom == null) {
+    if (_availabilityRanges.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select availability dates for the property.'),
+          content: Text('Please select at least one availability range for the property.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -346,8 +346,10 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
         'walkMins': 10, // Default value
         'utilitiesIncluded': _utilitiesIncluded,
         'amenities': _amen.entries.where((e) => e.value).map((e) => e.key).toList(),
-        'availabilityFrom': _availFrom,
-        'availabilityTo': _availTo,
+        'availabilityRanges': _availabilityRanges.map((range) => {
+          'start': range.start,
+          'end': range.end,
+        }).toList(),
         'status': 'active',
         'createdAt': FieldValue.serverTimestamp(),
       };
@@ -842,10 +844,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                               border: Border.all(color: Colors.grey[300]!),
                             ),
                             child: _AddPropertyCalendar(
-                              onDatesSelected: (from, to) {
+                              onRangesSelected: (ranges) {
                                 setState(() {
-                                  _availFrom = from;
-                                  _availTo = to;
+                                  _availabilityRanges = ranges;
                                 });
                               },
                             ),
@@ -999,10 +1000,10 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 }
 
 class _AddPropertyCalendar extends StatefulWidget {
-  final Function(DateTime?, DateTime?) onDatesSelected;
+  final Function(List<DateTimeRange>) onRangesSelected;
 
   const _AddPropertyCalendar({
-    required this.onDatesSelected,
+    required this.onRangesSelected,
   });
 
   @override
@@ -1012,6 +1013,7 @@ class _AddPropertyCalendar extends StatefulWidget {
 class _AddPropertyCalendarState extends State<_AddPropertyCalendar> {
   late DateTime _focusedDay;
   late DateTimeRange? _selectedRange;
+  List<DateTimeRange> _availabilityRanges = [];
 
   @override
   void initState() {
@@ -1029,7 +1031,7 @@ class _AddPropertyCalendarState extends State<_AddPropertyCalendar> {
           child: Row(
             children: [
               const Text(
-                'Select Availability Period',
+                'Select Availability Ranges',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1043,9 +1045,20 @@ class _AddPropertyCalendarState extends State<_AddPropertyCalendar> {
                     setState(() {
                       _selectedRange = null;
                     });
-                    widget.onDatesSelected(null, null);
                   },
-                  child: const Text('Clear'),
+                  child: const Text('Clear Selection'),
+                ),
+              const SizedBox(width: 8),
+              if (_selectedRange != null)
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _availabilityRanges.add(_selectedRange!);
+                      _selectedRange = null;
+                    });
+                    widget.onRangesSelected(_availabilityRanges);
+                  },
+                  child: const Text('Add Range'),
                 ),
             ],
           ),
@@ -1065,7 +1078,7 @@ class _AddPropertyCalendarState extends State<_AddPropertyCalendar> {
                     _selectedRange = DateTimeRange(start: selectedDay, end: selectedDay);
                     _focusedDay = focusedDay;
                   });
-                  widget.onDatesSelected(selectedDay, selectedDay);
+                  widget.onRangesSelected([DateTimeRange(start: selectedDay, end: selectedDay)]);
                 } else {
                   final start = _selectedRange!.start;
                   final end = selectedDay;
@@ -1075,13 +1088,13 @@ class _AddPropertyCalendarState extends State<_AddPropertyCalendar> {
                       _selectedRange = DateTimeRange(start: end, end: start);
                       _focusedDay = focusedDay;
                     });
-                    widget.onDatesSelected(end, start);
+                    widget.onRangesSelected([DateTimeRange(start: end, end: start)]);
                   } else {
                     setState(() {
                       _selectedRange = DateTimeRange(start: start, end: end);
                       _focusedDay = focusedDay;
                     });
-                    widget.onDatesSelected(start, end);
+                    widget.onRangesSelected([DateTimeRange(start: start, end: end)]);
                   }
                 }
               },
@@ -1103,22 +1116,89 @@ class _AddPropertyCalendarState extends State<_AddPropertyCalendar> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green[50],
+              color: Colors.blue[50],
               border: Border(top: BorderSide(color: Colors.grey[300]!)),
             ),
             child: Row(
               children: [
-                Icon(Icons.calendar_today, color: Colors.green[600], size: 20),
+                Icon(Icons.calendar_today, color: Colors.blue[600], size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Selected: ${_selectedRange!.start.day}/${_selectedRange!.start.month}/${_selectedRange!.start.year} → ${_selectedRange!.end.day}/${_selectedRange!.end.month}/${_selectedRange!.end.year}',
                     style: TextStyle(
-                      color: Colors.green[700],
+                      color: Colors.blue[700],
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+        ],
+        if (_availabilityRanges.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              border: Border(top: BorderSide(color: Colors.grey[300]!)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green[600], size: 20),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Added Ranges (${_availabilityRanges.length})',
+                      style: TextStyle(
+                        color: Colors.green[700],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ..._availabilityRanges.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final range = entry.value;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.green[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${range.start.day}/${range.start.month}/${range.start.year} → ${range.end.day}/${range.end.month}/${range.end.year}',
+                            style: TextStyle(
+                              color: Colors.green[700],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _availabilityRanges.removeAt(index);
+                            });
+                            widget.onRangesSelected(_availabilityRanges);
+                          },
+                          child: Icon(
+                            Icons.close,
+                            color: Colors.red[600],
+                            size: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ],
             ),
           ),

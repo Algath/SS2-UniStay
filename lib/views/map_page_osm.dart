@@ -463,7 +463,7 @@ class _MapPageOSMState extends State<MapPageOSM> {
                       const SizedBox(height: 20),
                       
                       // Availability Section
-                      if (room.availabilityFrom != null || room.availabilityTo != null) ...[
+                      if (room.availabilityRanges.isNotEmpty) ...[
                         const Text(
                           'Availability',
                           style: TextStyle(
@@ -480,23 +480,28 @@ class _MapPageOSMState extends State<MapPageOSM> {
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: Colors.green[200]!),
                           ),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.calendar_today, color: Colors.green[600], size: 20),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  room.availabilityFrom != null && room.availabilityTo != null
-                                      ? '${room.availabilityFrom!.toString().split(" ").first} → ${room.availabilityTo!.toString().split(" ").first}'
-                                      : room.availabilityFrom != null
-                                          ? 'From ${room.availabilityFrom!.toString().split(" ").first}'
-                                          : 'Until ${room.availabilityTo!.toString().split(" ").first}',
-                                  style: TextStyle(
-                                    color: Colors.green[700],
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                              for (var range in room.availabilityRanges) ...[
+                                if (range != room.availabilityRanges.first)
+                                  const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(Icons.calendar_today, color: Colors.green[600], size: 20),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        '${range.start.toString().split(" ").first} → ${range.end.toString().split(" ").first}',
+                                        style: TextStyle(
+                                          color: Colors.green[700],
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
+                              ],
                             ],
                           ),
                         ),

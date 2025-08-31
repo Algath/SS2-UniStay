@@ -19,7 +19,7 @@ class _EditRoomPageState extends State<EditRoomPage> {
   final _baths = TextEditingController();
   bool _furnished = false;
   bool _loading = true;
-  DateTime? _availFrom, _availTo;
+  List<DateTimeRange> _availabilityRanges = [];
 
   @override
   void initState() {
@@ -36,10 +36,22 @@ class _EditRoomPageState extends State<EditRoomPage> {
     _rooms.text = ((m['rooms'] ?? 1).toString());
     _baths.text = ((m['bathrooms'] ?? 1).toString());
     _furnished = (m['furnished'] ?? false) as bool;
-    final tsFrom = m['availabilityFrom'];
-    final tsTo = m['availabilityTo'];
-    _availFrom = tsFrom is Timestamp ? tsFrom.toDate() : null;
-    _availTo = tsTo is Timestamp ? tsTo.toDate() : null;
+    // Load availability ranges
+    final rangesData = m['availabilityRanges'] as List?;
+    if (rangesData != null) {
+      for (var rangeData in rangesData) {
+        if (rangeData is Map<String, dynamic>) {
+          final start = rangeData['start'] as Timestamp?;
+          final end = rangeData['end'] as Timestamp?;
+          if (start != null && end != null) {
+            _availabilityRanges.add(DateTimeRange(
+              start: start.toDate(),
+              end: end.toDate(),
+            ));
+          }
+        }
+      }
+    }
     if (mounted) setState(() => _loading = false);
   }
 
@@ -53,8 +65,10 @@ class _EditRoomPageState extends State<EditRoomPage> {
         'rooms': int.tryParse(_rooms.text.trim()) ?? 1,
         'bathrooms': int.tryParse(_baths.text.trim()) ?? 1,
         'furnished': _furnished,
-        'availabilityFrom': _availFrom,
-        'availabilityTo': _availTo,
+        'availabilityRanges': _availabilityRanges.map((range) => {
+          'start': range.start,
+          'end': range.end,
+        }).toList(),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       if (!mounted) return;
@@ -153,12 +167,10 @@ class _EditRoomPageState extends State<EditRoomPage> {
                         border: Border.all(color: Colors.grey[300]!),
                       ),
                       child: _EditRoomCalendar(
-                        initialFrom: _availFrom,
-                        initialTo: _availTo,
-                        onDatesSelected: (from, to) {
+                        initialRanges: _availabilityRanges,
+                        onRangesSelected: (ranges) {
                           setState(() {
-                            _availFrom = from;
-                            _availTo = to;
+                            _availabilityRanges = ranges;
                           });
                         },
                       ),
@@ -174,14 +186,12 @@ class _EditRoomPageState extends State<EditRoomPage> {
 }
 
 class _EditRoomCalendar extends StatefulWidget {
-  final DateTime? initialFrom;
-  final DateTime? initialTo;
-  final Function(DateTime?, DateTime?) onDatesSelected;
+  final List<DateTimeRange> initialRanges;
+  final Function(List<DateTimeRange>) onRangesSelected;
   
   const _EditRoomCalendar({
-    this.initialFrom,
-    this.initialTo,
-    required this.onDatesSelected,
+    required this.initialRanges,
+    required this.onRangesSelected,
   });
 
   @override
@@ -191,14 +201,13 @@ class _EditRoomCalendar extends StatefulWidget {
 class _EditRoomCalendarState extends State<_EditRoomCalendar> {
   late DateTime _focusedDay;
   late DateTimeRange? _selectedRange;
+  List<DateTimeRange> _availabilityRanges = [];
 
   @override
   void initState() {
     super.initState();
-    _focusedDay = widget.initialFrom ?? DateTime.now();
-    if (widget.initialFrom != null && widget.initialTo != null) {
-      _selectedRange = DateTimeRange(start: widget.initialFrom!, end: widget.initialTo!);
-    }
+    _focusedDay = DateTime.now();
+    _availabilityRanges = List.from(widget.initialRanges);
   }
 
   @override
@@ -210,7 +219,7 @@ class _EditRoomCalendarState extends State<_EditRoomCalendar> {
           child: Row(
             children: [
               const Text(
-                'Edit Availability Period',
+                'Edit Availability Ranges',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -224,9 +233,20 @@ class _EditRoomCalendarState extends State<_EditRoomCalendar> {
                     setState(() {
                       _selectedRange = null;
                     });
-                    widget.onDatesSelected(null, null);
                   },
-                  child: const Text('Clear'),
+                  child: const Text('Clear Selection'),
+                ),
+              const SizedBox(width: 8),
+              if (_selectedRange != null)
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _availabilityRanges.add(_selectedRange!);
+                      _selectedRange = null;
+                    });
+                    widget.onRangesSelected(_availabilityRanges);
+                  },
+                  child: const Text('Add Range'),
                 ),
             ],
           ),
@@ -245,7 +265,7 @@ class _EditRoomCalendarState extends State<_EditRoomCalendar> {
                   _selectedRange = DateTimeRange(start: selectedDay, end: selectedDay);
                   _focusedDay = focusedDay;
                 });
-                widget.onDatesSelected(selectedDay, selectedDay);
+                widget.onRangesSelected([DateTimeRange(start: selectedDay, end: selectedDay)]);
               } else {
                 final start = _selectedRange!.start;
                 final end = selectedDay;
@@ -255,13 +275,13 @@ class _EditRoomCalendarState extends State<_EditRoomCalendar> {
                     _selectedRange = DateTimeRange(start: end, end: start);
                     _focusedDay = focusedDay;
                   });
-                  widget.onDatesSelected(end, start);
+                  widget.onRangesSelected([DateTimeRange(start: end, end: start)]);
                 } else {
                   setState(() {
                     _selectedRange = DateTimeRange(start: start, end: end);
                     _focusedDay = focusedDay;
                   });
-                  widget.onDatesSelected(start, end);
+                  widget.onRangesSelected([DateTimeRange(start: start, end: end)]);
                 }
               }
             },
@@ -282,22 +302,89 @@ class _EditRoomCalendarState extends State<_EditRoomCalendar> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green[50],
+              color: Colors.blue[50],
               border: Border(top: BorderSide(color: Colors.grey[300]!)),
             ),
             child: Row(
               children: [
-                Icon(Icons.calendar_today, color: Colors.green[600], size: 20),
+                Icon(Icons.calendar_today, color: Colors.blue[600], size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Selected: ${_selectedRange!.start.day}/${_selectedRange!.start.month}/${_selectedRange!.start.year} → ${_selectedRange!.end.day}/${_selectedRange!.end.month}/${_selectedRange!.end.year}',
                     style: TextStyle(
-                      color: Colors.green[700],
+                      color: Colors.blue[700],
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+        ],
+        if (_availabilityRanges.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              border: Border(top: BorderSide(color: Colors.grey[300]!)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green[600], size: 20),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Added Ranges (${_availabilityRanges.length})',
+                      style: TextStyle(
+                        color: Colors.green[700],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ..._availabilityRanges.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final range = entry.value;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.green[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${range.start.day}/${range.start.month}/${range.start.year} → ${range.end.day}/${range.end.month}/${range.end.year}',
+                            style: TextStyle(
+                              color: Colors.green[700],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _availabilityRanges.removeAt(index);
+                            });
+                            widget.onRangesSelected(_availabilityRanges);
+                          },
+                          child: Icon(
+                            Icons.close,
+                            color: Colors.red[600],
+                            size: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ],
             ),
           ),

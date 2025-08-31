@@ -452,10 +452,9 @@ class _HomePageState extends State<HomePage> {
                                     });
                               final availOk = _avail == null
                                   ? true
-                                  : ((r.availabilityFrom == null ||
-                                      !r.availabilityFrom!.isAfter(_avail!.end)) &&
-                                      (r.availabilityTo == null ||
-                                          !r.availabilityTo!.isBefore(_avail!.start)));
+                                  : r.availabilityRanges.any((range) =>
+                                      !range.start.isAfter(_avail!.end) &&
+                                      !range.end.isBefore(_avail!.start));
                               final sizeOk = (_sizeMin == null || r.sizeSqm >= _sizeMin!) &&
                                   (_sizeMax == null || r.sizeSqm <= _sizeMax!);
                               final roomsOk =
@@ -640,7 +639,7 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 6),
 
                       // Availability badge
-                      if (room.availabilityFrom != null || room.availabilityTo != null) ...[
+                      if (room.availabilityRanges.isNotEmpty) ...[
                         Row(children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -649,11 +648,9 @@ class _HomePageState extends State<HomePage> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              room.availabilityFrom != null && room.availabilityTo != null
-                                  ? 'Available: ${room.availabilityFrom!.toString().split(" ").first} → ${room.availabilityTo!.toString().split(" ").first}'
-                                  : room.availabilityFrom != null
-                                      ? 'Available from ${room.availabilityFrom!.toString().split(" ").first}'
-                                      : 'Available until ${room.availabilityTo!.toString().split(" ").first}',
+                              room.availabilityRanges.length == 1
+                                  ? 'Available: ${room.availabilityRanges[0].start.toString().split(" ").first} → ${room.availabilityRanges[0].end.toString().split(" ").first}'
+                                  : '${room.availabilityRanges.length} availability periods',
                               style: TextStyle(
                                 fontSize: isTablet ? 13 : 12,
                                 color: Colors.blue[700],

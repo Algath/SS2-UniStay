@@ -55,34 +55,64 @@ class _AdminPageState extends State<AdminPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Admin Panel'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: const Color(0xFF2C3E50),
+        elevation: 0,
+        foregroundColor: Colors.white,
+        title: const Text(
+          'Admin Panel',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Statistics Cards
-            _buildStatisticsSection(),
-            const SizedBox(height: 24),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = isTablet
+                ? (isLandscape ? constraints.maxWidth * 0.8 : constraints.maxWidth * 0.9)
+                : double.infinity;
 
-            // Search Bar
-            _buildSearchBar(),
-            const SizedBox(height: 16),
+            return Center(
+              child: Container(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isTablet ? (isLandscape ? 48 : 32) : 20,
+                    vertical: isTablet ? 32 : 24,
+                  ),
+                  child: Column(
+                    children: [
+                      // Statistics Cards
+                      _buildStatisticsSection(isTablet, isLandscape),
+                      SizedBox(height: isTablet ? (isLandscape ? 32 : 24) : 20),
 
-            // Users List
-            Expanded(
-              child: _buildUsersList(),
-            ),
-          ],
+                      // Search Bar
+                      _buildSearchBar(isTablet, isLandscape),
+                      SizedBox(height: isTablet ? 20 : 16),
+
+                      // Users List
+                      _buildUsersList(isTablet, isLandscape),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildStatisticsSection() {
+  Widget _buildStatisticsSection(bool isTablet, bool isLandscape) {
     if (_isLoadingStats) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -90,24 +120,66 @@ class _AdminPageState extends State<AdminPage> {
     }
 
     if (_statistics == null) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text('Failed to load statistics'),
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(isTablet ? (isLandscape ? 32 : 28) : 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: const Text(
+          'Failed to load statistics',
+          style: TextStyle(color: Colors.red),
         ),
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'App Statistics',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isTablet ? (isLandscape ? 32 : 28) : 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
-        ),
-        const SizedBox(height: 12),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6E56CF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.analytics_outlined, color: const Color(0xFF6E56CF), size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'App Statistics',
+                style: TextStyle(
+                  fontSize: isTablet ? 22 : 20,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF2C3E50),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isTablet ? 20 : 16),
         Row(
           children: [
             Expanded(
@@ -151,84 +223,183 @@ class _AdminPageState extends State<AdminPage> {
             ),
           ],
         ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.bodySmall,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildSearchBar() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'User Management',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: Colors.white, size: 16),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF6C757D),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _searchController,
-          onChanged: _onSearchChanged,
-          decoration: InputDecoration(
-            hintText: 'Search users by name or email...',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _searchTerm.isNotEmpty
-                ? IconButton(
-              icon: const Icon(Icons.clear),
-              onPressed: () {
-                _searchController.clear();
-                _onSearchChanged('');
-              },
-            )
-                : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: color,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildUsersList() {
-    return StreamBuilder<List<UserProfile>>(
-      stream: _firestoreService.searchUsers(_searchTerm),
-      builder: (context, snapshot) {
+  Widget _buildSearchBar(bool isTablet, bool isLandscape) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isTablet ? (isLandscape ? 32 : 28) : 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6E56CF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.manage_accounts, color: const Color(0xFF6E56CF), size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'User Management',
+                style: TextStyle(
+                  fontSize: isTablet ? 22 : 20,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF2C3E50),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isTablet ? 20 : 16),
+          TextField(
+            controller: _searchController,
+            onChanged: _onSearchChanged,
+            decoration: InputDecoration(
+              hintText: 'Search users by name or email...',
+              hintStyle: TextStyle(color: const Color(0xFF6C757D)),
+              prefixIcon: Icon(Icons.search, color: const Color(0xFF6E56CF)),
+              suffixIcon: _searchTerm.isNotEmpty
+                  ? IconButton(
+                icon: Icon(Icons.clear, color: const Color(0xFF6C757D)),
+                onPressed: () {
+                  _searchController.clear();
+                  _onSearchChanged('');
+                },
+              )
+                  : null,
+              filled: true,
+              fillColor: const Color(0xFFF8F9FA),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: BorderSide(color: Colors.grey[200]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: BorderSide(color: const Color(0xFF6E56CF), width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsersList(bool isTablet, bool isLandscape) {
+    return Container(
+      width: double.infinity,
+      height: isTablet ? 500 : 400, // Fixed height instead of constraints
+      padding: EdgeInsets.all(isTablet ? (isLandscape ? 32 : 28) : 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6E56CF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.people_outline, color: const Color(0xFF6E56CF), size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Users List',
+                style: TextStyle(
+                  fontSize: isTablet ? 22 : 20,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF2C3E50),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isTablet ? 20 : 16),
+          Expanded(
+            child: StreamBuilder<List<UserProfile>>(
+        stream: _firestoreService.searchUsers(_searchTerm),
+        builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -284,35 +455,104 @@ class _AdminPageState extends State<AdminPage> {
           separatorBuilder: (context, index) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
             final user = users[index];
-            return _buildUserCard(user);
+            return _buildUserCard(user, isTablet);
           },
         );
-      },
+        },
+      ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildUserCard(UserProfile user) {
-    return Card(
+  Widget _buildUserCard(UserProfile user, bool isTablet) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundImage: user.photoUrl.isNotEmpty
-              ? NetworkImage(user.photoUrl)
-              : null,
-          child: user.photoUrl.isEmpty
-              ? Text(user.displayName.isNotEmpty
-              ? user.displayName[0].toUpperCase()
-              : '?')
-              : null,
+        contentPadding: EdgeInsets.all(isTablet ? 16 : 12),
+        leading: Container(
+          width: isTablet ? 56 : 48,
+          height: isTablet ? 56 : 48,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6E56CF).withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipOval(
+            child: user.photoUrl.isNotEmpty
+                ? Image.network(
+              user.photoUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Center(
+                child: Text(
+                  user.displayName.isNotEmpty
+                      ? user.displayName[0].toUpperCase()
+                      : '?',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: isTablet ? 20 : 18,
+                  ),
+                ),
+              ),
+            )
+                : Center(
+              child: Text(
+                user.displayName.isNotEmpty
+                    ? user.displayName[0].toUpperCase()
+                    : '?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: isTablet ? 20 : 18,
+                ),
+              ),
+            ),
+          ),
         ),
         title: Text(
           user.displayName,
-          style: const TextStyle(fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: isTablet ? 16 : 14,
+            color: const Color(0xFF2C3E50),
+          ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(user.email),
             const SizedBox(height: 4),
+            Text(
+              user.email,
+              style: TextStyle(
+                color: const Color(0xFF6C757D),
+                fontSize: isTablet ? 14 : 12,
+              ),
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 _buildRoleChip(user.role),

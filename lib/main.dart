@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
@@ -27,6 +28,39 @@ void main() async {
   runApp(const UniStayApp());
 }
 
+Future<bool> _checkAuthAndProfile() async {
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    // Check if user profile exists in Firestore
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    if (!doc.exists) {
+      // User exists in Auth but not in Firestore - sign out
+      try {
+        await FirebaseAuth.instance.signOut();
+      } catch (e) {
+        // Ignore signout errors when offline
+      }
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    // Any error (including network issues) - sign out and go to login
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (e) {
+      // Ignore signout errors when offline
+    }
+    return false;
+  }
+}
+
 class UniStayApp extends StatelessWidget {
   const UniStayApp({super.key});
 
@@ -38,13 +72,20 @@ class UniStayApp extends StatelessWidget {
       theme: unistayLightTheme,
       darkTheme: unistayDarkTheme,
       themeMode: ThemeMode.light,
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
+      home: FutureBuilder(
+        future: _checkAuthAndProfile(),
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const Scaffold(
+              backgroundColor: Color(0xFFF8F9FA),
+              body: Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6E56CF)),
+                ),
+              ),
+            );
           }
-          return snap.data == null ? const LoginPage() : const MainNavigation();
+          return snap.data == true ? const MainNavigation() : const LoginPage();
         },
       ),
       routes: {

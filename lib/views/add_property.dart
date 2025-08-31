@@ -281,15 +281,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       return;
     }
 
-    if (_pos == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a valid address from the suggestions'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
+
 
     if (_availFrom == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -404,14 +396,15 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF2C3E50),
         elevation: 0,
+        foregroundColor: Colors.white,
         title: const Text(
           'Add Property',
           style: TextStyle(
-            color: Colors.black87,
+            color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -421,7 +414,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final maxWidth = isTablet
-                ? (isLandscape ? constraints.maxWidth * 0.6 : 700.0)
+                ? (isLandscape ? constraints.maxWidth * 0.8 : constraints.maxWidth * 0.9)
                 : double.infinity;
 
             return Center(
@@ -431,8 +424,10 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                   key: _formKey,
                   child: ListView(
                     padding: EdgeInsets.symmetric(
-                      horizontal: isTablet ? 32 : 20,
-                      vertical: 24,
+                      horizontal: isTablet 
+                        ? (isLandscape ? 48 : 32)
+                        : 20,
+                      vertical: isTablet ? 32 : 24,
                     ),
                     children: [
                       // Basic Information Card
@@ -599,46 +594,14 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                                   ),
                                   const SizedBox(height: 16),
                                   // Map Picker Button
-                                  OutlinedButton.icon(
-                                    onPressed: () async {
-                                      final result = await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => MapPageOSM(
-                                            initialLat: _pos?.latitude ?? 46.8182,
-                                            initialLng: _pos?.longitude ?? 8.2275,
-                                            selectMode: true,
-                                          ),
-                                        ),
-                                      );
-                                      if (result != null && result is Map<String, double>) {
-                                        setState(() {
-                                          _pos = ll.LatLng(result['lat']!, result['lng']!);
-                                        });
-                                      }
-                                    },
-                                    icon: const Icon(Icons.map_outlined),
-                                    label: Text(_pos == null ? 'Select location on map *' : 'Location selected'),
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                    ),
-                                  ),
-                                  if (_pos == null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: Text(
-                                        'Please select a location on the map',
-                                        style: TextStyle(color: Colors.red[600], fontSize: 12),
-                                      ),
-                                    ),
+
                                 ],
                               ),
                             ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      _buildSpacing(),
 
                       // Property Details Card
                       _buildCard(
@@ -737,7 +700,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      _buildSpacing(),
 
                       // Amenities Card
                       _buildCard(
@@ -767,7 +730,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      _buildSpacing(),
 
                       // Description Card
                       _buildCard(
@@ -786,7 +749,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      _buildSpacing(),
 
                       // Photos Card
                       _buildCard(
@@ -859,53 +822,20 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                           ],
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      _buildSpacing(),
 
                       // Availability Card
                       _buildCard(
                         title: 'Availability *',
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: () async {
-                                    final now = DateTime.now();
-                                    final d = await showDateRangePicker(
-                                      context: context,
-                                      firstDate: now,
-                                      lastDate: now.add(const Duration(days: 365)),
-                                    );
-                                    if (d != null) setState(() {
-                                      _availFrom = d.start;
-                                      _availTo = d.end;
-                                    });
-                                  },
-                                  icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                                  label: Text(_availFrom == null
-                                      ? 'Select dates'
-                                      : '${_availFrom!.toString().split(" ").first} → ${_availTo!.toString().split(" ").first}'),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (_availFrom == null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                'Please select availability dates',
-                                style: TextStyle(color: Colors.red[600], fontSize: 12),
-                              ),
-                            ),
+
                           const SizedBox(height: 16),
                           
                           // Calendar View
                           Container(
-                            height: 400,
+                            height: isTablet 
+                              ? (isLandscape ? 450 : 420) 
+                              : 380,
                             decoration: BoxDecoration(
                               color: Colors.grey[50],
                               borderRadius: BorderRadius.circular(12),
@@ -922,29 +852,53 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      _buildSpacing(),
 
                       // Save Button
-                      FilledButton(
-                        onPressed: _saving ? null : _save,
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF6E56CF).withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: _saving
-                            ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+                        child: ElevatedButton(
+                          onPressed: _saving ? null : _save,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
                           ),
-                        )
-                            : const Text(
-                          'Save Property',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          child: _saving
+                              ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                              : const Text(
+                            'Save Property',
+                            style: TextStyle(
+                              fontSize: 16, 
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -959,21 +913,40 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
     );
   }
 
+  Widget _buildSpacing() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    
+    return SizedBox(
+      height: isTablet 
+        ? (isLandscape ? 32 : 24) 
+        : 16,
+    );
+  }
+
   Widget _buildCard({required String title, required List<Widget> children}) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(
+        isTablet 
+          ? (isLandscape ? 32 : 28) 
+          : 24,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -981,11 +954,15 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
             title,
             style: const TextStyle(
               fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF2C3E50),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(
+            height: isTablet 
+              ? (isLandscape ? 24 : 20) 
+              : 16,
+          ),
           ...children,
         ],
       ),

@@ -45,7 +45,7 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final user = await _auth.login(
+      await _auth.login(
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text.trim(),
       );

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unistay/viewmodels/home_vm.dart';
 import 'package:unistay/models/room.dart';
-import 'package:unistay/views/log_in.dart';
 import 'package:unistay/views/property_detail.dart';
 
 
@@ -18,7 +16,8 @@ class _HomePageState extends State<HomePage> {
   final _vm = HomeViewModel();
 
   // Filters
-  double _priceMax = 2000; // CHF
+  double _priceMin = 200; // CHF
+  double? _priceMax; // CHF - null means "Any" (no upper limit)
   String _type = 'Any'; // room | whole | Any
   DateTimeRange? _avail;
   final Set<String> _amen = {};
@@ -68,27 +67,44 @@ class _HomePageState extends State<HomePage> {
                 const Text('Filters', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.black87)),
                 const SizedBox(height: 24),
 
-                // Price slider
-                Text('Price (CHF / month)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[800])),
+                // Price range slider
+                Text('Price Range (CHF / month)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[800])),
                 const SizedBox(height: 8),
-                Slider(
+                RangeSlider(
                   min: 200,
-                  max: 2000,
-                  divisions: (2000 - 200) ~/ 100,
-                  label: '≤ ${_priceMax.round()}',
-                  value: _priceMax,
-                  onChanged: (v) => setM(() => _priceMax = v),
+                  max: 5000,
+                  divisions: (5000 - 200) ~/ 100,
+                  labels: RangeLabels(
+                    'CHF ${_priceMin.round()}',
+                    _priceMax == null ? 'Any' : 'CHF ${_priceMax!.round()}',
+                  ),
+                  values: RangeValues(_priceMin, _priceMax ?? 5000),
+                  onChanged: (values) => setM(() {
+                    _priceMin = values.start;
+                    _priceMax = values.end == 5000 ? null : values.end;
+                  }),
                   activeColor: Theme.of(context).primaryColor,
                 ),
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text('Min: CHF ${_priceMin.round()}', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.blue[700])),
                     ),
-                    child: Text('Max: CHF ${_priceMax.round()}', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.blue[700])),
-                  ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(_priceMax == null ? 'Max: Any' : 'Max: CHF ${_priceMax!.round()}', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.blue[700])),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 20),
@@ -160,9 +176,6 @@ class _HomePageState extends State<HomePage> {
 
                 const SizedBox(height: 20),
                 // Size / Rooms / Baths
-
-                const SizedBox(height: 20),
-                // Size / Rooms / Baths
                 Text('Size (m²)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[800])),
                 const SizedBox(height: 10),
                 Row(children: [
@@ -172,10 +185,24 @@ class _HomePageState extends State<HomePage> {
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'Min',
+                        hintText: '15',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       ),
-                      onChanged: (s) => _sizeMin = int.tryParse(s),
+                      onChanged: (s) {
+                        final value = int.tryParse(s);
+                        if (value != null && value >= 15 && value <= 500) {
+                          _sizeMin = value;
+                        } else if (value != null && (value < 15 || value > 500)) {
+                          // Show warning for unrealistic values
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text('Size should be between 15-500 m²'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -185,10 +212,24 @@ class _HomePageState extends State<HomePage> {
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'Max',
+                        hintText: '200',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       ),
-                      onChanged: (s) => _sizeMax = int.tryParse(s),
+                      onChanged: (s) {
+                        final value = int.tryParse(s);
+                        if (value != null && value >= 15 && value <= 500) {
+                          _sizeMax = value;
+                        } else if (value != null && (value < 15 || value > 500)) {
+                          // Show warning for unrealistic values
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text('Size should be between 15-500 m²'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
                     ),
                   ),
                 ]),
@@ -200,10 +241,24 @@ class _HomePageState extends State<HomePage> {
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'Min rooms',
+                        hintText: '1',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       ),
-                      onChanged: (s) => _roomsMin = int.tryParse(s),
+                      onChanged: (s) {
+                        final value = int.tryParse(s);
+                        if (value != null && value >= 1 && value <= 10) {
+                          _roomsMin = value;
+                        } else if (value != null && (value < 1 || value > 10)) {
+                          // Show warning for unrealistic values
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text('Room count should be between 1-10'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -213,10 +268,24 @@ class _HomePageState extends State<HomePage> {
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'Min bathrooms',
+                        hintText: '1',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       ),
-                      onChanged: (s) => _bathsMin = int.tryParse(s),
+                      onChanged: (s) {
+                        final value = int.tryParse(s);
+                        if (value != null && value >= 1 && value <= 5) {
+                          _bathsMin = value;
+                        } else if (value != null && (value < 1 || value > 5)) {
+                          // Show warning for unrealistic values
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text('Bathroom count should be between 1-5'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
                     ),
                   ),
                 ]),
@@ -227,7 +296,8 @@ class _HomePageState extends State<HomePage> {
                     child: OutlinedButton(
                       onPressed: () {
                         setM(() {
-                          _priceMax = 2000;
+                          _priceMin = 200;
+                          _priceMax = null;
                           _type = 'Any';
                           _avail = null;
                           _amen.clear();
@@ -274,7 +344,8 @@ class _HomePageState extends State<HomePage> {
     final isTablet = screenWidth > 600;
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
-    final filtersOn = _priceMax < 2000 ||
+    final filtersOn = _priceMin > 200 ||
+        _priceMax != null ||
         _type != 'Any' ||
         _avail != null ||
         _amen.isNotEmpty ||
@@ -370,7 +441,7 @@ class _HomePageState extends State<HomePage> {
                             }
 
                             final rooms = (snap.data ?? []).where((r) {
-                              final priceOk = r.price <= _priceMax;
+                              final priceOk = r.price >= _priceMin && (_priceMax == null || r.price <= _priceMax!);
                               final typeOk = _type == 'Any' ? true : r.type == _type;
                               final amenOk = _amen.isEmpty
                                   ? true
@@ -423,16 +494,15 @@ class _HomePageState extends State<HomePage> {
                                     TextButton(
                                       onPressed: () {
                                         setState(() {
-                                          _priceMax = 2000;
+                                          _priceMin = 200;
+                                          _priceMax = null;
                                           _type = 'Any';
                                           _avail = null;
                                           _amen.clear();
-                                          // removed furnished dropdown
                                           _sizeMin = null;
                                           _sizeMax = null;
                                           _roomsMin = null;
                                           _bathsMin = null;
-                                          // removed charges dropdown
                                         });
                                       },
                                       child: const Text('Clear filters'),
@@ -632,7 +702,7 @@ class _HomePageState extends State<HomePage> {
                       ),
 
                       // Address if available
-                      if (room.address.isNotEmpty) ...[
+                      if (room.fullAddress.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Row(
                           children: [
@@ -644,7 +714,7 @@ class _HomePageState extends State<HomePage> {
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
-                                room.address,
+                                room.fullAddress,
                                 style: TextStyle(
                                   fontSize: isTablet ? 13 : 12,
                                   color: Colors.grey[500],

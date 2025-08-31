@@ -9,6 +9,7 @@ class HomeViewModel {
     // İleride composite index eklendiğinde tekrar eklenebilir.
     return _fs
         .collection('rooms')
+        .where('status', isEqualTo: 'active')
         .snapshots()
         .map((q) => q.docs.map((d) => Room.fromFirestore(d)).toList());
   }

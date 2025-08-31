@@ -49,7 +49,7 @@ class _SignUpPageState extends State<SignUpPage> {
     });
 
     try {
-      final user = await _auth.signUp(
+      await _auth.signUp(
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text.trim(),
         role: _role,

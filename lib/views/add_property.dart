@@ -37,17 +37,17 @@ class AddressSuggestion {
 
   factory AddressSuggestion.fromJson(Map<String, dynamic> json) {
     final address = json['address'] as Map<String, dynamic>? ?? {};
-    
+
     return AddressSuggestion(
       displayName: json['display_name'] ?? '',
       lat: double.tryParse(json['lat']?.toString() ?? '0') ?? 0.0,
       lon: double.tryParse(json['lon']?.toString() ?? '0') ?? 0.0,
       houseNumber: address['house_number']?.toString(),
       road: address['road']?.toString(),
-      city: address['city']?.toString() ?? 
-            address['town']?.toString() ?? 
-            address['village']?.toString() ?? 
-            address['municipality']?.toString(),
+      city: address['city']?.toString() ??
+          address['town']?.toString() ??
+          address['village']?.toString() ??
+          address['municipality']?.toString(),
       postcode: address['postcode']?.toString(),
       country: address['country']?.toString(),
     );
@@ -136,12 +136,12 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       // Use Nominatim API for real address search
       final response = await http.get(
         Uri.parse(
-          'https://nominatim.openstreetmap.org/search?'
-          'q=${Uri.encodeComponent(query)}'
-          '&countrycodes=ch'
-          '&format=json'
-          '&limit=10'
-          '&addressdetails=1'
+            'https://nominatim.openstreetmap.org/search?'
+                'q=${Uri.encodeComponent(query)}'
+                '&countrycodes=ch'
+                '&format=json'
+                '&limit=10'
+                '&addressdetails=1'
         ),
         headers: {
           'User-Agent': 'UniStay/1.0',
@@ -151,7 +151,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         final suggestions = data.map((item) => AddressSuggestion.fromJson(item)).toList();
-        
+
         setState(() {
           _addressSuggestions = suggestions;
           _showSuggestions = suggestions.isNotEmpty;
@@ -424,9 +424,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                   key: _formKey,
                   child: ListView(
                     padding: EdgeInsets.symmetric(
-                      horizontal: isTablet 
-                        ? (isLandscape ? 48 : 32)
-                        : 20,
+                      horizontal: isTablet
+                          ? (isLandscape ? 48 : 32)
+                          : 20,
                       vertical: isTablet ? 32 : 24,
                     ),
                     children: [
@@ -830,12 +830,12 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                         children: [
 
                           const SizedBox(height: 16),
-                          
+
                           // Calendar View
                           Container(
-                            height: isTablet 
-                              ? (isLandscape ? 450 : 420) 
-                              : 380,
+                            height: isTablet
+                                ? (isLandscape ? 450 : 420)
+                                : 380,
                             decoration: BoxDecoration(
                               color: Colors.grey[50],
                               borderRadius: BorderRadius.circular(12),
@@ -894,7 +894,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                               : const Text(
                             'Save Property',
                             style: TextStyle(
-                              fontSize: 16, 
+                              fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
                             ),
@@ -917,11 +917,11 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    
+
     return SizedBox(
-      height: isTablet 
-        ? (isLandscape ? 32 : 24) 
-        : 16,
+      height: isTablet
+          ? (isLandscape ? 32 : 24)
+          : 16,
     );
   }
 
@@ -929,7 +929,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -943,9 +943,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
         ],
       ),
       padding: EdgeInsets.all(
-        isTablet 
-          ? (isLandscape ? 32 : 28) 
-          : 24,
+        isTablet
+            ? (isLandscape ? 32 : 28)
+            : 24,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -959,9 +959,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
             ),
           ),
           SizedBox(
-            height: isTablet 
-              ? (isLandscape ? 24 : 20) 
-              : 16,
+            height: isTablet
+                ? (isLandscape ? 24 : 20)
+                : 16,
           ),
           ...children,
         ],
@@ -971,36 +971,36 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
-        labelText: label,
-        floatingLabelBehavior: FloatingLabelBehavior.auto,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.blue, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.red),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
-        ),
+      labelText: label,
+      floatingLabelBehavior: FloatingLabelBehavior.auto,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.grey[300]!),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.grey[300]!),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.blue, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      ),
     );
   }
 }
 
 class _AddPropertyCalendar extends StatefulWidget {
   final Function(DateTime?, DateTime?) onDatesSelected;
-  
+
   const _AddPropertyCalendar({
     required this.onDatesSelected,
   });
@@ -1051,49 +1051,51 @@ class _AddPropertyCalendarState extends State<_AddPropertyCalendar> {
           ),
         ),
         Expanded(
-          child: TableCalendar(
-            firstDay: DateTime.now(),
-            lastDay: DateTime.now().add(const Duration(days: 365)),
-            focusedDay: _focusedDay,
-            rangeStartDay: _selectedRange?.start,
-            rangeEndDay: _selectedRange?.end,
-            rangeSelectionMode: RangeSelectionMode.toggledOn,
-            onDaySelected: (selectedDay, focusedDay) {
-              if (_selectedRange == null) {
-                setState(() {
-                  _selectedRange = DateTimeRange(start: selectedDay, end: selectedDay);
-                  _focusedDay = focusedDay;
-                });
-                widget.onDatesSelected(selectedDay, selectedDay);
-              } else {
-                final start = _selectedRange!.start;
-                final end = selectedDay;
-                
-                if (start.isAfter(end)) {
+          child: SingleChildScrollView(
+            child: TableCalendar(
+              firstDay: DateTime.now(),
+              lastDay: DateTime.now().add(const Duration(days: 365)),
+              focusedDay: _focusedDay,
+              rangeStartDay: _selectedRange?.start,
+              rangeEndDay: _selectedRange?.end,
+              rangeSelectionMode: RangeSelectionMode.toggledOn,
+              onDaySelected: (selectedDay, focusedDay) {
+                if (_selectedRange == null) {
                   setState(() {
-                    _selectedRange = DateTimeRange(start: end, end: start);
+                    _selectedRange = DateTimeRange(start: selectedDay, end: selectedDay);
                     _focusedDay = focusedDay;
                   });
-                  widget.onDatesSelected(end, start);
+                  widget.onDatesSelected(selectedDay, selectedDay);
                 } else {
-                  setState(() {
-                    _selectedRange = DateTimeRange(start: start, end: end);
-                    _focusedDay = focusedDay;
-                  });
-                  widget.onDatesSelected(start, end);
+                  final start = _selectedRange!.start;
+                  final end = selectedDay;
+
+                  if (start.isAfter(end)) {
+                    setState(() {
+                      _selectedRange = DateTimeRange(start: end, end: start);
+                      _focusedDay = focusedDay;
+                    });
+                    widget.onDatesSelected(end, start);
+                  } else {
+                    setState(() {
+                      _selectedRange = DateTimeRange(start: start, end: end);
+                      _focusedDay = focusedDay;
+                    });
+                    widget.onDatesSelected(start, end);
+                  }
                 }
-              }
-            },
-            onPageChanged: (focusedDay) {
-              _focusedDay = focusedDay;
-            },
-            calendarStyle: CalendarStyle(
-              outsideDaysVisible: false,
-              weekendTextStyle: const TextStyle(color: Colors.red),
-            ),
-            headerStyle: HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
+              },
+              onPageChanged: (focusedDay) {
+                _focusedDay = focusedDay;
+              },
+              calendarStyle: CalendarStyle(
+                outsideDaysVisible: false,
+                weekendTextStyle: const TextStyle(color: Colors.red),
+              ),
+              headerStyle: HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+              ),
             ),
           ),
         ),

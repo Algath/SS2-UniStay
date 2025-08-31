@@ -16,17 +16,33 @@ class _AdminPageState extends State<AdminPage> {
   String _searchTerm = '';
   Map<String, dynamic>? _statistics;
   bool _isLoadingStats = true;
+  String? _currentUserId; // Add this to track current user
 
   @override
   void initState() {
     super.initState();
     _loadStatistics();
+    _getCurrentUserId(); // Load current user ID
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  // Add method to get current user ID
+  Future<void> _getCurrentUserId() async {
+    try {
+      // You'll need to implement this in your FirestoreService
+      // or get it from your authentication service
+      final userId = await _firestoreService.getCurrentUserId();
+      setState(() {
+        _currentUserId = userId;
+      });
+    } catch (e) {
+      // Handle error if needed
+    }
   }
 
   Future<void> _loadStatistics() async {
@@ -95,12 +111,8 @@ class _AdminPageState extends State<AdminPage> {
                       _buildStatisticsSection(isTablet, isLandscape),
                       SizedBox(height: isTablet ? (isLandscape ? 32 : 24) : 20),
 
-                      // Search Bar
-                      _buildSearchBar(isTablet, isLandscape),
-                      SizedBox(height: isTablet ? 20 : 16),
-
-                      // Users List
-                      _buildUsersList(isTablet, isLandscape),
+                      // Combined Users Management Section
+                      _buildUsersSection(isTablet, isLandscape),
                     ],
                   ),
                 ),
@@ -180,49 +192,49 @@ class _AdminPageState extends State<AdminPage> {
             ],
           ),
           SizedBox(height: isTablet ? 20 : 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                'Total Users',
-                _statistics!['totalUsers'].toString(),
-                Icons.people,
-                Colors.blue,
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Total Users',
+                  _statistics!['totalUsers'].toString(),
+                  Icons.people,
+                  Colors.blue,
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildStatCard(
-                'Students',
-                _statistics!['students'].toString(),
-                Icons.school,
-                Colors.green,
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatCard(
+                  'Students',
+                  _statistics!['students'].toString(),
+                  Icons.school,
+                  Colors.green,
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                'Homeowners',
-                _statistics!['homeowners'].toString(),
-                Icons.home,
-                Colors.orange,
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Homeowners',
+                  _statistics!['homeowners'].toString(),
+                  Icons.home,
+                  Colors.orange,
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildStatCard(
-                'Admins',
-                _statistics!['admins'].toString(),
-                Icons.admin_panel_settings,
-                Colors.red,
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatCard(
+                  'Admins',
+                  _statistics!['admins'].toString(),
+                  Icons.admin_panel_settings,
+                  Colors.red,
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ],
       ),
     );
@@ -277,9 +289,11 @@ class _AdminPageState extends State<AdminPage> {
     );
   }
 
-  Widget _buildSearchBar(bool isTablet, bool isLandscape) {
+  // Combined users section with integrated search
+  Widget _buildUsersSection(bool isTablet, bool isLandscape) {
     return Container(
       width: double.infinity,
+      height: isTablet ? 600 : 500, // Increased height to accommodate search
       padding: EdgeInsets.all(isTablet ? (isLandscape ? 32 : 28) : 24),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -295,6 +309,7 @@ class _AdminPageState extends State<AdminPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header
           Row(
             children: [
               Container(
@@ -303,7 +318,7 @@ class _AdminPageState extends State<AdminPage> {
                   color: const Color(0xFF6E56CF).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.manage_accounts, color: const Color(0xFF6E56CF), size: 20),
+                child: Icon(Icons.people_outline, color: const Color(0xFF6E56CF), size: 20),
               ),
               const SizedBox(width: 12),
               Text(
@@ -317,6 +332,8 @@ class _AdminPageState extends State<AdminPage> {
             ],
           ),
           SizedBox(height: isTablet ? 20 : 16),
+
+          // Search Bar (now integrated)
           TextField(
             controller: _searchController,
             onChanged: _onSearchChanged,
@@ -350,116 +367,73 @@ class _AdminPageState extends State<AdminPage> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
           ),
-        ],
-      ),
-    );
-  }
+          SizedBox(height: isTablet ? 16 : 12),
 
-  Widget _buildUsersList(bool isTablet, bool isLandscape) {
-    return Container(
-      width: double.infinity,
-      height: isTablet ? 500 : 400, // Fixed height instead of constraints
-      padding: EdgeInsets.all(isTablet ? (isLandscape ? 32 : 28) : 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6E56CF).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.people_outline, color: const Color(0xFF6E56CF), size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Users List',
-                style: TextStyle(
-                  fontSize: isTablet ? 22 : 20,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF2C3E50),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: isTablet ? 20 : 16),
+          // Users List
           Expanded(
             child: StreamBuilder<List<UserProfile>>(
-        stream: _firestoreService.searchUsers(_searchTerm),
-        builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+              stream: _firestoreService.searchUsers(_searchTerm),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-        if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                Text('Error: ${snapshot.error}'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {}); // Trigger rebuild to retry
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error, size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text('Error: ${snapshot.error}'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {}); // Trigger rebuild to retry
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final users = snapshot.data ?? [];
+
+                if (users.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _searchTerm.isNotEmpty ? Icons.search_off : Icons.people_outline,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _searchTerm.isNotEmpty
+                              ? 'No users found matching "$_searchTerm"'
+                              : 'No users found',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  itemCount: users.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final user = users[index];
+                    return _buildUserCard(user, isTablet);
                   },
-                  child: const Text('Retry'),
-                ),
-              ],
+                );
+              },
             ),
-          );
-        }
-
-        final users = snapshot.data ?? [];
-
-        if (users.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  _searchTerm.isNotEmpty ? Icons.search_off : Icons.people_outline,
-                  size: 64,
-                  color: Colors.grey,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  _searchTerm.isNotEmpty
-                      ? 'No users found matching "$_searchTerm"'
-                      : 'No users found',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.separated(
-          itemCount: users.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final user = users[index];
-            return _buildUserCard(user, isTablet);
-          },
-        );
-        },
-      ),
           ),
         ],
       ),
@@ -467,6 +441,9 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   Widget _buildUserCard(UserProfile user, bool isTablet) {
+    // Check if this is the current user
+    final isCurrentUser = _currentUserId != null && user.uid == _currentUserId;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -533,13 +510,36 @@ class _AdminPageState extends State<AdminPage> {
             ),
           ),
         ),
-        title: Text(
-          user.displayName,
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: isTablet ? 16 : 14,
-            color: const Color(0xFF2C3E50),
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                user.displayName,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: isTablet ? 16 : 14,
+                  color: const Color(0xFF2C3E50),
+                ),
+              ),
+            ),
+            // Add "You" indicator for current user
+            if (isCurrentUser)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6E56CF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'You',
+                  style: TextStyle(
+                    color: const Color(0xFF6E56CF),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -575,19 +575,21 @@ class _AdminPageState extends State<AdminPage> {
                 ],
               ),
             ),
-            PopupMenuItem(
-              value: user.isAdmin ? 'remove_admin' : 'make_admin',
-              child: Row(
-                children: [
-                  Icon(
-                    user.isAdmin ? Icons.admin_panel_settings_outlined : Icons.admin_panel_settings,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(user.isAdmin ? 'Remove Admin' : 'Make Admin'),
-                ],
+            // Only show admin toggle if it's not the current user
+            if (!isCurrentUser)
+              PopupMenuItem(
+                value: user.isAdmin ? 'remove_admin' : 'make_admin',
+                child: Row(
+                  children: [
+                    Icon(
+                      user.isAdmin ? Icons.admin_panel_settings_outlined : Icons.admin_panel_settings,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(user.isAdmin ? 'Remove Admin' : 'Make Admin'),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
         isThreeLine: true,

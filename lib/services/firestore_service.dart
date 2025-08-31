@@ -1,8 +1,34 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unistay/models/user_profile.dart'; // Adjust path as needed
 
 class FirestoreService {
   final _fs = FirebaseFirestore.instance;
+  final _auth = FirebaseAuth.instance;
+
+  /// Get current authenticated user's ID
+  Future<String?> getCurrentUserId() async {
+    try {
+      return _auth.currentUser?.uid;
+    } catch (e) {
+      print('Error getting current user ID: $e');
+      return null;
+    }
+  }
+
+  /// Check if current user is admin
+  Future<bool> isCurrentUserAdmin() async {
+    try {
+      final currentUserId = await getCurrentUserId();
+      if (currentUserId == null) return false;
+
+      final userProfile = await getUserProfile(currentUserId);
+      return userProfile?.isAdmin ?? false;
+    } catch (e) {
+      print('Error checking admin status: $e');
+      return false;
+    }
+  }
 
   /// Adds a room; returns new doc id
   Future<String> addRoom(Map<String, dynamic> data) async {
@@ -88,11 +114,21 @@ class FirestoreService {
   }
 
   /// Update admin status for a user (Admin only) - This is the ONLY admin action
+  /// Prevents self-admin removal by checking current user
   Future<void> updateUserAdminStatus(String uid, bool isAdmin) async {
     try {
+      // Get current user ID to prevent self-admin removal
+      final currentUserId = await getCurrentUserId();
+
+      // Prevent removing admin status from self
+      if (currentUserId == uid && !isAdmin) {
+        throw Exception('You cannot remove admin privileges from yourself');
+      }
+
       await _fs.collection('users').doc(uid).update({
         'isAdmin': isAdmin,
         'adminUpdatedAt': FieldValue.serverTimestamp(),
+        'adminUpdatedBy': currentUserId, // Track who made the change
       });
     } catch (e) {
       print('Error updating admin status: $e');

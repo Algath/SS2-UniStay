@@ -137,142 +137,139 @@ class _ProfileOwnerPageState extends State<ProfileOwnerPage> {
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: isTablet ? 32 : 20, vertical: 24),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                  // Profile Card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(children: [
-                    Container(
-                      width: isTablet ? 140 : 120,
-                      height: isTablet ? 140 : 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [
-                            const Color(0xFF6E56CF).withOpacity(0.1),
-                            const Color(0xFF9C88FF).withOpacity(0.1),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Profile Card
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 15,
+                              offset: const Offset(0, 5),
+                            ),
                           ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
                         ),
-                        border: Border.all(color: const Color(0xFF6E56CF).withOpacity(0.3), width: 3),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF6E56CF).withOpacity(0.2),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
+                        child: Column(children: [
+                          Container(
+                            width: isTablet ? 140 : 120,
+                            height: isTablet ? 140 : 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  const Color(0xFF6E56CF).withOpacity(0.1),
+                                  const Color(0xFF9C88FF).withOpacity(0.1),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              border: Border.all(color: const Color(0xFF6E56CF).withOpacity(0.3), width: 3),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF6E56CF).withOpacity(0.2),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                            child: ClipOval(
+                                child: _localProfileImage != null
+                                    ? Image.file(
+                                    _localProfileImage!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Icon(Icons.person, size: isTablet ? 60 : 50, color: Colors.grey[400])
+                                )
+                                    : (userProfile?.photoUrl.isNotEmpty == true)
+                                    ? Image.network(
+                                    userProfile!.photoUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Icon(Icons.person, size: isTablet ? 60 : 50, color: Colors.grey[400])
+                                )
+                                    : Icon(Icons.person, size: isTablet ? 60 : 50, color: Colors.grey[400])
+                            ),
                           ),
-                        ],
-                      ),
-                      child: ClipOval(
-                          child: _localProfileImage != null
-                              ? Image.file(
-                              _localProfileImage!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Icon(Icons.person, size: isTablet ? 60 : 50, color: Colors.grey[400])
-                          )
-                              : (userProfile?.photoUrl.isNotEmpty == true)
-                              ? Image.network(
-                              userProfile!.photoUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Icon(Icons.person, size: isTablet ? 60 : 50, color: Colors.grey[400])
-                          )
-                              : Icon(Icons.person, size: isTablet ? 60 : 50, color: Colors.grey[400])
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text('${userProfile?.name ?? 'First'} ${userProfile?.lastname ?? 'Last'}',
-                        style: TextStyle(fontSize: isTablet ? 26 : 24, fontWeight: FontWeight.bold, color: const Color(0xFF2C3E50))),
-                    const SizedBox(height: 8),
-                    // Only show university if one is selected (for homeowners it's optional)
-                    if (userProfile?.uniAddress?.isNotEmpty == true) ...[
-                      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Icon(Icons.school_outlined, size: 18, color: const Color(0xFF6E56CF)),
-                        const SizedBox(width: 6),
-                        Flexible(child: Text(
-                            _getUniversityNameFromAddress(userProfile!.uniAddress!),
-                            style: TextStyle(fontSize: isTablet ? 16 : 14, color: const Color(0xFF6C757D)),
-                            textAlign: TextAlign.center
-                        )),
-                      ]),
-                      const SizedBox(height: 6),
-                    ],
-                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.home_outlined, size: 18, color: const Color(0xFF6E56CF)),
-                      const SizedBox(width: 6),
-                      Flexible(child: Text(userProfile?.homeAddress ?? 'Home Address',
-                          style: TextStyle(fontSize: isTablet ? 16 : 14, color: const Color(0xFF6C757D)), textAlign: TextAlign.center)),
-                    ]),
-                    const SizedBox(height: 24),
-                    Container(
-                      width: isTablet ? 200 : double.infinity,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF6E56CF).withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
+                          const SizedBox(height: 20),
+                          Text('${userProfile?.name ?? 'First'} ${userProfile?.lastname ?? 'Last'}',
+                              style: TextStyle(fontSize: isTablet ? 26 : 24, fontWeight: FontWeight.bold, color: const Color(0xFF2C3E50))),
+                          const SizedBox(height: 8),
+                          // Only show university if one is selected (for homeowners it's optional)
+                          if (userProfile?.uniAddress?.isNotEmpty == true) ...[
+                            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              Icon(Icons.school_outlined, size: 18, color: const Color(0xFF6E56CF)),
+                              const SizedBox(width: 6),
+                              Flexible(child: Text(
+                                  _getUniversityNameFromAddress(userProfile!.uniAddress!),
+                                  style: TextStyle(fontSize: isTablet ? 16 : 14, color: const Color(0xFF6C757D)),
+                                  textAlign: TextAlign.center
+                              )),
+                            ]),
+                            const SizedBox(height: 6),
+                          ],
+                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            Icon(Icons.home_outlined, size: 18, color: const Color(0xFF6E56CF)),
+                            const SizedBox(width: 6),
+                            Flexible(child: Text(userProfile?.homeAddress ?? 'Home Address',
+                                style: TextStyle(fontSize: isTablet ? 16 : 14, color: const Color(0xFF6C757D)), textAlign: TextAlign.center)),
+                          ]),
+                          const SizedBox(height: 24),
+                          Container(
+                            width: isTablet ? 200 : double.infinity,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF6E56CF).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton.icon(
+                              onPressed: () => Navigator.of(context).pushNamed(EditProfilePage.route).then((_) => _loadUserProfile()),
+                              icon: const Icon(Icons.edit_outlined, size: 18),
+                              label: const Text('Edit Profile'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
                           ),
-                        ],
+                        ]),
                       ),
-                      child: ElevatedButton.icon(
-                        onPressed: () => Navigator.of(context).pushNamed(EditProfilePage.route).then((_) => _loadUserProfile()),
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        label: const Text('Edit Profile'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
-                  ]),
-                  ),
 
-                  const SizedBox(height: 24),
-                  
-                  // Properties Section
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
+                      const SizedBox(height: 24),
+
+                      // Properties Section
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 15,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Row(
                               children: [
@@ -299,174 +296,213 @@ class _ProfileOwnerPageState extends State<ProfileOwnerPage> {
                                 ),
                               ],
                             ),
-                            Flexible(
-                              child: Container(
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF6E56CF).withOpacity(0.3),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
+                            const SizedBox(height: 20),
+
+                            StreamBuilder<QuerySnapshot<Room>>(
+                              stream: q.snapshots(),
+                              builder: (context, snap) {
+                                if (snap.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                                if (snap.hasError) return Text('Failed to load properties: ${snap.error}', style: const TextStyle(color: Colors.red));
+                                final docs = snap.data?.docs ?? [];
+
+                                return Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Add Property Card - Always shown as first card
+                                    Container(
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            const Color(0xFF6E56CF).withOpacity(0.05),
+                                            const Color(0xFF9C88FF).withOpacity(0.05),
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: const Color(0xFF6E56CF).withOpacity(0.2),
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          onTap: () => Navigator.of(context).pushNamed(AddPropertyPage.route),
+                                          borderRadius: BorderRadius.circular(12),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(20),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  width: 50,
+                                                  height: 50,
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFF6E56CF).withOpacity(0.1),
+                                                    borderRadius: BorderRadius.circular(10),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.add_home_work,
+                                                    color: Color(0xFF6E56CF),
+                                                    size: 24,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 16),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      const Text(
+                                                        'Add New Property',
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight: FontWeight.w600,
+                                                          color: Color(0xFF2C3E50),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        docs.isEmpty
+                                                            ? 'List your first property'
+                                                            : 'List another property',
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          color: const Color(0xFF6C757D).withOpacity(0.8),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                Icon(
+                                                  Icons.arrow_forward_ios,
+                                                  size: 16,
+                                                  color: const Color(0xFF6E56CF).withOpacity(0.5),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
+
+                                    // Property Cards
+                                    if (docs.isEmpty)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 24),
+                                        child: Column(
+                                          children: [
+                                            Icon(
+                                              Icons.home_outlined,
+                                              color: Colors.grey[400],
+                                              size: 48,
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              'No properties listed yet',
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Start by adding your first property above',
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                                fontSize: 14,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else
+                                      ...docs.map((d) => _OwnerRoomCard(room: d.data())).toList(),
                                   ],
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Settings Section
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 15,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              onTap: () => Navigator.of(context).pushNamed(AboutPage.route),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              leading: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: ElevatedButton.icon(
-                                  onPressed: () => Navigator.of(context).pushNamed(AddPropertyPage.route),
-                                  icon: const Icon(Icons.add, size: 16),
-                                  label: const Text('Add Property'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  ),
+                                child: const Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                              ),
+                              title: Text(
+                                'About Us',
+                                style: TextStyle(
+                                  fontSize: isTablet ? 17 : 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF2C3E50),
                                 ),
+                              ),
+                              trailing: Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: const Color(0xFF6C757D),
+                              ),
+                            ),
+                            Divider(height: 1, color: Colors.grey[200]),
+                            ListTile(
+                              onTap: _signOut,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              leading: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.logout, color: Colors.red, size: 20),
+                              ),
+                              title: Text(
+                                'Log Out',
+                                style: TextStyle(
+                                  fontSize: isTablet ? 17 : 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.red,
+                                ),
+                              ),
+                              trailing: Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Colors.red[300],
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
-                        
-                        StreamBuilder<QuerySnapshot<Room>>(
-                    stream: q.snapshots(),
-                    builder: (context, snap) {
-                      if (snap.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-                      if (snap.hasError) return Text('Failed to load properties: ${snap.error}', style: const TextStyle(color: Colors.red));
-                      final docs = snap.data?.docs ?? [];
-                      if (docs.isEmpty) {
-                        return Container(
-                          padding: const EdgeInsets.all(32),
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF6E56CF).withOpacity(0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.home_outlined,
-                                  color: Color(0xFF6E56CF),
-                                  size: 32,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'No properties listed yet',
-                                style: TextStyle(
-                                  color: Color(0xFF6C757D),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Add your first property to start earning',
-                                style: TextStyle(
-                                  color: Color(0xFF6C757D),
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (final d in docs)
-                            _OwnerRoomCard(room: d.data()),
-                        ],
-                      );
-                    },
-                  ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-                  
-                  // Settings Section
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          onTap: () => Navigator.of(context).pushNamed(AboutPage.route),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          leading: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.info_outline, color: Colors.blue, size: 20),
-                          ),
-                          title: Text(
-                            'About Us',
-                            style: TextStyle(
-                              fontSize: isTablet ? 17 : 16,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFF2C3E50),
-                            ),
-                          ),
-                          trailing: Icon(
-                            Icons.arrow_forward_ios,
-                            size: 16,
-                            color: const Color(0xFF6C757D),
-                          ),
-                        ),
-                        Divider(height: 1, color: Colors.grey[200]),
-                        ListTile(
-                          onTap: _signOut,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          leading: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.logout, color: Colors.red, size: 20),
-                          ),
-                          title: Text(
-                            'Log Out',
-                            style: TextStyle(
-                              fontSize: isTablet ? 17 : 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.red,
-                            ),
-                          ),
-                          trailing: Icon(
-                            Icons.arrow_forward_ios,
-                            size: 16,
-                            color: Colors.red[300],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ]),
+                      ),
+                      const SizedBox(height: 20),
+                    ]),
               ),
             ),
           );

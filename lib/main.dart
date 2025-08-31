@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:unistay/test_.dart';
+import 'package:unistay/widgets/searchScreen_widget.dart';
 
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
@@ -20,11 +22,16 @@ import 'views/add_property.dart';
 import 'views/edit_room.dart';
 import 'views/main_navigation.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   GoogleFonts.config.allowRuntimeFetching = true;
   runApp(const UniStayApp());
+  /*runApp(const MaterialApp(
+    debugShowCheckedModeBanner: true,
+    title: 'Nominatim Geocoder',
+    home: testApp(),
+  ));*/
 }
 
 class UniStayApp extends StatelessWidget {
@@ -59,6 +66,7 @@ class UniStayApp extends StatelessWidget {
         ProfileOwnerPage.route: (_) => const ProfileOwnerPage(),
         AboutPage.route: (_) => const AboutPage(),
         AddPropertyPage.route: (_) => const AddPropertyPage(),
+        // SearchScreen.route: (_) => const SearchScreen(),
         // dynamic route for edit room is created via MaterialPageRoute where used
       },
     );

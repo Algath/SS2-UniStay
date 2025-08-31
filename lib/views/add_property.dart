@@ -1,5 +1,4 @@
 import 'dart:io' show File;
-import 'dart:typed_data';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -9,9 +8,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart' as ll;
 import 'package:http/http.dart' as http;
+import 'package:table_calendar/table_calendar.dart';
 
 import 'package:unistay/services/storage_service.dart';
-import 'package:unistay/services/utils.dart';
 import 'package:unistay/views/map_page_osm.dart';
 
 // Address suggestion model
@@ -37,15 +36,20 @@ class AddressSuggestion {
   });
 
   factory AddressSuggestion.fromJson(Map<String, dynamic> json) {
+    final address = json['address'] as Map<String, dynamic>? ?? {};
+    
     return AddressSuggestion(
       displayName: json['display_name'] ?? '',
-      lat: double.parse(json['lat'] ?? '0'),
-      lon: double.parse(json['lon'] ?? '0'),
-      houseNumber: json['address']?['house_number'],
-      road: json['address']?['road'],
-      city: json['address']?['city'] ?? json['address']?['town'] ?? json['address']?['village'],
-      postcode: json['address']?['postcode'],
-      country: json['address']?['country'],
+      lat: double.tryParse(json['lat']?.toString() ?? '0') ?? 0.0,
+      lon: double.tryParse(json['lon']?.toString() ?? '0') ?? 0.0,
+      houseNumber: address['house_number']?.toString(),
+      road: address['road']?.toString(),
+      city: address['city']?.toString() ?? 
+            address['town']?.toString() ?? 
+            address['village']?.toString() ?? 
+            address['municipality']?.toString(),
+      postcode: address['postcode']?.toString(),
+      country: address['country']?.toString(),
     );
   }
 }
@@ -64,7 +68,10 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
   // Required
   final _title = TextEditingController();
   final _price = TextEditingController();
-  final _address = TextEditingController();
+  final _street = TextEditingController();
+  final _houseNumber = TextEditingController();
+  final _city = TextEditingController();
+  final _postcode = TextEditingController();
   String _type = 'room';
   bool _furnished = false;
   final _sizeSqm = TextEditingController();
@@ -72,9 +79,6 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
   final _bathrooms = TextEditingController(text: '1');
 
   // Optional
-  final _yearBuilt = TextEditingController();
-  final _floor = TextEditingController();
-  String? _heatingType;
   bool _utilitiesIncluded = false;
 
   // UI
@@ -115,7 +119,6 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
   }
 
   // Search for addresses using Nominatim API
-  // SIMPLIFIED VERSION - Just use hardcoded Swiss addresses for MVP
   Future<void> _searchAddresses(String query) async {
     if (query.length < 3) {
       setState(() {
@@ -125,42 +128,43 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       return;
     }
 
-    // Hardcoded Swiss addresses for demo
-    final demoAddresses = [
-      AddressSuggestion(
-        displayName: 'Route de l\'Industrie, 1950 Sion, Switzerland',
-        lat: 46.8065,
-        lon: 7.1619,
-      ),
-      AddressSuggestion(
-        displayName: 'Avenue de la Gare 10, 1950 Sion, Switzerland',
-        lat: 46.2276,
-        lon: 7.3589,
-      ),
-      AddressSuggestion(
-        displayName: 'Rue du Rhône 12, 1204 Genève, Switzerland',
-        lat: 46.2044,
-        lon: 6.1432,
-      ),
-      AddressSuggestion(
-        displayName: 'Bahnhofstrasse 20, 8001 Zürich, Switzerland',
-        lat: 47.3769,
-        lon: 8.5417,
-      ),
-      AddressSuggestion(
-        displayName: 'Via Nassa 5, 6900 Lugano, Switzerland',
-        lat: 46.0037,
-        lon: 8.9511,
-      ),
-    ];
-
     setState(() {
-      _addressSuggestions = demoAddresses
-          .where((a) => a.displayName.toLowerCase().contains(query.toLowerCase()))
-          .toList();
-      _showSuggestions = _addressSuggestions.isNotEmpty;
-      _isSearchingAddress = false;
+      _isSearchingAddress = true;
     });
+
+    try {
+      // Use Nominatim API for real address search
+      final response = await http.get(
+        Uri.parse(
+          'https://nominatim.openstreetmap.org/search?'
+          'q=${Uri.encodeComponent(query)}'
+          '&countrycodes=ch'
+          '&format=json'
+          '&limit=10'
+          '&addressdetails=1'
+        ),
+        headers: {
+          'User-Agent': 'UniStay/1.0',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final suggestions = data.map((item) => AddressSuggestion.fromJson(item)).toList();
+        
+        setState(() {
+          _addressSuggestions = suggestions;
+          _showSuggestions = suggestions.isNotEmpty;
+          _isSearchingAddress = false;
+        });
+      } else {
+        // Fallback to hardcoded addresses if API fails
+        _useFallbackAddresses(query);
+      }
+    } catch (e) {
+      // Fallback to hardcoded addresses if API fails
+      _useFallbackAddresses(query);
+    }
   }
 
   // Fallback method with hardcoded Swiss addresses
@@ -170,26 +174,51 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
         displayName: 'Route de Molignon 15, 1700 Fribourg, Switzerland',
         lat: 46.8065,
         lon: 7.1619,
+        road: 'Route de Molignon',
+        houseNumber: '15',
+        city: 'Fribourg',
+        postcode: '1700',
+        country: 'Switzerland',
       ),
       AddressSuggestion(
         displayName: 'Avenue de la Gare 10, 1950 Sion, Switzerland',
         lat: 46.2276,
         lon: 7.3589,
+        road: 'Avenue de la Gare',
+        houseNumber: '10',
+        city: 'Sion',
+        postcode: '1950',
+        country: 'Switzerland',
       ),
       AddressSuggestion(
         displayName: 'Rue du Rhône 12, 1204 Genève, Switzerland',
         lat: 46.2044,
         lon: 6.1432,
+        road: 'Rue du Rhône',
+        houseNumber: '12',
+        city: 'Genève',
+        postcode: '1204',
+        country: 'Switzerland',
       ),
       AddressSuggestion(
         displayName: 'Bahnhofstrasse 20, 8001 Zürich, Switzerland',
         lat: 47.3769,
         lon: 8.5417,
+        road: 'Bahnhofstrasse',
+        houseNumber: '20',
+        city: 'Zürich',
+        postcode: '8001',
+        country: 'Switzerland',
       ),
       AddressSuggestion(
         displayName: 'Via Nassa 5, 6900 Lugano, Switzerland',
         lat: 46.0037,
         lon: 8.9511,
+        road: 'Via Nassa',
+        houseNumber: '5',
+        city: 'Lugano',
+        postcode: '6900',
+        country: 'Switzerland',
       ),
     ];
 
@@ -198,36 +227,27 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
           .where((a) => a.displayName.toLowerCase().contains(query.toLowerCase()))
           .toList();
       _showSuggestions = _addressSuggestions.isNotEmpty;
-      _isSearchingAddress = false;
     });
   }
 
   // Handle address selection
   void _selectAddress(AddressSuggestion suggestion) {
     setState(() {
-      _address.text = suggestion.displayName;
+      // Parse address components from suggestion
+      _street.text = suggestion.road ?? suggestion.displayName;
+      _houseNumber.text = suggestion.houseNumber ?? '';
+      _city.text = suggestion.city ?? '';
+      _postcode.text = suggestion.postcode ?? '';
       _pos = ll.LatLng(suggestion.lat, suggestion.lon);
       _showSuggestions = false;
-      _addressSuggestions = [];
-
-      // Calculate walking time to campus
-      // final km = haversineKm(hesSoValaisLat, hesSoValaisLng, suggestion.lat, suggestion.lon);
-      // _walkMins = walkingMinsFromKm(km);
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Location found'),
-        backgroundColor: Colors.green,
-      ),
-    );
   }
 
   // Debounced address search
-  void _onAddressChanged(String value) {
+  void _onAddressChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      _searchAddresses(value);
+      _searchAddresses(query);
     });
   }
 
@@ -257,7 +277,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     if (_pos == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -269,10 +291,20 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       return;
     }
 
+    if (_availFrom == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select availability dates for the property.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     try {
       setState(() => _saving = true);
 
-      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final user = FirebaseAuth.instance.currentUser!;
 
       // Upload photos
       final urls = <String>[];
@@ -285,7 +317,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
               : bytes;
           final url = await st.uploadImageFlexible(
             bytes: safeBytes,
-            path: 'rooms/$uid',
+            path: 'rooms/${user.uid}',
             filename: 'p$i.jpg',
           );
           urls.add(url);
@@ -294,45 +326,37 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
         for (int i = 0; i < _localPhotos.length; i++) {
           final url = await st.uploadImageFlexible(
             file: _localPhotos[i],
-            path: 'rooms/$uid',
+            path: 'rooms/${user.uid}',
             filename: 'p$i.jpg',
           );
           urls.add(url);
         }
       }
 
-      final amenities = _amen.entries
-          .where((e) => e.value)
-          .map((e) => e.key)
-          .toList();
-
       final data = {
-        // required
-        'ownerUid': uid,
         'title': _title.text.trim(),
         'price': num.tryParse(_price.text.trim()) ?? 0,
-        'address': _address.text.trim(),
-        'lat': _pos?.latitude ?? 0.0,
-        'lng': _pos?.longitude ?? 0.0,
+        'street': _street.text.trim(),
+        'houseNumber': _houseNumber.text.trim(),
+        'city': _city.text.trim(),
+        'postcode': _postcode.text.trim(),
+        'country': 'Switzerland',
         'type': _type,
         'furnished': _furnished,
         'sizeSqm': int.tryParse(_sizeSqm.text.trim()) ?? 0,
         'rooms': int.tryParse(_rooms.text.trim()) ?? 1,
         'bathrooms': int.tryParse(_bathrooms.text.trim()) ?? 1,
-
-        // optional
-        if (_yearBuilt.text.isNotEmpty) 'yearBuilt': int.tryParse(_yearBuilt.text.trim()),
-        if (_floor.text.isNotEmpty) 'floor': int.tryParse(_floor.text.trim()),
-        if (_heatingType != null) 'heatingType': _heatingType,
-        'utilitiesIncluded': _utilitiesIncluded,
-
-        // UI
         'description': _desc.text.trim(),
-        'amenities': amenities,
+        'lat': _pos!.latitude,
+        'lng': _pos!.longitude,
+        'ownerUid': user.uid,
         'photos': urls,
-        'walkMins': 0,
+        'walkMins': 10, // Default value
+        'utilitiesIncluded': _utilitiesIncluded,
+        'amenities': _amen.entries.where((e) => e.value).map((e) => e.key).toList(),
         'availabilityFrom': _availFrom,
         'availabilityTo': _availTo,
+        'status': 'active',
         'createdAt': FieldValue.serverTimestamp(),
       };
 
@@ -359,16 +383,17 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
   @override
   void dispose() {
     _debounce?.cancel();
-    _addressFocusNode.dispose();
     _title.dispose();
     _price.dispose();
-    _address.dispose();
+    _street.dispose();
+    _houseNumber.dispose();
+    _city.dispose();
+    _postcode.dispose();
     _desc.dispose();
     _sizeSqm.dispose();
     _rooms.dispose();
     _bathrooms.dispose();
-    _yearBuilt.dispose();
-    _floor.dispose();
+    _addressFocusNode.dispose();
     super.dispose();
   }
 
@@ -417,8 +442,12 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                           TextFormField(
                             controller: _title,
                             decoration: _inputDecoration('Property Title *'),
-                            validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Required' : null,
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return 'Required';
+                              if (v.trim().length < 5) return 'Title should be at least 5 characters';
+                              if (v.trim().length > 100) return 'Title should be less than 100 characters';
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 16),
                           Row(
@@ -428,8 +457,13 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                                   controller: _price,
                                   keyboardType: TextInputType.number,
                                   decoration: _inputDecoration('Price (CHF/month) *'),
-                                  validator: (v) =>
-                                  num.tryParse(v ?? '') == null ? 'Enter valid number' : null,
+                                  validator: (v) {
+                                    if (v == null || v.trim().isEmpty) return 'Required';
+                                    final price = num.tryParse(v);
+                                    if (price == null) return 'Enter valid number';
+                                    if (price < 200) return 'Price should be at least CHF 200';
+                                    return null;
+                                  },
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -458,10 +492,11 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                             children: [
                               Column(
                                 children: [
+                                  // Address Search Field (optional helper)
                                   TextFormField(
-                                    controller: _address,
                                     focusNode: _addressFocusNode,
-                                    decoration: _inputDecoration('Start typing address (Switzerland) *').copyWith(
+                                    decoration: _inputDecoration('Search for Swiss addresses (e.g., "Bahnhofstrasse Zürich")').copyWith(
+                                      hintText: 'Start typing to search for addresses...',
                                       suffixIcon: _isSearchingAddress
                                           ? const Padding(
                                         padding: EdgeInsets.all(12),
@@ -471,14 +506,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                                           child: CircularProgressIndicator(strokeWidth: 2),
                                         ),
                                       )
-                                          : _pos != null
-                                          ? const Icon(Icons.check_circle, color: Colors.green)
                                           : const Icon(Icons.search),
                                     ),
                                     onChanged: _onAddressChanged,
-                                    validator: (v) =>
-                                    (v == null || v.trim().isEmpty) ? 'Required' :
-                                    (_pos == null) ? 'Please select from suggestions' : null,
                                   ),
                                   if (_showSuggestions && _addressSuggestions.isNotEmpty)
                                     Container(
@@ -517,42 +547,95 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                                         },
                                       ),
                                     ),
+                                  const SizedBox(height: 16),
+                                  // Street and House Number
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        flex: 3,
+                                        child: TextFormField(
+                                          controller: _street,
+                                          decoration: _inputDecoration('Street *'),
+                                          validator: (v) =>
+                                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        flex: 1,
+                                        child: TextFormField(
+                                          controller: _houseNumber,
+                                          decoration: _inputDecoration('No. *'),
+                                          validator: (v) =>
+                                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  // City and Postcode
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        flex: 2,
+                                        child: TextFormField(
+                                          controller: _city,
+                                          decoration: _inputDecoration('City *'),
+                                          validator: (v) =>
+                                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        flex: 1,
+                                        child: TextFormField(
+                                          controller: _postcode,
+                                          decoration: _inputDecoration('Postcode *'),
+                                          validator: (v) =>
+                                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  // Map Picker Button
+                                  OutlinedButton.icon(
+                                    onPressed: () async {
+                                      final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => MapPageOSM(
+                                            initialLat: _pos?.latitude ?? 46.8182,
+                                            initialLng: _pos?.longitude ?? 8.2275,
+                                            selectMode: true,
+                                          ),
+                                        ),
+                                      );
+                                      if (result != null && result is Map<String, double>) {
+                                        setState(() {
+                                          _pos = ll.LatLng(result['lat']!, result['lng']!);
+                                        });
+                                      }
+                                    },
+                                    icon: const Icon(Icons.map_outlined),
+                                    label: Text(_pos == null ? 'Select location on map *' : 'Location selected'),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                  ),
+                                  if (_pos == null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Text(
+                                        'Please select a location on the map',
+                                        style: TextStyle(color: Colors.red[600], fontSize: 12),
+                                      ),
+                                    ),
                                 ],
                               ),
                             ],
                           ),
-                          if (_pos != null) ...[
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.green[50],
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.green[200]!),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.check_circle, color: Colors.green[700], size: 20),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Location verified',
-                                      style: TextStyle(
-                                        color: Colors.green[700],
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context).pushNamed(MapPageOSM.route);
-                                    },
-                                    child: const Text('View Map'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -568,28 +651,30 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                                   controller: _sizeSqm,
                                   keyboardType: TextInputType.number,
                                   decoration: _inputDecoration('Size (m²) *'),
-                                  validator: (v) =>
-                                  int.tryParse(v ?? '') == null ? 'Required' : null,
+                                  validator: (v) {
+                                    if (v == null || v.trim().isEmpty) return 'Required';
+                                    final size = int.tryParse(v);
+                                    if (size == null) return 'Enter valid number';
+                                    if (size < 15) return 'Size should be at least 15 m²';
+                                    if (size > 500) return 'Size should be less than 500 m²';
+                                    return null;
+                                  },
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 16),
                               Expanded(
                                 child: TextFormField(
                                   controller: _rooms,
                                   keyboardType: TextInputType.number,
-                                  decoration: _inputDecoration('Rooms *'),
-                                  validator: (v) =>
-                                  int.tryParse(v ?? '') == null ? 'Required' : null,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _bathrooms,
-                                  keyboardType: TextInputType.number,
-                                  decoration: _inputDecoration('Bathrooms *'),
-                                  validator: (v) =>
-                                  int.tryParse(v ?? '') == null ? 'Required' : null,
+                                  decoration: _inputDecoration('Number of Rooms *'),
+                                  validator: (v) {
+                                    if (v == null || v.trim().isEmpty) return 'Required';
+                                    final rooms = int.tryParse(v);
+                                    if (rooms == null) return 'Enter valid number';
+                                    if (rooms < 1) return 'Rooms should be at least 1';
+                                    if (rooms > 10) return 'Rooms should be less than 10';
+                                    return null;
+                                  },
                                 ),
                               ),
                             ],
@@ -599,33 +684,22 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                             children: [
                               Expanded(
                                 child: TextFormField(
-                                  controller: _yearBuilt,
+                                  controller: _bathrooms,
                                   keyboardType: TextInputType.number,
-                                  decoration: _inputDecoration('Year Built'),
+                                  decoration: _inputDecoration('Number of Bathrooms *'),
+                                  validator: (v) {
+                                    if (v == null || v.trim().isEmpty) return 'Required';
+                                    final baths = int.tryParse(v);
+                                    if (baths == null) return 'Enter valid number';
+                                    if (baths < 1) return 'Bathrooms should be at least 1';
+                                    if (baths > 5) return 'Bathrooms should be less than 5';
+                                    return null;
+                                  },
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _floor,
-                                  keyboardType: TextInputType.number,
-                                  decoration: _inputDecoration('Floor'),
-                                ),
-                              ),
+                              const SizedBox(width: 16),
+                              Expanded(child: Container()), // Spacer
                             ],
-                          ),
-                          const SizedBox(height: 16),
-                          DropdownButtonFormField<String>(
-                            value: _heatingType,
-                            decoration: _inputDecoration('Heating Type'),
-                            items: const [
-                              DropdownMenuItem(value: null, child: Text('Not specified')),
-                              DropdownMenuItem(value: 'gas', child: Text('Gas')),
-                              DropdownMenuItem(value: 'electric', child: Text('Electric')),
-                              DropdownMenuItem(value: 'district', child: Text('District heating')),
-                              DropdownMenuItem(value: 'heatpump', child: Text('Heat pump')),
-                            ],
-                            onChanged: (v) => setState(() => _heatingType = v),
                           ),
                           const SizedBox(height: 16),
                           Container(
@@ -669,6 +743,14 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                       _buildCard(
                         title: 'Amenities',
                         children: [
+                          const Text(
+                            'Select all available amenities:',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -679,6 +761,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                                   onSelected: (s) => setState(() => _amen[k] = s),
                                   selectedColor: Colors.blue[50],
                                   checkmarkColor: Colors.blue[700],
+                                  showCheckmark: true,
                                 ),
                             ).toList(),
                           ),
@@ -693,7 +776,13 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                           TextFormField(
                             controller: _desc,
                             maxLines: 4,
-                            decoration: _inputDecoration('Property Description'),
+                            decoration: _inputDecoration('Property Description *'),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return 'Required';
+                              if (v.trim().length < 10) return 'Description should be at least 10 characters';
+                              if (v.trim().length > 500) return 'Description should be less than 500 characters';
+                              return null;
+                            },
                           ),
                         ],
                       ),
@@ -774,35 +863,61 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
                       // Availability Card
                       _buildCard(
-                        title: 'Availability',
+                        title: 'Availability *',
                         children: [
-                          OutlinedButton.icon(
-                            onPressed: () async {
-                              final now = DateTime.now();
-                              final d = await showDateRangePicker(
-                                context: context,
-                                firstDate: now,
-                                lastDate: now.add(const Duration(days: 365)),
-                              );
-                              if (d != null) {
-                                setState(() {
-                                  _availFrom = d.start;
-                                  _availTo = d.end;
-                                });
-                              }
-                            },
-                            icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                            label: Text(
-                              _availFrom == null
-                                  ? 'Set availability dates'
-                                  : '${_availFrom!.toString().split(" ").first} → ${_availTo!.toString().split(" ").first}',
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              minimumSize: const Size(double.infinity, 48),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () async {
+                                    final now = DateTime.now();
+                                    final d = await showDateRangePicker(
+                                      context: context,
+                                      firstDate: now,
+                                      lastDate: now.add(const Duration(days: 365)),
+                                    );
+                                    if (d != null) setState(() {
+                                      _availFrom = d.start;
+                                      _availTo = d.end;
+                                    });
+                                  },
+                                  icon: const Icon(Icons.calendar_today_outlined, size: 18),
+                                  label: Text(_availFrom == null
+                                      ? 'Select dates'
+                                      : '${_availFrom!.toString().split(" ").first} → ${_availTo!.toString().split(" ").first}'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
                               ),
+                            ],
+                          ),
+                          if (_availFrom == null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                'Please select availability dates',
+                                style: TextStyle(color: Colors.red[600], fontSize: 12),
+                              ),
+                            ),
+                          const SizedBox(height: 16),
+                          
+                          // Calendar View
+                          Container(
+                            height: 400,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[300]!),
+                            ),
+                            child: _AddPropertyCalendar(
+                              onDatesSelected: (from, to) {
+                                setState(() {
+                                  _availFrom = from;
+                                  _availTo = to;
+                                });
+                              },
                             ),
                           ),
                         ],
@@ -902,6 +1017,134 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: Colors.red, width: 1.5),
         ),
+    );
+  }
+}
+
+class _AddPropertyCalendar extends StatefulWidget {
+  final Function(DateTime?, DateTime?) onDatesSelected;
+  
+  const _AddPropertyCalendar({
+    required this.onDatesSelected,
+  });
+
+  @override
+  State<_AddPropertyCalendar> createState() => _AddPropertyCalendarState();
+}
+
+class _AddPropertyCalendarState extends State<_AddPropertyCalendar> {
+  late DateTime _focusedDay;
+  late DateTimeRange? _selectedRange;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusedDay = DateTime.now();
+    _selectedRange = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Text(
+                'Select Availability Period',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const Spacer(),
+              if (_selectedRange != null)
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedRange = null;
+                    });
+                    widget.onDatesSelected(null, null);
+                  },
+                  child: const Text('Clear'),
+                ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: TableCalendar(
+            firstDay: DateTime.now(),
+            lastDay: DateTime.now().add(const Duration(days: 365)),
+            focusedDay: _focusedDay,
+            rangeStartDay: _selectedRange?.start,
+            rangeEndDay: _selectedRange?.end,
+            rangeSelectionMode: RangeSelectionMode.toggledOn,
+            onDaySelected: (selectedDay, focusedDay) {
+              if (_selectedRange == null) {
+                setState(() {
+                  _selectedRange = DateTimeRange(start: selectedDay, end: selectedDay);
+                  _focusedDay = focusedDay;
+                });
+                widget.onDatesSelected(selectedDay, selectedDay);
+              } else {
+                final start = _selectedRange!.start;
+                final end = selectedDay;
+                
+                if (start.isAfter(end)) {
+                  setState(() {
+                    _selectedRange = DateTimeRange(start: end, end: start);
+                    _focusedDay = focusedDay;
+                  });
+                  widget.onDatesSelected(end, start);
+                } else {
+                  setState(() {
+                    _selectedRange = DateTimeRange(start: start, end: end);
+                    _focusedDay = focusedDay;
+                  });
+                  widget.onDatesSelected(start, end);
+                }
+              }
+            },
+            onPageChanged: (focusedDay) {
+              _focusedDay = focusedDay;
+            },
+            calendarStyle: CalendarStyle(
+              outsideDaysVisible: false,
+              weekendTextStyle: const TextStyle(color: Colors.red),
+            ),
+            headerStyle: HeaderStyle(
+              formatButtonVisible: false,
+              titleCentered: true,
+            ),
+          ),
+        ),
+        if (_selectedRange != null) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              border: Border(top: BorderSide(color: Colors.grey[300]!)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.calendar_today, color: Colors.green[600], size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Selected: ${_selectedRange!.start.day}/${_selectedRange!.start.month}/${_selectedRange!.start.year} → ${_selectedRange!.end.day}/${_selectedRange!.end.month}/${_selectedRange!.end.year}',
+                    style: TextStyle(
+                      color: Colors.green[700],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

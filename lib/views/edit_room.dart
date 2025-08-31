@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class EditRoomPage extends StatefulWidget {
   final String roomId;
@@ -87,49 +88,221 @@ class _EditRoomPageState extends State<EditRoomPage> {
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null),
                     const SizedBox(height: 12),
                     TextFormField(controller: _price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price (CHF) *'),
-                        validator: (v) => num.tryParse(v ?? '') == null ? 'Enter number' : null),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Required';
+                          final price = num.tryParse(v);
+                          if (price == null) return 'Enter valid number';
+                          if (price < 200) return 'Price should be at least CHF 200';
+                          return null;
+                        }),
                     const SizedBox(height: 12),
                     Row(children: [
                       Expanded(child: TextFormField(controller: _sizeSqm, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Size (m²) *'),
-                          validator: (v) => int.tryParse(v ?? '') == null ? 'Required' : null)),
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return 'Required';
+                            final size = int.tryParse(v);
+                            if (size == null) return 'Enter valid number';
+                            if (size < 15) return 'Size should be at least 15 m²';
+                            if (size > 500) return 'Size should be less than 500 m²';
+                            return null;
+                          })),
                       const SizedBox(width: 12),
                       Expanded(child: TextFormField(controller: _rooms, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Rooms *'),
-                          validator: (v) => int.tryParse(v ?? '') == null ? 'Required' : null)),
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return 'Required';
+                            final rooms = int.tryParse(v);
+                            if (rooms == null) return 'Enter valid number';
+                            if (rooms < 1) return 'Rooms should be at least 1';
+                            if (rooms > 10) return 'Rooms should be less than 10';
+                            return null;
+                          })),
                       const SizedBox(width: 12),
                       Expanded(child: TextFormField(controller: _baths, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Bathrooms *'),
-                          validator: (v) => int.tryParse(v ?? '') == null ? 'Required' : null)),
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return 'Required';
+                            final baths = int.tryParse(v);
+                            if (baths == null) return 'Enter valid number';
+                            if (baths < 1) return 'Bathrooms should be at least 1';
+                            if (baths > 5) return 'Bathrooms should be less than 5';
+                            return null;
+                          })),
                     ]),
                     const SizedBox(height: 12),
-                    SwitchListTile.adaptive(value: _furnished, onChanged: (v) => setState(() => _furnished = v), title: const Text('Furnished')),
-                    const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final now = DateTime.now();
-                        final d = await showDateRangePicker(
-                          context: context,
-                          firstDate: now,
-                          lastDate: now.add(const Duration(days: 365)),
-                          helpText: 'Set availability range',
-                        );
-                        if (d != null) {
-                          setState(() {
-                            _availFrom = d.start;
-                            _availTo = d.end;
-                          });
-                        }
-                      },
-                      icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                      label: Text(
-                        _availFrom == null
-                            ? 'Set availability'
-                            : '${_availFrom!.toString().split(" ").first} → ${_availTo!.toString().split(" ").first}',
+                    SwitchListTile(
+                      title: const Text('Furnished'),
+                      value: _furnished,
+                      onChanged: (v) => setState(() => _furnished = v),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Availability Section
+                    const Text(
+                      'Availability *',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 400,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: _EditRoomCalendar(
+                        initialFrom: _availFrom,
+                        initialTo: _availTo,
+                        onDatesSelected: (from, to) {
+                          setState(() {
+                            _availFrom = from;
+                            _availTo = to;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     ElevatedButton(onPressed: _save, child: const Text('Save')),
                   ]),
                 ),
               ),
             ),
+    );
+  }
+}
+
+class _EditRoomCalendar extends StatefulWidget {
+  final DateTime? initialFrom;
+  final DateTime? initialTo;
+  final Function(DateTime?, DateTime?) onDatesSelected;
+  
+  const _EditRoomCalendar({
+    this.initialFrom,
+    this.initialTo,
+    required this.onDatesSelected,
+  });
+
+  @override
+  State<_EditRoomCalendar> createState() => _EditRoomCalendarState();
+}
+
+class _EditRoomCalendarState extends State<_EditRoomCalendar> {
+  late DateTime _focusedDay;
+  late DateTimeRange? _selectedRange;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusedDay = widget.initialFrom ?? DateTime.now();
+    if (widget.initialFrom != null && widget.initialTo != null) {
+      _selectedRange = DateTimeRange(start: widget.initialFrom!, end: widget.initialTo!);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Text(
+                'Edit Availability Period',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const Spacer(),
+              if (_selectedRange != null)
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedRange = null;
+                    });
+                    widget.onDatesSelected(null, null);
+                  },
+                  child: const Text('Clear'),
+                ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: TableCalendar(
+            firstDay: DateTime.now(),
+            lastDay: DateTime.now().add(const Duration(days: 365)),
+            focusedDay: _focusedDay,
+            rangeStartDay: _selectedRange?.start,
+            rangeEndDay: _selectedRange?.end,
+            rangeSelectionMode: RangeSelectionMode.toggledOn,
+            onDaySelected: (selectedDay, focusedDay) {
+              if (_selectedRange == null) {
+                setState(() {
+                  _selectedRange = DateTimeRange(start: selectedDay, end: selectedDay);
+                  _focusedDay = focusedDay;
+                });
+                widget.onDatesSelected(selectedDay, selectedDay);
+              } else {
+                final start = _selectedRange!.start;
+                final end = selectedDay;
+                
+                if (start.isAfter(end)) {
+                  setState(() {
+                    _selectedRange = DateTimeRange(start: end, end: start);
+                    _focusedDay = focusedDay;
+                  });
+                  widget.onDatesSelected(end, start);
+                } else {
+                  setState(() {
+                    _selectedRange = DateTimeRange(start: start, end: end);
+                    _focusedDay = focusedDay;
+                  });
+                  widget.onDatesSelected(start, end);
+                }
+              }
+            },
+            onPageChanged: (focusedDay) {
+              _focusedDay = focusedDay;
+            },
+            calendarStyle: CalendarStyle(
+              outsideDaysVisible: false,
+              weekendTextStyle: const TextStyle(color: Colors.red),
+            ),
+            headerStyle: HeaderStyle(
+              formatButtonVisible: false,
+              titleCentered: true,
+            ),
+          ),
+        ),
+        if (_selectedRange != null) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              border: Border(top: BorderSide(color: Colors.grey[300]!)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.calendar_today, color: Colors.green[600], size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Selected: ${_selectedRange!.start.day}/${_selectedRange!.start.month}/${_selectedRange!.start.year} → ${_selectedRange!.end.day}/${_selectedRange!.end.month}/${_selectedRange!.end.year}',
+                    style: TextStyle(
+                      color: Colors.green[700],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

@@ -19,11 +19,11 @@ const double hesSoValaisLat = 46.2276;
 const double hesSoValaisLng = 7.3589;
 
 const swissUniversities = {
-  'HES-SO Valais-Wallis (Sion)': 'Rue de l’Industrie 23, 1950 Sion',
-  'EPFL (Lausanne)': 'Route Cantonale, 1015 Lausanne',
-  'ETH Zürich': 'Rämistrasse 101, 8092 Zürich',
-  'Université de Genève': 'Rue du Général-Dufour 24, 1211 Genève',
-  'Université de Lausanne': 'CH-1015 Lausanne',
-  'Université de Fribourg': 'Avenue de l’Europe 20, 1700 Fribourg',
-  'Université de Neuchâtel': 'Avenue du 1er-Mars 26, 2000 Neuchâtel',
+  'HES-SO Valais-Wallis (Sion)': 'Rue de l\'Industrie 21, 1950 Sion',
+  'HES-SO Valais-Wallis (Sierre)': 'Route de la Plaine 2, 3960 Sierre',
+  'HEP-VS (St-Maurice)': 'Avenue du Simplon 13, 1890 St-Maurice',
+  'HEP-VS (Brig)': 'Alte Simplonstrasse 33, 3900 Brig-Glis',
+  'FFHS / Swiss Distance University (Brig)': 'Überlandstrasse 12, 3900 Brig',
+  'César Ritz Colleges (Brig)': 'English Gruss Strasse 43, 3902 Brig',
 };
+

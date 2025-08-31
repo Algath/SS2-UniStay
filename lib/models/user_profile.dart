@@ -7,6 +7,7 @@ class UserProfile {
   final String homeAddress;
   final String uniAddress;
   final String photoUrl;
+  final bool isAdmin; // New field for admin access
 
   const UserProfile({
     required this.uid,
@@ -17,6 +18,7 @@ class UserProfile {
     this.homeAddress = '',
     this.uniAddress = '',
     this.photoUrl = '',
+    this.isAdmin = false, // Default to false
   });
 
   factory UserProfile.fromMap(String uid, Map<String, dynamic> m) => UserProfile(
@@ -28,5 +30,27 @@ class UserProfile {
     homeAddress: (m['homeAddress'] ?? '') as String,
     uniAddress: (m['uniAddress'] ?? '') as String,
     photoUrl: (m['photoUrl'] ?? '') as String,
+    isAdmin: (m['isAdmin'] ?? false) as bool, // Parse admin status
   );
+
+  Map<String, dynamic> toMap() => {
+    'email': email,
+    'role': role,
+    'name': name,
+    'lastname': lastname,
+    'homeAddress': homeAddress,
+    'uniAddress': uniAddress,
+    'photoUrl': photoUrl,
+    'isAdmin': isAdmin,
+  };
+
+  // Helper method to get display name
+  String get displayName {
+    if (name.isNotEmpty && lastname.isNotEmpty) {
+      return '$name $lastname';
+    } else if (name.isNotEmpty) {
+      return name;
+    }
+    return email;
+  }
 }

@@ -23,10 +23,7 @@ class AddPropertyViewModel {
     // optional (pricing-friendly)
     int? yearBuilt,
     int? floor,
-    String? heatingType,         // 'gas' | 'electric' | 'district' | 'heatpump'
     bool utilitiesIncluded = false,
-    int? internetMbps,
-    num? deposit,
 
     // UX
     String description = '',
@@ -60,10 +57,7 @@ class AddPropertyViewModel {
       // optional pricing-friendly
       if (yearBuilt != null) 'yearBuilt': yearBuilt,
       if (floor != null) 'floor': floor,
-      if (heatingType != null) 'heatingType': heatingType,
       'utilitiesIncluded': utilitiesIncluded,
-      if (internetMbps != null) 'internetMbps': internetMbps,
-      if (deposit != null) 'deposit': deposit,
 
       // UX
       'description': description.trim(),

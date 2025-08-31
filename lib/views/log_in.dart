@@ -14,97 +14,242 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
 
   bool _loading = false;
   String? _error;
 
-  final _auth = AuthService();   // ✅ Use the service
+  final _auth = AuthService();
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _signIn() async {
+    // Clear any previous errors
+    setState(() => _error = null);
+
+    // Validate form
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;
     });
 
     try {
-      final user = await _auth.login(
+      await _auth.login(
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text.trim(),
       );
 
       if (!mounted) return;
 
-      // ✅ After login → go to MainNavigation (homepage with navbar)
+      // After successful login → go to MainNavigation
       Navigator.of(context).pushReplacementNamed(MainNavigation.route);
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (mounted) {
+        setState(() {
+          // Make error messages more user-friendly
+          if (e.toString().contains('user-not-found')) {
+            _error = 'No user found with this email';
+          } else if (e.toString().contains('wrong-password')) {
+            _error = 'Incorrect password';
+          } else if (e.toString().contains('invalid-email')) {
+            _error = 'Invalid email address';
+          } else if (e.toString().contains('network')) {
+            _error = 'Network error. Please check your connection';
+          } else {
+            _error = 'Login failed. Please try again';
+          }
+        });
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your email';
+    }
+    // Basic email validation
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(value)) {
+      return 'Please enter a valid email';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your password';
+    }
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'UniStay',
-                style: GoogleFonts.pacifico(
-                  fontSize: 40,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF6E56CF),
-                ),
-              ),
-              const SizedBox(height: 40),
-              TextField(
-                controller: _emailCtrl,
-                decoration: const InputDecoration(labelText: 'Email'),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: _passwordCtrl,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Password'),
-              ),
-              const SizedBox(height: 20),
-
-              if (_error != null)
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-
-              const SizedBox(height: 6),
-              ElevatedButton(
-                onPressed: _loading ? null : _signIn,
-                child: _loading
-                    ? const SizedBox(
-                  height: 22,
-                  width: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo
+                  Text(
+                    'UniStay',
+                    style: GoogleFonts.pacifico(
+                      fontSize: 40,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF6E56CF),
+                    ),
                   ),
-                )
-                    : const Text('Log in'),
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => Navigator.of(context).pushReplacementNamed(SignUpPage.route),
-                child: Text(
-                  'Don’t have an account? Sign up',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF6E56CF),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Welcome back!',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 40),
+
+                  // Email field
+                  TextFormField(
+                    controller: _emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    autocorrect: false,
+                    textInputAction: TextInputAction.next,
+                    validator: _validateEmail,
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Password field
+                  TextFormField(
+                    controller: _passwordCtrl,
+                    obscureText: true,
+                    textInputAction: TextInputAction.done,
+                    validator: _validatePassword,
+                    onFieldSubmitted: (_) => _signIn(),
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Error message
+                  if (_error != null)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.red[700], size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _error!,
+                              style: TextStyle(color: Colors.red[700]),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  const SizedBox(height: 20),
+
+                  // Login button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _loading ? null : _signIn,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6E56CF),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _loading
+                          ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                          : Text(
+                        'Log in',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Sign up link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have an account? ",
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pushReplacementNamed(SignUpPage.route),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                        child: Text(
+                          'Sign up',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF6E56CF),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

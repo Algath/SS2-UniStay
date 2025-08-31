@@ -4,7 +4,11 @@ class Room {
   final String id;
   final String title;
   final num price;
-  final String address;
+  final String street; // Cadde
+  final String houseNumber; // Kapı kodu
+  final String city; // Şehir
+  final String postcode; // Posta kodu
+  final String country; // Ülke (varsayılan: Switzerland)
   final String description;
   final double lat;
   final double lng;
@@ -26,7 +30,11 @@ class Room {
     required this.id,
     required this.title,
     required this.price,
-    required this.address,
+    required this.street,
+    required this.houseNumber,
+    required this.city,
+    required this.postcode,
+    this.country = 'Switzerland',
     this.description = '',
     required this.lat,
     required this.lng,
@@ -45,6 +53,9 @@ class Room {
     this.amenities = const [],
   });
 
+  // Tam adres string'i oluştur
+  String get fullAddress => '$street $houseNumber, $postcode $city, $country';
+
   factory Room.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final m = doc.data() ?? {};
     final tsFrom = m['availabilityFrom'];
@@ -54,7 +65,11 @@ class Room {
       id: doc.id,
       title: (m['title'] ?? '') as String,
       price: (m['price'] ?? 0) as num,
-      address: (m['address'] ?? '') as String,
+      street: (m['street'] ?? '') as String,
+      houseNumber: (m['houseNumber'] ?? '') as String,
+      city: (m['city'] ?? '') as String,
+      postcode: (m['postcode'] ?? '') as String,
+      country: (m['country'] ?? 'Switzerland') as String,
       description: (m['description'] ?? '') as String,
       lat: ((m['lat'] ?? 0.0) as num).toDouble(),
       lng: ((m['lng'] ?? 0.0) as num).toDouble(),
@@ -78,7 +93,11 @@ class Room {
     return {
       'title': title,
       'price': price,
-      'address': address,
+      'street': street,
+      'houseNumber': houseNumber,
+      'city': city,
+      'postcode': postcode,
+      'country': country,
       if (description.isNotEmpty) 'description': description,
       'lat': lat,
       'lng': lng,

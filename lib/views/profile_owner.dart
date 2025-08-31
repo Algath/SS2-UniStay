@@ -69,17 +69,44 @@ class _ProfileOwnerPageState extends State<ProfileOwnerPage> {
   }
 
   Future<void> _deleteProperty(BuildContext context, Room room) async {
-    // Check for pending booking requests
-    final hasPending = await BookingService().hasPendingRequests(room.id);
-
-    if (hasPending && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This listing has pending booking requests. Please respond to them first.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
+    // Check for pending or accepted booking requests
+    try {
+      final bookingService = BookingService();
+      final requests = await bookingService.getRequestsForProperty(room.id).first;
+      
+      final hasActiveBookings = requests.any((request) => 
+        request.status == 'pending' || request.status == 'accepted');
+      
+      if (hasActiveBookings && context.mounted) {
+        final pendingCount = requests.where((r) => r.status == 'pending').length;
+        final acceptedCount = requests.where((r) => r.status == 'accepted').length;
+        
+        String message = 'This property cannot be deleted because it has ';
+        if (pendingCount > 0 && acceptedCount > 0) {
+          message += '$pendingCount pending and $acceptedCount accepted booking requests.';
+        } else if (pendingCount > 0) {
+          message += '$pendingCount pending booking requests. Please respond to them first.';
+        } else {
+          message += '$acceptedCount accepted bookings.';
+        }
+        
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Cannot Delete Property'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+    } catch (e) {
+      print('Error checking bookings: $e');
     }
 
     final ok = await showDialog<bool>(

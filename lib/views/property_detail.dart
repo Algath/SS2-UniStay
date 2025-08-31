@@ -777,22 +777,45 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   }
 
   Future<void> _deleteProperty(BuildContext context, Room room) async {
-    // Check for pending booking requests
-    final pendingBookings = await FirebaseFirestore.instance
-        .collection('bookings')
-        .where('roomId', isEqualTo: room.id)
-        .where('status', isEqualTo: 'pending')
-        .get();
-
-    if (pendingBookings.docs.isNotEmpty && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This listing has pending booking requests. Please respond to them first.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-                      return;
-                    }
+    // Check for pending or accepted booking requests
+    try {
+      final bookingService = BookingService();
+      final requests = await bookingService.getRequestsForProperty(room.id).first;
+      
+      final hasActiveBookings = requests.any((request) => 
+        request.status == 'pending' || request.status == 'accepted');
+      
+      if (hasActiveBookings && context.mounted) {
+        final pendingCount = requests.where((r) => r.status == 'pending').length;
+        final acceptedCount = requests.where((r) => r.status == 'accepted').length;
+        
+        String message = 'This property cannot be deleted because it has ';
+        if (pendingCount > 0 && acceptedCount > 0) {
+          message += '$pendingCount pending and $acceptedCount accepted booking requests.';
+        } else if (pendingCount > 0) {
+          message += '$pendingCount pending booking requests. Please respond to them first.';
+        } else {
+          message += '$acceptedCount accepted bookings.';
+        }
+        
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Cannot Delete Property'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+    } catch (e) {
+      print('Error checking bookings: $e');
+    }
 
     final ok = await showDialog<bool>(
       context: context,
@@ -956,10 +979,10 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
             }
           }
         } else if (request.status == 'accepted') {
-          // Students only see accepted bookings as unavailable
+          // Students see accepted bookings as booked (grey)
           for (DateTime day = request.requestedRange.start; day.isBefore(request.requestedRange.end.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
             final dateKey = DateTime(day.year, day.month, day.day);
-            statusMap[dateKey] = 'unavailable';
+            statusMap[dateKey] = 'booked_student';
           }
         }
       }
@@ -985,7 +1008,9 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
       case 'available':
         return Colors.green;
       case 'booked':
-        return Colors.blue;
+        return Colors.blue; // Owner sees booked as blue
+      case 'booked_student':
+        return Colors.grey; // Student sees booked as grey
       case 'pending':
         return Colors.orange;
       default:
@@ -1113,6 +1138,7 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
               enabledDayPredicate: _isDateSelectable,
               eventLoader: (day) {
                 final status = _getEventForDay(day);
+                // Show markers for all statuses except default unavailable
                 return status != 'unavailable' ? [status] : [];
               },
               calendarBuilders: CalendarBuilders(
@@ -1175,6 +1201,11 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
                       _LegendItem(
                         color: Colors.orange,
                         label: 'Pending',
+                      ),
+                    ] else ...[
+                      _LegendItem(
+                        color: Colors.grey,
+                        label: 'Booked',
                       ),
                     ],
                     _LegendItem(

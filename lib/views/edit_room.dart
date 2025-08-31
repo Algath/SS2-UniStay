@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:latlong2/latlong.dart' as ll;
 import 'package:http/http.dart' as http;
 import 'package:unistay/services/storage_service.dart';
+import 'package:unistay/services/booking_service.dart';
 
 // Address suggestion model (copied from add_property.dart)
 class AddressSuggestion {
@@ -359,6 +360,46 @@ class _EditRoomPageState extends State<EditRoomPage> {
   }
 
   Future<void> _deleteProperty() async {
+    // Check for pending or accepted booking requests
+    try {
+      final bookingService = BookingService();
+      final requests = await bookingService.getRequestsForProperty(widget.roomId).first;
+      
+      final hasActiveBookings = requests.any((request) => 
+        request.status == 'pending' || request.status == 'accepted');
+      
+      if (hasActiveBookings && context.mounted) {
+        final pendingCount = requests.where((r) => r.status == 'pending').length;
+        final acceptedCount = requests.where((r) => r.status == 'accepted').length;
+        
+        String message = 'This property cannot be deleted because it has ';
+        if (pendingCount > 0 && acceptedCount > 0) {
+          message += '$pendingCount pending and $acceptedCount accepted booking requests.';
+        } else if (pendingCount > 0) {
+          message += '$pendingCount pending booking requests. Please respond to them first.';
+        } else {
+          message += '$acceptedCount accepted bookings.';
+        }
+        
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Cannot Delete Property'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+    } catch (e) {
+      print('Error checking bookings: $e');
+    }
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

@@ -3,7 +3,8 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  file_selector_linux
+  desktop_webview_auth
+  gtk
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

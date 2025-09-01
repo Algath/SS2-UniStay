@@ -20,26 +20,17 @@ ThemeData _buildTheme(Brightness brightness) {
     brightness: brightness,
     colorScheme: scheme,
 
-    textTheme: GoogleFonts.latoTextTheme(inter).apply(
-      bodyColor: scheme.onSurface,
-      displayColor: scheme.onSurface,
-    ).copyWith(
+    textTheme: inter.copyWith(
       titleLarge: GoogleFonts.lato(
-        fontSize: 30,
-        fontWeight: FontWeight.w800,
-        letterSpacing: -0.5,
+        fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: -0.5,
         color: scheme.onSurface,
       ),
       titleMedium: GoogleFonts.lato(
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.3,
+        fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.3,
         color: scheme.onSurface,
       ),
       titleSmall: GoogleFonts.lato(
-        fontSize: 16,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.2,
+        fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.2,
         color: scheme.onSurface,
       ),
     ),
@@ -115,7 +106,7 @@ ThemeData _buildTheme(Brightness brightness) {
       thumbColor: kCoral,
       overlayColor: kCoral.withOpacity(0.08),
       trackHeight: 4,
-      showValueIndicator: ShowValueIndicator.onDrag,
+      showValueIndicator: ShowValueIndicator.always,
       valueIndicatorColor: kCoral,
       valueIndicatorTextStyle: inter.labelLarge?.copyWith(color: Colors.white),
     ),

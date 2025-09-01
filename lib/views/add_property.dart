@@ -404,9 +404,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
-
+      backgroundColor: Colors.white,
       appBar: AppBar(
-
+        backgroundColor: Colors.white,
         elevation: 0,
         title: const Text(
           'Add Property',
@@ -469,7 +469,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                               const SizedBox(width: 16),
                               Expanded(
                                 child: DropdownButtonFormField<String>(
-                                  initialValue: _type,
+                                  value: _type,
                                   decoration: _inputDecoration('Property Type *'),
                                   items: const [
                                     DropdownMenuItem(value: 'room', child: Text('Single room')),
@@ -876,12 +876,10 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                                       firstDate: now,
                                       lastDate: now.add(const Duration(days: 365)),
                                     );
-                                    if (d != null) {
-                                      setState(() {
+                                    if (d != null) setState(() {
                                       _availFrom = d.start;
                                       _availTo = d.end;
                                     });
-                                    }
                                   },
                                   icon: const Icon(Icons.calendar_today_outlined, size: 18),
                                   label: Text(_availFrom == null

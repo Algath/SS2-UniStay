@@ -1,4 +1,3 @@
-// lib/views/main_navigation.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unistay/views/map_page_osm.dart';

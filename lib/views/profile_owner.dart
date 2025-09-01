@@ -161,12 +161,12 @@ class _ProfileOwnerPageState extends State<ProfileOwnerPage> {
                         style: TextStyle(fontSize: isTablet ? 26 : 24, fontWeight: FontWeight.bold, color: Colors.black87)),
                     const SizedBox(height: 8),
                     // Only show university if one is selected (for homeowners it's optional)
-                    if (userProfile?.uniAddress.isNotEmpty == true) ...[
+                    if (userProfile?.uniAddress?.isNotEmpty == true) ...[
                       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                         Icon(Icons.school_outlined, size: 18, color: Colors.grey[600]),
                         const SizedBox(width: 6),
                         Flexible(child: Text(
-                            _getUniversityNameFromAddress(userProfile!.uniAddress),
+                            _getUniversityNameFromAddress(userProfile!.uniAddress!),
                             style: TextStyle(fontSize: isTablet ? 16 : 14, color: Colors.grey[600]),
                             textAlign: TextAlign.center
                         )),

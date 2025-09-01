@@ -53,6 +53,7 @@ dependencies:
   # Routing (main.dart ve LoginPage'te kullanılıyor)
   go_router: ^16.2.0
 
+  path_provider: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

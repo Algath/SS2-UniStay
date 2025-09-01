@@ -115,7 +115,7 @@ ThemeData _buildTheme(Brightness brightness) {
       thumbColor: kCoral,
       overlayColor: kCoral.withOpacity(0.08),
       trackHeight: 4,
-      showValueIndicator: ShowValueIndicator.always,
+      showValueIndicator: ShowValueIndicator.onDrag,
       valueIndicatorColor: kCoral,
       valueIndicatorTextStyle: inter.labelLarge?.copyWith(color: Colors.white),
     ),

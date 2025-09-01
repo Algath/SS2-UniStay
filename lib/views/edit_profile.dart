@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -338,7 +337,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       }
 
       return DropdownButtonFormField<String>(
-        value: _selectedUniversity,
+        initialValue: _selectedUniversity,
         decoration: _inputDecoration(
           'University *',
           Icons.school_outlined,
@@ -366,7 +365,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     } else {
       // For homeowners, university is optional - show dropdown with "None" option
       return DropdownButtonFormField<String>(
-        value: _selectedUniversity,
+        initialValue: _selectedUniversity,
         decoration: _inputDecoration(
           'University (optional)',
           Icons.school_outlined,

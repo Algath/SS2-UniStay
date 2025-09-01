@@ -469,7 +469,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                               const SizedBox(width: 16),
                               Expanded(
                                 child: DropdownButtonFormField<String>(
-                                  value: _type,
+                                  initialValue: _type,
                                   decoration: _inputDecoration('Property Type *'),
                                   items: const [
                                     DropdownMenuItem(value: 'room', child: Text('Single room')),
@@ -876,10 +876,12 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                                       firstDate: now,
                                       lastDate: now.add(const Duration(days: 365)),
                                     );
-                                    if (d != null) setState(() {
+                                    if (d != null) {
+                                      setState(() {
                                       _availFrom = d.start;
                                       _availTo = d.end;
                                     });
+                                    }
                                   },
                                   icon: const Icon(Icons.calendar_today_outlined, size: 18),
                                   label: Text(_availFrom == null

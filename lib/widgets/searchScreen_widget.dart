@@ -9,10 +9,10 @@ class AddressSearchWidget extends StatefulWidget {
   final Function(SearchResultWithStop) onResultSelected;
 
   const AddressSearchWidget({
-    Key? key,
+    super.key,
     required this.controller,
     required this.onResultSelected,
-  }) : super(key: key);
+  });
 
   @override
   _AddressSearchWidgetState createState() => _AddressSearchWidgetState();

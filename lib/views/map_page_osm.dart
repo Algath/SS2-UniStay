@@ -636,7 +636,7 @@ class _MapPageOSMState extends State<MapPageOSM> {
                 constraints: BoxConstraints(maxWidth: isTablet ? 400 : double.infinity),
                 height: 48,
                 child: DropdownButtonFormField<University>(
-                  value: _selectedUniversity,
+                  initialValue: _selectedUniversity,
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.grey[100],

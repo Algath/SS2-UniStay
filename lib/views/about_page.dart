@@ -143,10 +143,10 @@ class AboutPage extends StatelessWidget {
 
   Widget _buildTeamSection(bool isTablet, bool isLandscape) {
     final developers = [
-      {'name': 'Kulekci, Unal', 'role': 'Mobile Developer'},
-      {'name': 'Mariéthoz, Cédric', 'role': 'Backend Integration'},
-      {'name': 'Savioz, Pierre-Yves', 'role': 'UI/UX Designer'},
-      {'name': 'Zanad, Maroua', 'role': 'Project Coordinator'},
+      {'name': 'Kulekci, Unal', 'role': 'UI and Backend Developer'},
+      {'name': 'Mariéthoz, Cédric', 'role': 'ML Developer'},
+      {'name': 'Savioz, Pierre-Yves', 'role': 'UI/UX Developer'},
+      {'name': 'Zanad, Maroua', 'role': 'Project Coordinator and ML Developer'},
     ];
 
     return Container(

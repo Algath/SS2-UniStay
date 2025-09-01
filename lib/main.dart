@@ -96,15 +96,14 @@ class UniStayApp extends StatelessWidget {
         EditProfilePage.route: (_) => const EditProfilePage(),
         MapPageOSM.route: (_) => const MapPageOSM(),
         ProfileGate.route: (_) => const ProfileGate(),
-        ProfileStudentPage.route: (_) => const ProfileStudentPage(),
-        ProfileOwnerPage.route: (_) => const ProfileOwnerPage(),
+        ProfileStudentPageRefactored.route: (_) => const ProfileStudentPageRefactored(), // Changed
+        ProfileOwnerPageRefactored.route: (_) => const ProfileOwnerPageRefactored(),     // Changed
         AboutPage.route: (_) => const AboutPage(),
         AddPropertyPage.route: (_) => const AddPropertyPage(),
         '/property-detail': (context) {
           final roomId = ModalRoute.of(context)!.settings.arguments as String;
           return PropertyDetailPage(roomId: roomId);
         },
-        // dynamic route for edit room is created via MaterialPageRoute where used
       },
     );
   }

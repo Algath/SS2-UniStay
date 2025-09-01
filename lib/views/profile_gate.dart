@@ -25,9 +25,9 @@ class ProfileGate extends StatelessWidget {
         final role = (data['role'] as String?) ?? 'student';
 
         if (role == 'homeowner') {
-          return const ProfileOwnerPage();
+          return const ProfileOwnerPageRefactored();
         }
-        return const ProfileStudentPage();
+        return const ProfileStudentPageRefactored();
       },
     );
   }

@@ -27,3 +27,4 @@ const swissUniversities = {
   'César Ritz Colleges (Brig)': 'English Gruss Strasse 43, 3902 Brig',
 };
 
+

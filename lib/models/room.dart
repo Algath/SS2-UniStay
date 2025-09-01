@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart' show DateTimeRange;
 
 class Room {
   final String id;
@@ -22,9 +23,9 @@ class Room {
   final int bathrooms;
   final bool utilitiesIncluded;
   final int? internetMbps;
-  final DateTime? availabilityFrom;
-  final DateTime? availabilityTo;
+  final List<DateTimeRange> availabilityRanges; // Multiple availability ranges
   final List<String> amenities;
+  final String status; // 'active' | 'deleted'
 
   Room({
     required this.id,
@@ -48,18 +49,120 @@ class Room {
     required this.bathrooms,
     required this.utilitiesIncluded,
     this.internetMbps,
-    this.availabilityFrom,
-    this.availabilityTo,
+    this.availabilityRanges = const [],
     this.amenities = const [],
+    this.status = 'active',
   });
 
   // Tam adres string'i oluştur
   String get fullAddress => '$street $houseNumber, $postcode $city, $country';
 
+  // Check if a date is available within any range
+  bool isDateAvailable(DateTime date) {
+    return availabilityRanges.any((range) => 
+      date.isAfter(range.start.subtract(const Duration(days: 1))) && 
+      date.isBefore(range.end.add(const Duration(days: 1)))
+    );
+  }
+
+  // Get all available dates as a list
+  List<DateTime> getAvailableDates() {
+    List<DateTime> dates = [];
+    for (var range in availabilityRanges) {
+      DateTime current = range.start;
+      while (current.isBefore(range.end.add(const Duration(days: 1)))) {
+        dates.add(current);
+        current = current.add(const Duration(days: 1));
+      }
+    }
+    return dates;
+  }
+
   factory Room.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final m = doc.data() ?? {};
-    final tsFrom = m['availabilityFrom'];
-    final tsTo = m['availabilityTo'];
+    
+    print('DEBUG: Parsing room ${doc.id}');
+    print('DEBUG: Raw availabilityRanges data: ${m['availabilityRanges']}');
+    
+    // Parse availability ranges
+    List<DateTimeRange> ranges = [];
+    final rangesData = m['availabilityRanges'] as List?;
+    print('DEBUG: rangesData type: ${rangesData.runtimeType}, length: ${rangesData?.length}');
+    
+    if (rangesData != null) {
+      for (int i = 0; i < rangesData.length; i++) {
+        final rangeData = rangesData[i];
+        print('DEBUG: Processing range $i: $rangeData (type: ${rangeData.runtimeType})');
+        
+        if (rangeData is Map<String, dynamic>) {
+          final start = rangeData['start'];
+          final end = rangeData['end'];
+          print('DEBUG: start: $start (type: ${start.runtimeType})');
+          print('DEBUG: end: $end (type: ${end.runtimeType})');
+          
+          if (start != null && end != null) {
+            DateTime startDate;
+            DateTime endDate;
+            
+            // Handle both Timestamp and DateTime
+            if (start is Timestamp) {
+              startDate = start.toDate();
+            } else if (start is DateTime) {
+              startDate = start;
+            } else {
+              print('DEBUG: Unknown start type: ${start.runtimeType}');
+              continue;
+            }
+            
+            if (end is Timestamp) {
+              endDate = end.toDate();
+            } else if (end is DateTime) {
+              endDate = end;
+            } else {
+              print('DEBUG: Unknown end type: ${end.runtimeType}');
+              continue;
+            }
+            
+            ranges.add(DateTimeRange(
+              start: startDate,
+              end: endDate,
+            ));
+            print('DEBUG: Added range: $startDate to $endDate');
+          }
+        }
+      }
+    }
+    
+    print('DEBUG: Final ranges count: ${ranges.length}');
+    
+    // Migration: If no availability ranges and this is an old property, create a default range
+    if (ranges.isEmpty && m['availabilityFrom'] != null && m['availabilityTo'] != null) {
+      print('DEBUG: Migrating old availability format');
+      final availFrom = m['availabilityFrom'] as Timestamp?;
+      final availTo = m['availabilityTo'] as Timestamp?;
+      
+      if (availFrom != null && availTo != null) {
+        ranges.add(DateTimeRange(
+          start: availFrom.toDate(),
+          end: availTo.toDate(),
+        ));
+        print('DEBUG: Migrated range: ${availFrom.toDate()} to ${availTo.toDate()}');
+      }
+    }
+    
+    // If still no ranges, create a default 30-day range starting from today
+    if (ranges.isEmpty) {
+      print('DEBUG: No availability data found, creating default 30-day range');
+      final now = DateTime.now();
+      final startDate = DateTime(now.year, now.month, now.day);
+      final endDate = startDate.add(const Duration(days: 30));
+      
+      ranges.add(DateTimeRange(
+        start: startDate,
+        end: endDate,
+      ));
+      print('DEBUG: Created default range: $startDate to $endDate');
+    }
 
     return Room(
       id: doc.id,
@@ -83,9 +186,9 @@ class Room {
       bathrooms: (m['bathrooms'] ?? 1) as int,
       utilitiesIncluded: (m['utilitiesIncluded'] ?? false) as bool,
       internetMbps: (m['internetMbps'] as int?),
-      availabilityFrom: tsFrom is Timestamp ? tsFrom.toDate() : null,
-      availabilityTo: tsTo is Timestamp ? tsTo.toDate() : null,
+      availabilityRanges: ranges,
       amenities: (m['amenities'] as List?)?.cast<String>() ?? const [],
+      status: (m['status'] ?? 'active') as String,
     );
   }
 
@@ -111,9 +214,12 @@ class Room {
       'bathrooms': bathrooms,
       'utilitiesIncluded': utilitiesIncluded,
       if (internetMbps != null) 'internetMbps': internetMbps,
-      if (availabilityFrom != null) 'availabilityFrom': availabilityFrom,
-      if (availabilityTo != null) 'availabilityTo': availabilityTo,
+      'availabilityRanges': availabilityRanges.map((range) => {
+        'start': range.start,
+        'end': range.end,
+      }).toList(),
       'amenities': amenities,
+      'status': status,
     };
   }
 }

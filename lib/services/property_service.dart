@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unistay/models/property_data.dart';
 import 'package:unistay/services/storage_service.dart';
+import 'package:unistay/services/image_optimization_service.dart';
 
 class PropertyService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -46,7 +47,7 @@ class PropertyService {
     }
   }
 
-  /// Upload property photos and return their URLs
+  /// Upload property photos with optimization and return their URLs
   static Future<List<String>> _uploadPhotos({
     required String userId,
     List<File>? localPhotos,
@@ -55,31 +56,35 @@ class PropertyService {
     final urls = <String>[];
 
     try {
-      // Upload web photos (for web platform)
+      // Upload web photos (for web platform) with optimization
       if (webPhotos != null) {
         for (int i = 0; i < webPhotos.length; i++) {
-          final bytes = webPhotos[i];
-          // Limit file size to 1.2MB
-          final safeBytes = bytes.lengthInBytes > 1200 * 1024
-              ? bytes.sublist(0, 1200 * 1024)
-              : bytes;
+          final originalBytes = webPhotos[i];
+
+          // Optimize the image (resize + WebP/JPEG conversion)
+          final optimizedBytes = await ImageOptimizationService.optimizeImage(originalBytes);
 
           final url = await _storageService.uploadImageFlexible(
-            bytes: safeBytes,
+            bytes: optimizedBytes,
             path: 'rooms/$userId',
-            filename: 'photo_${DateTime.now().millisecondsSinceEpoch}_$i.jpg',
+            filename: 'photo_${DateTime.now().millisecondsSinceEpoch}_$i.${ImageOptimizationService.getOptimizedExtension()}',
           );
           urls.add(url);
         }
       }
 
-      // Upload local photos (for mobile/desktop platforms)
+      // Upload local photos (for mobile/desktop platforms) with optimization
       if (localPhotos != null) {
         for (int i = 0; i < localPhotos.length; i++) {
+          final file = localPhotos[i];
+
+          // Optimize the image using File method for better mobile performance
+          final optimizedBytes = await ImageOptimizationService.optimizeFile(file);
+
           final url = await _storageService.uploadImageFlexible(
-            file: localPhotos[i],
+            bytes: optimizedBytes,
             path: 'rooms/$userId',
-            filename: 'photo_${DateTime.now().millisecondsSinceEpoch}_$i.jpg',
+            filename: 'photo_${DateTime.now().millisecondsSinceEpoch}_$i.${ImageOptimizationService.getOptimizedExtension()}',
           );
           urls.add(url);
         }

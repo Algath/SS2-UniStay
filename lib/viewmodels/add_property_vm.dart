@@ -1,76 +1,362 @@
-import 'package:unistay/services/firestore_service.dart';
-import 'package:unistay/services/geocoding_service.dart';
-import 'package:unistay/services/utils.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart' as ll;
+import 'package:unistay/models/address_suggestion.dart';
+import 'package:unistay/models/property_data.dart';
+import 'package:unistay/services/property_service.dart';
+import 'package:unistay/widgets/amenities_selector.dart';
 
-class AddPropertyViewModel {
-  final _fs = FirestoreService();
-  final _geo = GeocodingService();
+class AddPropertyViewModel extends ChangeNotifier {
+  // Form controllers
+  final titleController = TextEditingController();
+  final priceController = TextEditingController();
+  final streetController = TextEditingController();
+  final houseNumberController = TextEditingController();
+  final cityController = TextEditingController();
+  final postcodeController = TextEditingController();
+  final descriptionController = TextEditingController();
+  final sizeSqmController = TextEditingController();
+  final roomsController = TextEditingController(text: '1');
+  final bathroomsController = TextEditingController(text: '1');
 
-  /// Creates a property document and returns its new Room id.
-  /// Required fields are aligned with the ML-friendly schema.
-  Future<String> addProperty({
-    // required
-    required String ownerUid,
-    required String title,
-    required num price,
-    required String address,
-    required String type,        // 'room' | 'whole'
-    required bool furnished,
-    required int sizeSqm,
-    required int rooms,
-    required int bathrooms,
+  // Property details
+  String _type = 'room';
+  bool _furnished = false;
+  bool _utilitiesIncluded = false;
+  ll.LatLng? _position;
 
-    // optional (pricing-friendly)
-    int? yearBuilt,
-    int? floor,
-    bool utilitiesIncluded = false,
+  // Photos
+  final List<File> _localPhotos = [];
+  final List<Uint8List> _webPhotos = [];
 
-    // UX
-    String description = '',
-    List<String> amenities = const [],
-    List<String> photos = const [],
-    DateTime? availabilityFrom,
-    DateTime? availabilityTo,
-  }) async {
-    // Geocode address
-    final (lat, lng) = await _geo.resolve(address);
+  // Amenities - Only the original three from the original file
+  Map<String, bool> _amenities = {
+    'Internet': false,
+    'Private bathroom': false,
+    'Kitchen access': false,
+  };
 
-    // Distance to HES-SO Sion campus (walk minutes)
-    final km = haversineKm(hesSoValaisLat, hesSoValaisLng, lat, lng);
-    final walkMins = walkingMinsFromKm(km);
+  // Availability
+  List<DateTimeRange> _availabilityRanges = [];
 
-    // Build Firestore payload
-    final data = <String, dynamic>{
-      // required
-      'ownerUid': ownerUid,
-      'title': title.trim(),
-      'price': price,
-      'address': address.trim(),
-      'lat': lat,
-      'lng': lng,
-      'type': type,
-      'furnished': furnished,
-      'sizeSqm': sizeSqm,
-      'rooms': rooms,
-      'bathrooms': bathrooms,
+  // State
+  bool _isSaving = false;
+  String? _errorMessage;
 
-      // optional pricing-friendly
-      if (yearBuilt != null) 'yearBuilt': yearBuilt,
-      if (floor != null) 'floor': floor,
-      'utilitiesIncluded': utilitiesIncluded,
+  // Getters
+  String get type => _type;
+  bool get furnished => _furnished;
+  bool get utilitiesIncluded => _utilitiesIncluded;
+  ll.LatLng? get position => _position;
+  List<File> get localPhotos => _localPhotos;
+  List<Uint8List> get webPhotos => _webPhotos;
+  Map<String, bool> get amenities => _amenities;
+  List<DateTimeRange> get availabilityRanges => _availabilityRanges;
+  bool get isSaving => _isSaving;
+  String? get errorMessage => _errorMessage;
 
-      // UX
-      'description': description.trim(),
-      'amenities': amenities,
-      'photos': photos,
-      'walkMins': walkMins,
-      'availabilityFrom': availabilityFrom,
-      'availabilityTo': availabilityTo,
-      'createdAt': DateTime.now(), // FirestoreService.addRoom içinde serverTimestamp de ekleniyor
+  // Computed properties
+  bool get hasPhotos => _localPhotos.isNotEmpty || _webPhotos.isNotEmpty;
+  bool get hasLocation => _position != null;
+  bool get hasAvailability => _availabilityRanges.isNotEmpty;
+  int get photoCount => kIsWeb ? _webPhotos.length : _localPhotos.length;
+  List<String> get selectedAmenities =>
+      _amenities.entries.where((entry) => entry.value).map((entry) => entry.key).toList();
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    priceController.dispose();
+    streetController.dispose();
+    houseNumberController.dispose();
+    cityController.dispose();
+    postcodeController.dispose();
+    descriptionController.dispose();
+    sizeSqmController.dispose();
+    roomsController.dispose();
+    bathroomsController.dispose();
+    super.dispose();
+  }
+
+  // Setters
+  void setType(String type) {
+    _type = type;
+    notifyListeners();
+  }
+
+  void setFurnished(bool furnished) {
+    _furnished = furnished;
+    notifyListeners();
+  }
+
+  void setUtilitiesIncluded(bool included) {
+    _utilitiesIncluded = included;
+    notifyListeners();
+  }
+
+  void setPosition(ll.LatLng position) {
+    _position = position;
+    notifyListeners();
+  }
+
+  void setAddress(AddressSuggestion suggestion) {
+    streetController.text = suggestion.road ?? suggestion.displayName;
+    houseNumberController.text = suggestion.houseNumber ?? '';
+    cityController.text = suggestion.city ?? '';
+    postcodeController.text = suggestion.postcode ?? '';
+    _position = ll.LatLng(suggestion.lat, suggestion.lon);
+    notifyListeners();
+  }
+
+  void updateAmenity(String amenity, bool value) {
+    _amenities[amenity] = value;
+    notifyListeners();
+  }
+
+  void setAvailabilityRanges(List<DateTimeRange> ranges) {
+    _availabilityRanges = ranges;
+    notifyListeners();
+  }
+
+  void addAvailabilityRange(DateTimeRange range) {
+    _availabilityRanges.add(range);
+    notifyListeners();
+  }
+
+  void removeAvailabilityRange(int index) {
+    if (index >= 0 && index < _availabilityRanges.length) {
+      _availabilityRanges.removeAt(index);
+      notifyListeners();
+    }
+  }
+
+  // Photo management
+  Future<void> pickPhotos() async {
+    // This will be handled by the PhotoPickerWidget itself
+    // The widget will call addLocalPhotos or addWebPhotos directly
+  }
+
+  void addLocalPhotos(List<File> photos) {
+    _localPhotos.addAll(photos);
+    notifyListeners();
+  }
+
+  void addWebPhotos(List<Uint8List> photos) {
+    _webPhotos.addAll(photos);
+    notifyListeners();
+  }
+
+  void removePhoto(int index) {
+    if (kIsWeb) {
+      if (index >= 0 && index < _webPhotos.length) {
+        _webPhotos.removeAt(index);
+      }
+    } else {
+      if (index >= 0 && index < _localPhotos.length) {
+        _localPhotos.removeAt(index);
+      }
+    }
+    notifyListeners();
+  }
+
+  void clearPhotos() {
+    _localPhotos.clear();
+    _webPhotos.clear();
+    notifyListeners();
+  }
+
+  // Validation
+  String? validateForm() {
+    if (titleController.text.trim().isEmpty || titleController.text.trim().length < 5) {
+      return 'Title must be at least 5 characters long';
+    }
+
+    if (titleController.text.trim().length > 100) {
+      return 'Title must be less than 100 characters';
+    }
+
+    final price = num.tryParse(priceController.text.trim());
+    if (price == null || price < 200) {
+      return 'Price must be at least CHF 200';
+    }
+
+    if (streetController.text.trim().isEmpty) {
+      return 'Street is required';
+    }
+
+    if (houseNumberController.text.trim().isEmpty) {
+      return 'House number is required';
+    }
+
+    if (cityController.text.trim().isEmpty) {
+      return 'City is required';
+    }
+
+    if (postcodeController.text.trim().isEmpty) {
+      return 'Postcode is required';
+    }
+
+    final sizeSqm = int.tryParse(sizeSqmController.text.trim());
+    if (sizeSqm == null || sizeSqm < 15 || sizeSqm > 500) {
+      return 'Size must be between 15 and 500 m²';
+    }
+
+    final rooms = int.tryParse(roomsController.text.trim());
+    if (rooms == null || rooms < 1 || rooms > 10) {
+      return 'Number of rooms must be between 1 and 10';
+    }
+
+    final bathrooms = int.tryParse(bathroomsController.text.trim());
+    if (bathrooms == null || bathrooms < 1 || bathrooms > 5) {
+      return 'Number of bathrooms must be between 1 and 5';
+    }
+
+    if (descriptionController.text.trim().isEmpty || descriptionController.text.trim().length < 10) {
+      return 'Description must be at least 10 characters long';
+    }
+
+    if (descriptionController.text.trim().length > 500) {
+      return 'Description must be less than 500 characters';
+    }
+
+    if (_position == null) {
+      return 'Please select a valid address';
+    }
+
+    if (_availabilityRanges.isEmpty) {
+      return 'Please select at least one availability range';
+    }
+
+    return null; // No validation errors
+  }
+
+  // Create PropertyData from form
+  PropertyData _createPropertyData() {
+    return PropertyData(
+      title: titleController.text.trim(),
+      price: num.tryParse(priceController.text.trim()) ?? 0,
+      street: streetController.text.trim(),
+      houseNumber: houseNumberController.text.trim(),
+      city: cityController.text.trim(),
+      postcode: postcodeController.text.trim(),
+      type: _type,
+      furnished: _furnished,
+      sizeSqm: int.tryParse(sizeSqmController.text.trim()) ?? 0,
+      rooms: int.tryParse(roomsController.text.trim()) ?? 1,
+      bathrooms: int.tryParse(bathroomsController.text.trim()) ?? 1,
+      description: descriptionController.text.trim(),
+      position: _position!,
+      ownerUid: '', // Will be set by PropertyService
+      photoUrls: [], // Will be set by PropertyService
+      utilitiesIncluded: _utilitiesIncluded,
+      amenities: selectedAmenities,
+      availabilityRanges: _availabilityRanges,
+    );
+  }
+
+  // Save property
+  Future<bool> saveProperty() async {
+    _errorMessage = null;
+
+    // Validate form
+    final validationError = validateForm();
+    if (validationError != null) {
+      _errorMessage = validationError;
+      notifyListeners();
+      return false;
+    }
+
+    _isSaving = true;
+    notifyListeners();
+
+    try {
+      final propertyData = _createPropertyData();
+
+      final propertyId = await PropertyService.saveProperty(
+        propertyData: propertyData,
+        localPhotos: _localPhotos.isNotEmpty ? _localPhotos : null,
+        webPhotos: _webPhotos.isNotEmpty ? _webPhotos : null,
+      );
+
+      _isSaving = false;
+      notifyListeners();
+
+      return true;
+    } catch (e) {
+      _isSaving = false;
+      _errorMessage = 'Failed to save property: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Reset form
+  void resetForm() {
+    titleController.clear();
+    priceController.clear();
+    streetController.clear();
+    houseNumberController.clear();
+    cityController.clear();
+    postcodeController.clear();
+    descriptionController.clear();
+    sizeSqmController.clear();
+    roomsController.text = '1';
+    bathroomsController.text = '1';
+
+    _type = 'room';
+    _furnished = false;
+    _utilitiesIncluded = false;
+    _position = null;
+
+    _localPhotos.clear();
+    _webPhotos.clear();
+
+    // Reset amenities to all false
+    _amenities = {
+      'Internet': false,
+      'Private bathroom': false,
+      'Kitchen access': false,
     };
 
-    // Save and return new room id
-    final id = await _fs.addRoom(data);
-    return id;
+    _availabilityRanges.clear();
+
+    _isSaving = false;
+    _errorMessage = null;
+
+    notifyListeners();
+  }
+
+  // Clear error message
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  // Form completion status
+  bool get isFormPartiallyComplete {
+    return titleController.text.trim().isNotEmpty ||
+        priceController.text.trim().isNotEmpty ||
+        streetController.text.trim().isNotEmpty ||
+        descriptionController.text.trim().isNotEmpty;
+  }
+
+  double get completionProgress {
+    int completed = 0;
+    int total = 10;
+
+    if (titleController.text.trim().isNotEmpty) completed++;
+    if (priceController.text.trim().isNotEmpty) completed++;
+    if (streetController.text.trim().isNotEmpty) completed++;
+    if (cityController.text.trim().isNotEmpty) completed++;
+    if (descriptionController.text.trim().isNotEmpty) completed++;
+    if (sizeSqmController.text.trim().isNotEmpty) completed++;
+    if (hasPhotos) completed++;
+    if (selectedAmenities.isNotEmpty) completed++;
+    if (hasLocation) completed++;
+    if (hasAvailability) completed++;
+
+    return completed / total;
   }
 }

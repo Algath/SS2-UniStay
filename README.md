@@ -8,22 +8,22 @@ It provides separate interfaces for students (to book properties) and landlords 
 ## 🌟 Features
 
 - **User Registration & Login**
-    - Student accounts
-    - Landlord accounts
-    - (In progress) Face authentication
+  - Student accounts
+  - Landlord accounts
+  - (In progress) Face authentication
 
 - **Search & Booking**
-    - Search for available housing
-    - Book properties
-    - View property locations on map
+  - Search for available housing
+  - Book properties
+  - View property locations on map
 
 - **Landlord Management**
-    - Create, update, and delete property listings
-    - Manage bookings
+  - Create, update, and delete property listings
+  - Manage bookings
 
 - **Additional Features**
-    - Price prediction for properties
-    - Multiplatform support (Android + Web)
+  - Price prediction for properties
+  - Multiplatform support (Android + Web)
 
 > ⚠️ Note: Payment system is not included in this project.
 
@@ -40,7 +40,10 @@ It provides separate interfaces for students (to book properties) and landlords 
 
 ## 💻 Installation
 
-### From Source (Flutter)
+### From Source (Flutter) – For Development Only
+
+> ⚠️ Note: Firebase services (auth, database, storage) will not work with the cloned repository unless you configure your own Firebase project.  
+> The following steps are meant for developers who want to run and modify the app locally.
 
 1. Make sure you have Flutter installed.
 2. Clone the repository:
@@ -59,6 +62,7 @@ It provides separate interfaces for students (to book properties) and landlords 
 ### Using the App (Internal Testing)
 - Available via Google Play internal testing.
 - Testers need to be registered via their Google account in the testing group
+- This is the only way to access live data and fully functional features.
 
 ## 📂 Project Structure
 Inside the `lib/` folder:

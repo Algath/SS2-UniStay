@@ -12,7 +12,7 @@ class OwnerPropertyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final img = room.photos.isNotEmpty ? room.photos.first : null;
+    final img = room.photoUrls.isNotEmpty ? room.photoUrls.first : null;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

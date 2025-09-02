@@ -294,11 +294,11 @@ class _MapPageOSMState extends State<MapPageOSM> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Property Image
-                      if (room.photos.isNotEmpty)
+                      if (room.photoUrls.isNotEmpty)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Image.network(
-                            room.photos.first,
+                            room.photoUrls.first,
                             height: 200,
                             width: double.infinity,
                             fit: BoxFit.cover,

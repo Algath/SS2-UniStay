@@ -854,7 +854,7 @@ class _HomePageState extends State<HomePage> {
     required bool isTablet,
     required VoidCallback onTap,
   }) {
-    final img = room.photos.isNotEmpty ? room.photos.first : null;
+    final img = room.photoUrls.isNotEmpty ? room.photoUrls.first : null;
 
     return Container(
       decoration: BoxDecoration(

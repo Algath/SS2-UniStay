@@ -70,7 +70,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
               );
             }
             final room = Room.fromFirestore(snap.data!);
-            final img = room.photos.isNotEmpty ? room.photos.first : null;
+            final img = room.photoUrls.isNotEmpty ? room.photoUrls.first : null;
             
             // Debug: Check availability ranges
             print('DEBUG: Room ID: ${room.id}');

@@ -274,14 +274,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       isLandscape: isLandscape,
       children: [
         PhotoPickerWidget(
-          localPhotos: vm.localPhotos,
-          webPhotos: vm.webPhotos,
-          onPickPhotos: () async {
-            // The PhotoPickerWidget will handle the actual picking
-            // This is just a placeholder callback
-          },
-          onRemovePhoto: vm.removePhoto,
-          maxPhotos: 10,
+          uploadedPhotoUrls: vm.photoUrls,
+          onPhotosChanged: vm.setPhotoUrls,
+          maxPhotos: 3,
           showPhotoCount: true,
         ),
       ],

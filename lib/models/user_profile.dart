@@ -6,7 +6,7 @@ class UserProfile {
   final String lastname;
   final String homeAddress;
   final String uniAddress;
-  final String photoUrl;
+  final String photos;
   final bool isAdmin; // New field for admin access
 
   const UserProfile({
@@ -17,7 +17,7 @@ class UserProfile {
     this.lastname = '',
     this.homeAddress = '',
     this.uniAddress = '',
-    this.photoUrl = '',
+    this.photos = '',
     this.isAdmin = false, // Default to false
   });
 
@@ -29,7 +29,7 @@ class UserProfile {
     lastname: (m['lastname'] ?? '') as String,
     homeAddress: (m['homeAddress'] ?? '') as String,
     uniAddress: (m['uniAddress'] ?? '') as String,
-    photoUrl: (m['photoUrl'] ?? '') as String,
+    photos: (m['photos'] ?? '') as String,
     isAdmin: (m['isAdmin'] ?? false) as bool, // Parse admin status
   );
 
@@ -40,7 +40,7 @@ class UserProfile {
     'lastname': lastname,
     'homeAddress': homeAddress,
     'uniAddress': uniAddress,
-    'photoUrl': photoUrl,
+    'photos': photos,
     'isAdmin': isAdmin,
   };
 

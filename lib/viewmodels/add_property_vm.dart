@@ -27,9 +27,8 @@ class AddPropertyViewModel extends ChangeNotifier {
   bool _utilitiesIncluded = false;
   ll.LatLng? _position;
 
-  // Photos
-  final List<File> _localPhotos = [];
-  final List<Uint8List> _webPhotos = [];
+  // Photos - UPDATED: Now store Firebase Storage URLs instead of raw files
+  final List<String> _photoUrls = [];
 
   // Amenities - Only the original three from the original file
   Map<String, bool> _amenities = {
@@ -50,18 +49,24 @@ class AddPropertyViewModel extends ChangeNotifier {
   bool get furnished => _furnished;
   bool get utilitiesIncluded => _utilitiesIncluded;
   ll.LatLng? get position => _position;
-  List<File> get localPhotos => _localPhotos;
-  List<Uint8List> get webPhotos => _webPhotos;
+
+  // UPDATED: Photo getters now return URLs
+  List<String> get photoUrls => _photoUrls;
+
+  // DEPRECATED: Keep these for backward compatibility but they'll be empty
+  List<File> get localPhotos => [];
+  List<Uint8List> get webPhotos => [];
+
   Map<String, bool> get amenities => _amenities;
   List<DateTimeRange> get availabilityRanges => _availabilityRanges;
   bool get isSaving => _isSaving;
   String? get errorMessage => _errorMessage;
 
-  // Computed properties
-  bool get hasPhotos => _localPhotos.isNotEmpty || _webPhotos.isNotEmpty;
+  // Computed properties - UPDATED
+  bool get hasPhotos => _photoUrls.isNotEmpty;
   bool get hasLocation => _position != null;
   bool get hasAvailability => _availabilityRanges.isNotEmpty;
-  int get photoCount => kIsWeb ? _webPhotos.length : _localPhotos.length;
+  int get photoCount => _photoUrls.length;
   List<String> get selectedAmenities =>
       _amenities.entries.where((entry) => entry.value).map((entry) => entry.key).toList();
 
@@ -132,39 +137,48 @@ class AddPropertyViewModel extends ChangeNotifier {
     }
   }
 
-  // Photo management
-  Future<void> pickPhotos() async {
-    // This will be handled by the PhotoPickerWidget itself
-    // The widget will call addLocalPhotos or addWebPhotos directly
-  }
-
-  void addLocalPhotos(List<File> photos) {
-    _localPhotos.addAll(photos);
+  // UPDATED: Photo management now works with URLs
+  void setPhotoUrls(List<String> urls) {
+    _photoUrls.clear();
+    _photoUrls.addAll(urls);
     notifyListeners();
   }
 
-  void addWebPhotos(List<Uint8List> photos) {
-    _webPhotos.addAll(photos);
-    notifyListeners();
-  }
-
-  void removePhoto(int index) {
-    if (kIsWeb) {
-      if (index >= 0 && index < _webPhotos.length) {
-        _webPhotos.removeAt(index);
-      }
-    } else {
-      if (index >= 0 && index < _localPhotos.length) {
-        _localPhotos.removeAt(index);
-      }
+  void addPhotoUrl(String url) {
+    if (!_photoUrls.contains(url)) {
+      _photoUrls.add(url);
+      notifyListeners();
     }
-    notifyListeners();
+  }
+
+  void removePhotoUrl(int index) {
+    if (index >= 0 && index < _photoUrls.length) {
+      _photoUrls.removeAt(index);
+      notifyListeners();
+    }
   }
 
   void clearPhotos() {
-    _localPhotos.clear();
-    _webPhotos.clear();
+    _photoUrls.clear();
     notifyListeners();
+  }
+
+  // DEPRECATED: Keep for backward compatibility but these do nothing now
+  Future<void> pickPhotos() async {
+    // This is now handled by PhotoPickerWidget directly
+  }
+
+  void addLocalPhotos(List<File> photos) {
+    // Deprecated - photos are now handled as URLs
+  }
+
+  void addWebPhotos(List<Uint8List> photos) {
+    // Deprecated - photos are now handled as URLs
+  }
+
+  void removePhoto(int index) {
+    // Redirect to the new URL-based method
+    removePhotoUrl(index);
   }
 
   // Validation
@@ -229,10 +243,15 @@ class AddPropertyViewModel extends ChangeNotifier {
       return 'Please select at least one availability range';
     }
 
+    // UPDATED: No photo requirement - photos are now optional
+    // if (_photoUrls.isEmpty) {
+    //   return 'Please add at least one photo';
+    // }
+
     return null; // No validation errors
   }
 
-  // Create PropertyData from form
+  // Create PropertyData from form - UPDATED
   PropertyData _createPropertyData() {
     return PropertyData(
       title: titleController.text.trim(),
@@ -249,14 +268,14 @@ class AddPropertyViewModel extends ChangeNotifier {
       description: descriptionController.text.trim(),
       position: _position!,
       ownerUid: '', // Will be set by PropertyService
-      photoUrls: [], // Will be set by PropertyService
+      photoUrls: _photoUrls, // UPDATED: Use the URL list directly
       utilitiesIncluded: _utilitiesIncluded,
       amenities: selectedAmenities,
       availabilityRanges: _availabilityRanges,
     );
   }
 
-  // Save property
+  // Save property - UPDATED
   Future<bool> saveProperty() async {
     _errorMessage = null;
 
@@ -274,10 +293,12 @@ class AddPropertyViewModel extends ChangeNotifier {
     try {
       final propertyData = _createPropertyData();
 
+      // UPDATED: No need to pass photos separately - they're already in photoUrls
       final propertyId = await PropertyService.saveProperty(
         propertyData: propertyData,
-        localPhotos: _localPhotos.isNotEmpty ? _localPhotos : null,
-        webPhotos: _webPhotos.isNotEmpty ? _webPhotos : null,
+        // Remove these parameters since photos are already uploaded
+        // localPhotos: null,
+        // webPhotos: null,
       );
 
       _isSaving = false;
@@ -292,7 +313,7 @@ class AddPropertyViewModel extends ChangeNotifier {
     }
   }
 
-  // Reset form
+  // Reset form - UPDATED
   void resetForm() {
     titleController.clear();
     priceController.clear();
@@ -310,8 +331,7 @@ class AddPropertyViewModel extends ChangeNotifier {
     _utilitiesIncluded = false;
     _position = null;
 
-    _localPhotos.clear();
-    _webPhotos.clear();
+    _photoUrls.clear(); // UPDATED
 
     // Reset amenities to all false
     _amenities = {
@@ -334,7 +354,7 @@ class AddPropertyViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Form completion status
+  // Form completion status - UPDATED
   bool get isFormPartiallyComplete {
     return titleController.text.trim().isNotEmpty ||
         priceController.text.trim().isNotEmpty ||
@@ -352,7 +372,7 @@ class AddPropertyViewModel extends ChangeNotifier {
     if (cityController.text.trim().isNotEmpty) completed++;
     if (descriptionController.text.trim().isNotEmpty) completed++;
     if (sizeSqmController.text.trim().isNotEmpty) completed++;
-    if (hasPhotos) completed++;
+    if (hasPhotos) completed++; // UPDATED: Now checks photoUrls
     if (selectedAmenities.isNotEmpty) completed++;
     if (hasLocation) completed++;
     if (hasAvailability) completed++;

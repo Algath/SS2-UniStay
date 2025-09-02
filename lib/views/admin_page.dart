@@ -479,9 +479,9 @@ class _AdminPageState extends State<AdminPage> {
             ],
           ),
           child: ClipOval(
-            child: user.photoUrl.isNotEmpty
+            child: user.photos.isNotEmpty
                 ? Image.network(
-              user.photoUrl,
+              user.photos,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Center(
                 child: Text(

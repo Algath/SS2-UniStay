@@ -67,7 +67,7 @@ class PropertyData {
       'lat': position.latitude,
       'lng': position.longitude,
       'ownerUid': ownerUid,
-      'photos': photoUrls,
+      'photoUrls': photoUrls,  // CHANGED: from 'photos' to 'photoUrls'
       'walkMins': walkMins,
       'utilitiesIncluded': utilitiesIncluded,
       'amenities': amenities,

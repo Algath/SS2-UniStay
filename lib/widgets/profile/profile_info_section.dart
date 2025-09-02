@@ -87,7 +87,7 @@ class ProfileInfoSection extends StatelessWidget {
   String _getUniversityNameFromAddress(String address) {
     if (address.isEmpty) return 'No University Selected';
 
-    for (var entry in swissUniversities.entries) {
+    for (var entry in institutionCoords.entries) {
       if (entry.value == address) {
         return entry.key;
       }

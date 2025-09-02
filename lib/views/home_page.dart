@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:math' show min;
 import 'package:table_calendar/table_calendar.dart';
 import 'package:unistay/viewmodels/home_vm.dart';
 import 'package:unistay/models/room.dart';
 import 'package:unistay/views/property_detail.dart';
+import 'package:unistay/widgets/availability_calendar.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -688,11 +690,6 @@ class _HomePageState extends State<HomePage> {
 
   // Helper method for modern date range picker (TableCalendar-based)
   void _showDateRangePicker(BuildContext ctx, StateSetter setM) async {
-    final now = DateTime.now();
-    DateTime focused = _avail?.start ?? now;
-    DateTime? start = _avail?.start;
-    DateTime? end = _avail?.end;
-
     final picked = await showModalBottomSheet<DateTimeRange>(
       context: ctx,
       isScrollControlled: true,
@@ -701,125 +698,73 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (bctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: 16 + MediaQuery.of(bctx).viewInsets.bottom,
-          ),
-          child: StatefulBuilder(builder: (bctx, setBtm) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+        final screenH = MediaQuery.of(bctx).size.height;
+        final sheetH = min(520.0, screenH * 0.8);
+        List<DateTimeRange> ranges = _avail == null ? [] : [ _avail! ];
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+            child: SizedBox(
+              height: sheetH,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)]),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        borderRadius: BorderRadius.circular(10),
+                        child: const Icon(Icons.calendar_month, color: Colors.white, size: 18),
                       ),
-                      child: const Icon(Icons.calendar_month, color: Colors.white, size: 18),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Select Dates',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                        color: Color(0xFF2C3E50),
-                      ),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () => Navigator.pop(bctx),
-                      child: const Text('Cancel'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8F9FA),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE9ECEF)),
+                      const SizedBox(width: 12),
+                      const Text('Select Availability', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Color(0xFF2C3E50))),
+                      const Spacer(),
+                      TextButton(onPressed: () => Navigator.pop(bctx), child: const Text('Cancel')),
+                    ],
                   ),
-                  child: TableCalendar<void>(
-                    firstDay: now,
-                    lastDay: now.add(const Duration(days: 365)),
-                    focusedDay: focused,
-                    rangeStartDay: start,
-                    rangeEndDay: end,
-                    rangeSelectionMode: RangeSelectionMode.toggledOn,
-                    onDaySelected: (sel, f) {
-                      // toggle logic for start/end
-                      if (start == null || (start != null && end != null)) {
-                        setBtm(() {
-                          start = sel;
-                          end = null;
-                          focused = f;
-                        });
-                      } else {
-                        setBtm(() {
-                          if (sel.isBefore(start!)) {
-                            end = start;
-                            start = sel;
-                          } else {
-                            end = sel;
-                          }
-                          focused = f;
-                        });
-                      }
-                    },
-                    onPageChanged: (f) => setBtm(() => focused = f),
-                    headerStyle: const HeaderStyle(
-                      formatButtonVisible: false,
-                      titleCentered: true,
-                    ),
-                    daysOfWeekHeight: 35,
-                    rowHeight: 40,
-                    calendarStyle: CalendarStyle(
-                      outsideDaysVisible: false,
-                      rangeHighlightColor: const Color(0xFF6E56CF).withOpacity(0.25),
-                      rangeStartDecoration: const BoxDecoration(
-                        color: Color(0xFF6E56CF),
-                        shape: BoxShape.circle,
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE9ECEF)),
                       ),
-                      rangeEndDecoration: const BoxDecoration(
-                        color: Color(0xFF6E56CF),
-                        shape: BoxShape.circle,
-                      ),
-                      withinRangeDecoration: BoxDecoration(
-                        color: const Color(0xFF6E56CF).withOpacity(0.15),
-                        shape: BoxShape.rectangle,
+                      child: AvailabilityCalendar(
+                        onRangesSelected: (rs) { ranges = rs; },
+                        initialRanges: ranges,
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    OutlinedButton(
-                      onPressed: () => setBtm(() { start = null; end = null; }),
-                      child: const Text('Clear'),
-                    ),
-                    const Spacer(),
-                    FilledButton(
-                      onPressed: (start != null && end != null)
-                          ? () => Navigator.pop(bctx, DateTimeRange(start: start!, end: end!))
-                          : null,
-                      child: const Text('Apply'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ],
-            );
-          }),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      OutlinedButton(
+                        onPressed: () => Navigator.pop(bctx, null),
+                        child: const Text('Clear'),
+                      ),
+                      const Spacer(),
+                      FilledButton(
+                        onPressed: ranges.isNotEmpty
+                            ? () {
+                                // collapse multi-ranges to a single filter window
+                                DateTime minStart = ranges.map((r) => r.start).reduce((a, b) => a.isBefore(b) ? a : b);
+                                DateTime maxEnd = ranges.map((r) => r.end).reduce((a, b) => a.isAfter(b) ? a : b);
+                                Navigator.pop(bctx, DateTimeRange(start: minStart, end: maxEnd));
+                              }
+                            : null,
+                        child: const Text('Apply'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );

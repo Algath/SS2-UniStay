@@ -6,6 +6,7 @@ class StudentBookingCard extends StatelessWidget {
   final String address;
   final String status;
   final bool isTablet;
+  final String? dateRangeText;
 
   const StudentBookingCard({
     super.key,
@@ -14,6 +15,7 @@ class StudentBookingCard extends StatelessWidget {
     required this.address,
     required this.status,
     this.isTablet = false,
+    this.dateRangeText,
   });
 
   @override
@@ -129,6 +131,31 @@ class StudentBookingCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
+        if (dateRangeText != null) ...[
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today,
+                size: 14,
+                color: Colors.grey[600],
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  dateRangeText!,
+                  style: TextStyle(
+                    fontSize: isTablet ? 13 : 12,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+        ],
         Row(
           children: [
             Icon(
@@ -156,6 +183,7 @@ class StudentBookingCard extends StatelessWidget {
 
   _StatusConfig _getStatusConfig(String status) {
     switch (status) {
+      case 'accepted':
       case 'validated':
         return _StatusConfig(
           icon: Icons.check_circle,
@@ -169,6 +197,8 @@ class StudentBookingCard extends StatelessWidget {
           backgroundColor: Colors.orange,
         );
       case 'refused':
+      case 'rejected':
+      case 'declined':
         return _StatusConfig(
           icon: Icons.cancel,
           iconColor: Colors.white,

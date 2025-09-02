@@ -14,7 +14,7 @@ class Room {
   final double lat;
   final double lng;
   final String ownerUid;
-  final List<String> photos;
+  final List<String> photoUrls;
   final int walkMins;
   final String type; // 'room' | 'whole'
   final bool furnished;
@@ -40,7 +40,7 @@ class Room {
     required this.lat,
     required this.lng,
     required this.ownerUid,
-    required this.photos,
+    required this.photoUrls,
     required this.walkMins,
     required this.type,
     required this.furnished,
@@ -177,7 +177,7 @@ class Room {
       lat: ((m['lat'] ?? 0.0) as num).toDouble(),
       lng: ((m['lng'] ?? 0.0) as num).toDouble(),
       ownerUid: (m['ownerUid'] ?? '') as String,
-      photos: (m['photos'] as List?)?.cast<String>() ?? const [],
+      photoUrls: (m['photoUrls'] as List?)?.cast<String>() ?? const [],
       walkMins: (m['walkMins'] ?? 10) as int,
       type: (m['type'] ?? 'room') as String,
       furnished: (m['furnished'] ?? false) as bool,
@@ -205,7 +205,7 @@ class Room {
       'lat': lat,
       'lng': lng,
       'ownerUid': ownerUid,
-      'photos': photos,
+      'photoUrls': photoUrls,
       'walkMins': walkMins,
       'type': type,
       'furnished': furnished,

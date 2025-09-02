@@ -14,8 +14,6 @@ class PropertyService {
   /// Save a new property to Firestore with photo uploads
   static Future<String> saveProperty({
     required PropertyData propertyData,
-    List<File>? localPhotos,
-    List<Uint8List>? webPhotos,
   }) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -23,16 +21,8 @@ class PropertyService {
         throw Exception('User not authenticated');
       }
 
-      // Upload photos and get URLs
-      final photoUrls = await _uploadPhotos(
-        userId: user.uid,
-        localPhotos: localPhotos,
-        webPhotos: webPhotos,
-      );
-
-      // Update property data with photo URLs and owner UID
+      // Update property data with owner UID (photos are already in propertyData.photoUrls)
       final updatedPropertyData = propertyData.copyWith(
-        photoUrls: photoUrls,
         ownerUid: user.uid,
       );
 
@@ -47,61 +37,10 @@ class PropertyService {
     }
   }
 
-  /// Upload property photos with optimization and return their URLs
-  static Future<List<String>> _uploadPhotos({
-    required String userId,
-    List<File>? localPhotos,
-    List<Uint8List>? webPhotos,
-  }) async {
-    final urls = <String>[];
-
-    try {
-      // Upload web photos (for web platform) with optimization
-      if (webPhotos != null) {
-        for (int i = 0; i < webPhotos.length; i++) {
-          final originalBytes = webPhotos[i];
-
-          // Optimize the image (resize + WebP/JPEG conversion)
-          final optimizedBytes = await ImageOptimizationService.optimizeImage(originalBytes);
-
-          final url = await _storageService.uploadImageFlexible(
-            bytes: optimizedBytes,
-            path: 'rooms/$userId',
-            filename: 'photo_${DateTime.now().millisecondsSinceEpoch}_$i.${ImageOptimizationService.getOptimizedExtension()}',
-          );
-          urls.add(url);
-        }
-      }
-
-      // Upload local photos (for mobile/desktop platforms) with optimization
-      if (localPhotos != null) {
-        for (int i = 0; i < localPhotos.length; i++) {
-          final file = localPhotos[i];
-
-          // Optimize the image using File method for better mobile performance
-          final optimizedBytes = await ImageOptimizationService.optimizeFile(file);
-
-          final url = await _storageService.uploadImageFlexible(
-            bytes: optimizedBytes,
-            path: 'rooms/$userId',
-            filename: 'photo_${DateTime.now().millisecondsSinceEpoch}_$i.${ImageOptimizationService.getOptimizedExtension()}',
-          );
-          urls.add(url);
-        }
-      }
-
-      return urls;
-    } catch (e) {
-      throw Exception('Failed to upload photos: $e');
-    }
-  }
-
   /// Update an existing property
   static Future<void> updateProperty({
     required String propertyId,
     required PropertyData propertyData,
-    List<File>? newLocalPhotos,
-    List<Uint8List>? newWebPhotos,
   }) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -109,22 +48,8 @@ class PropertyService {
         throw Exception('User not authenticated');
       }
 
-      // Upload new photos if provided
-      List<String> newPhotoUrls = [];
-      if ((newLocalPhotos != null && newLocalPhotos.isNotEmpty) ||
-          (newWebPhotos != null && newWebPhotos.isNotEmpty)) {
-        newPhotoUrls = await _uploadPhotos(
-          userId: user.uid,
-          localPhotos: newLocalPhotos,
-          webPhotos: newWebPhotos,
-        );
-      }
-
-      // Combine existing and new photo URLs
-      final allPhotoUrls = [...propertyData.photoUrls, ...newPhotoUrls];
-
+      // Photos are already uploaded by PhotoPickerWidget and included in propertyData.photoUrls
       final updatedPropertyData = propertyData.copyWith(
-        photoUrls: allPhotoUrls,
         ownerUid: user.uid,
       );
 

@@ -9,8 +9,8 @@ Future<String> verifyFaces(XFile image1, XFile image2) async {
   final b64_1 = 'data:image/jpeg;base64,${base64Encode(bytes1)}';
   final b64_2 = 'data:image/jpeg;base64,${base64Encode(bytes2)}';
 
-  // 2. Prepare request;
-  // TODO: Update the uri to the online cloud
+  // 2. Prepare request
+  // TODO: Change the uir address to the online one (currently local docker)
   final uri = Uri.parse("http://127.0.0.1:8080/verify");
   final resp = await http.post(
     uri,

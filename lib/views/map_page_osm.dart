@@ -249,9 +249,11 @@ class _MapPageOSMState extends State<MapPageOSM> {
   }
 
   void _showPropertyDetails(Room room) {
+    final scheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         insetPadding: const EdgeInsets.all(16),
         child: Container(
           width: double.infinity,
@@ -259,12 +261,11 @@ class _MapPageOSMState extends State<MapPageOSM> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header with close button
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+                  border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
                 ),
                 child: Row(
                   children: [
@@ -274,7 +275,7 @@ class _MapPageOSMState extends State<MapPageOSM> {
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: Color(0xFF2C3E50),
                         ),
                       ),
                     ),
@@ -285,41 +286,62 @@ class _MapPageOSMState extends State<MapPageOSM> {
                   ],
                 ),
               ),
-              
-              // Content
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Property Image
-                      if (room.photos.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            room.photos.first,
-                            height: 200,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              height: 200,
-                              color: Colors.grey[200],
-                              child: Icon(Icons.apartment, color: Colors.grey[400], size: 60),
-                            ),
-                          ),
-                        ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: room.photoUrls.isNotEmpty
+                            ? Image.network(
+                                room.photoUrls.first,
+                                height: 200,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  height: 200,
+                                  color: Colors.grey[200],
+                                  child: Icon(Icons.apartment, color: Colors.grey[400], size: 60),
+                                ),
+                              )
+                            : Container(
+                                height: 200,
+                                color: Colors.grey[200],
+                                child: Icon(Icons.apartment, color: Colors.grey[400], size: 60),
+                              ),
+                      ),
                       const SizedBox(height: 16),
-                      
-                      // Price and basic info
                       Row(
                         children: [
-                          Text(
-                            'CHF ${room.price}/month',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF6E56CF),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF6E56CF).withOpacity(0.25),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('CHF', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                Text(
+                                  '${room.price}',
+                                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                                ),
+                                const Text('/month', style: TextStyle(color: Colors.white, fontSize: 10)),
+                              ],
                             ),
                           ),
                           const Spacer(),
@@ -332,10 +354,7 @@ class _MapPageOSMState extends State<MapPageOSM> {
                             ),
                             child: Text(
                               '${room.sizeSqm} m²',
-                              style: TextStyle(
-                                color: Colors.blue[700],
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: TextStyle(color: Colors.blue[700], fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],
@@ -343,22 +362,10 @@ class _MapPageOSMState extends State<MapPageOSM> {
                       const SizedBox(height: 8),
                       Text(
                         '${room.rooms} rooms • ${room.bathrooms} bathrooms • ${room.type == 'room' ? 'Room' : 'Whole property'}',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 20),
-                      
-                      // Address Section
-                      const Text(
-                        'Address',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.black87,
-                        ),
-                      ),
+                      const Text('Address', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2C3E50))),
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -367,57 +374,25 @@ class _MapPageOSMState extends State<MapPageOSM> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.grey[300]!),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            Row(
-                              children: [
-                                Icon(Icons.location_on, color: Colors.red[600], size: 20),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${room.street} ${room.houseNumber}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      Text(
-                                        '${room.postcode} ${room.city}',
-                                        style: TextStyle(
-                                          color: Colors.grey[600],
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      Text(
-                                        room.country,
-                                        style: TextStyle(
-                                          color: Colors.grey[500],
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                            Icon(Icons.location_on, color: Colors.red[600], size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('${room.street} ${room.houseNumber}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                                  Text('${room.postcode} ${room.city}', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                                  Text(room.country, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 20),
-                      
-                      // Features Section
-                      const Text(
-                        'Features',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.black87,
-                        ),
-                      ),
+                      const Text('Features', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2C3E50))),
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -428,50 +403,21 @@ class _MapPageOSMState extends State<MapPageOSM> {
                         ),
                         child: Column(
                           children: [
-                            _MapFeatureRow(
-                              icon: Icons.bed,
-                              label: 'Rooms',
-                              value: '${room.rooms}',
-                            ),
+                            _MapFeatureRow(icon: Icons.bed, label: 'Rooms', value: '${room.rooms}'),
                             const SizedBox(height: 12),
-                            _MapFeatureRow(
-                              icon: Icons.bathtub_outlined,
-                              label: 'Bathrooms',
-                              value: '${room.bathrooms}',
-                            ),
+                            _MapFeatureRow(icon: Icons.bathtub_outlined, label: 'Bathrooms', value: '${room.bathrooms}'),
                             const SizedBox(height: 12),
-                            _MapFeatureRow(
-                              icon: Icons.square_foot,
-                              label: 'Size',
-                              value: '${room.sizeSqm} m²',
-                            ),
+                            _MapFeatureRow(icon: Icons.square_foot, label: 'Size', value: '${room.sizeSqm} m²'),
                             const SizedBox(height: 12),
-                            _MapFeatureRow(
-                              icon: room.furnished ? Icons.chair : Icons.chair_outlined,
-                              label: 'Furnished',
-                              value: room.furnished ? 'Yes' : 'No',
-                            ),
+                            _MapFeatureRow(icon: room.furnished ? Icons.chair : Icons.chair_outlined, label: 'Furnished', value: room.furnished ? 'Yes' : 'No'),
                             const SizedBox(height: 12),
-                            _MapFeatureRow(
-                              icon: room.utilitiesIncluded ? Icons.electric_bolt : Icons.electric_bolt_outlined,
-                              label: 'Charges Included',
-                              value: room.utilitiesIncluded ? 'Yes' : 'No',
-                            ),
+                            _MapFeatureRow(icon: room.utilitiesIncluded ? Icons.electric_bolt : Icons.electric_bolt_outlined, label: 'Charges Included', value: room.utilitiesIncluded ? 'Yes' : 'No'),
                           ],
                         ),
                       ),
                       const SizedBox(height: 20),
-                      
-                      // Availability Section
                       if (room.availabilityRanges.isNotEmpty) ...[
-                        const Text(
-                          'Availability',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Colors.black87,
-                          ),
-                        ),
+                        const Text('Availability', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2C3E50))),
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -484,8 +430,7 @@ class _MapPageOSMState extends State<MapPageOSM> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               for (var range in room.availabilityRanges) ...[
-                                if (range != room.availabilityRanges.first)
-                                  const SizedBox(height: 8),
+                                if (range != room.availabilityRanges.first) const SizedBox(height: 8),
                                 Row(
                                   children: [
                                     Icon(Icons.calendar_today, color: Colors.green[600], size: 20),
@@ -493,10 +438,7 @@ class _MapPageOSMState extends State<MapPageOSM> {
                                     Expanded(
                                       child: Text(
                                         '${range.start.toString().split(" ").first} → ${range.end.toString().split(" ").first}',
-                                        style: TextStyle(
-                                          color: Colors.green[700],
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                        style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w600),
                                       ),
                                     ),
                                   ],
@@ -507,17 +449,8 @@ class _MapPageOSMState extends State<MapPageOSM> {
                         ),
                         const SizedBox(height: 20),
                       ],
-                      
-                      // Description Section
                       if (room.description.isNotEmpty) ...[
-                        const Text(
-                          'Description',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Colors.black87,
-                          ),
-                        ),
+                        const Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2C3E50))),
                         const SizedBox(height: 8),
                         Container(
                           width: double.infinity,
@@ -529,44 +462,27 @@ class _MapPageOSMState extends State<MapPageOSM> {
                           ),
                           child: Text(
                             room.description,
-                            style: TextStyle(
-                              color: Colors.grey[700],
-                              fontSize: 14,
-                              height: 1.5,
-                            ),
+                            style: TextStyle(color: Colors.grey[700], fontSize: 14, height: 1.5),
                           ),
                         ),
                         const SizedBox(height: 20),
                       ],
-                      
-                      // Amenities Section
                       if (room.amenities.isNotEmpty) ...[
-                        const Text(
-                          'Amenities',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Colors.black87,
-                          ),
-                        ),
+                        const Text('Amenities', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2C3E50))),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: room.amenities.map((amenity) => Container(
+                          children: room.amenities.map((a) => Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: Colors.blue[50],
+                              color: const Color(0xFF6E56CF).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.blue[200]!),
+                              border: Border.all(color: const Color(0xFF6E56CF).withOpacity(0.3)),
                             ),
                             child: Text(
-                              amenity,
-                              style: TextStyle(
-                                color: Colors.blue[700],
-                                fontWeight: FontWeight.w500,
-                                fontSize: 12,
-                              ),
+                              a,
+                              style: const TextStyle(color: Color(0xFF6E56CF), fontWeight: FontWeight.w500, fontSize: 12),
                             ),
                           )).toList(),
                         ),
@@ -575,8 +491,6 @@ class _MapPageOSMState extends State<MapPageOSM> {
                   ),
                 ),
               ),
-              
-              // Action buttons
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -588,10 +502,7 @@ class _MapPageOSMState extends State<MapPageOSM> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: BorderSide(color: Colors.grey[400]!),
-                        ),
+                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
                         child: const Text('Close'),
                       ),
                     ),
@@ -600,11 +511,7 @@ class _MapPageOSMState extends State<MapPageOSM> {
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).pop();
-                          // Navigate to property detail page
-                          Navigator.of(context).pushNamed(
-                            '/property-detail',
-                            arguments: room.id,
-                          );
+                          Navigator.of(context).pushNamed('/property-detail', arguments: room.id);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF6E56CF),
@@ -621,6 +528,42 @@ class _MapPageOSMState extends State<MapPageOSM> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _chip(String label) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: scheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _iconRow({required IconData icon, required String text}) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: scheme.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(color: scheme.onSurfaceVariant),
+          ),
+        ),
+      ],
     );
   }
 

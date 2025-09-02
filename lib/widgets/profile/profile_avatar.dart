@@ -66,9 +66,9 @@ class ProfileAvatar extends StatelessWidget {
       );
     }
 
-    if (userProfile?.photoUrl.isNotEmpty == true) {
+    if (userProfile?.photos.isNotEmpty == true) {
       return Image.network(
-        userProfile!.photoUrl,
+        userProfile!.photos,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => _buildDefaultIcon(iconSize),
       );

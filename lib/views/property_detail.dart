@@ -1,11 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unistay/models/room.dart';
 import 'package:unistay/models/booking_request.dart';
 import 'package:unistay/services/booking_service.dart';
 import 'package:unistay/views/edit_room.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:unistay/services/routing_service.dart';
+import 'package:unistay/services/geocoding_service.dart';
+import 'package:unistay/services/utils.dart';
+// import 'package:unistay/services/transit_service.dart'; 
+import 'package:unistay/services/swiss_stops_service.dart';
+import 'package:unistay/services/transit_service.dart' show TransitStop;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:unistay/services/swiss_transit_service.dart';
 
 class PropertyDetailPage extends StatefulWidget {
   final String roomId;
@@ -22,6 +33,15 @@ class PropertyDetailPage extends StatefulWidget {
 
 class _PropertyDetailPageState extends State<PropertyDetailPage> {
   DateTimeRange? _selectedRange;
+  String? _commuteSummary;
+  bool _loadingCommute = false;
+  List<TransitStop> _stops = [];
+  bool _loadingStops = false;
+  TimeOfDay _startTime = const TimeOfDay(hour: 6, minute: 0);
+  TimeOfDay _endTime = const TimeOfDay(hour: 10, minute: 0);
+  String? _bestModeInWindow;
+  List<TransitItinerary> _itineraries = [];
+  bool _loadingItineraries = false;
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +90,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
               );
             }
             final room = Room.fromFirestore(snap.data!);
-            final img = room.photos.isNotEmpty ? room.photos.first : null;
+            final img = room.photoUrls.isNotEmpty ? room.photoUrls.first : null;
             
             // Debug: Check availability ranges
             print('DEBUG: Room ID: ${room.id}');
@@ -144,6 +164,13 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Commute to University
+                        _buildCommuteSection(room),
+                        const SizedBox(height: 12),
+                        _buildTransitSection(room),
+                        const SizedBox(height: 12),
+                        _buildConnectionsSection(room),
+                        const SizedBox(height: 16),
                         // Description Section (moved to top)
                         if (room.description.isNotEmpty) ...[
                           Row(
@@ -270,32 +297,94 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Property Details Row
-                        Row(
-                          children: [
-                            // Left Column - Address & Availability
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Address Section
+                        // Property Details Row (responsive)
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final leftContent = Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Address Section
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Icon(
+                                        Icons.location_on,
+                                        color: Colors.red[600],
+                                        size: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Address',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF2C3E50),
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8F9FA),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFE9ECEF)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${room.street} ${room.houseNumber}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF2C3E50),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${room.postcode} ${room.city}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF6C757D),
+                                        ),
+                                      ),
+                                      Text(
+                                        room.country,
+                                        style: const TextStyle(
+                                          color: Color(0xFF6C757D),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // Availability Section
+                                if (room.availabilityRanges.isNotEmpty) ...[
                                   Row(
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.all(6),
                                         decoration: BoxDecoration(
-                                          color: Colors.red.withOpacity(0.1),
+                                          color: Colors.green.withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Icon(
-                                          Icons.location_on,
-                                          color: Colors.red[600],
+                                          Icons.calendar_today,
+                                          color: Colors.green[600],
                                           size: 16,
                                         ),
                                       ),
                                       const SizedBox(width: 8),
                                       const Text(
-                                        'Address',
+                                        'Availability',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           color: Color(0xFF2C3E50),
@@ -309,163 +398,112 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                                     width: double.infinity,
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF8F9FA),
+                                      color: Colors.green[50],
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: const Color(0xFFE9ECEF)),
+                                      border: Border.all(color: Colors.green[200]!),
                                     ),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          '${room.street} ${room.houseNumber}',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF2C3E50),
+                                        for (var range in room.availabilityRanges) ...[
+                                          if (range != room.availabilityRanges.first)
+                                            const SizedBox(height: 8),
+                                          Text(
+                                            '${range.start.toString().split(" ").first} → ${range.end.toString().split(" ").first}',
+                                            style: TextStyle(
+                                              color: Colors.green[700],
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          '${room.postcode} ${room.city}',
-                                          style: const TextStyle(
-                                            color: Color(0xFF6C757D),
-                                          ),
-                                        ),
-                                        Text(
-                                          room.country,
-                                          style: const TextStyle(
-                                            color: Color(0xFF6C757D),
-                                            fontSize: 12,
-                                          ),
-                                        ),
+                                        ],
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(height: 16),
+                                ],
+                              ],
+                            );
 
-                                  // Availability Section
-                                  if (room.availabilityRanges.isNotEmpty) ...[
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: Colors.green.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(6),
-                                          ),
-                                          child: Icon(
-                                            Icons.calendar_today,
-                                            color: Colors.green[600],
-                                            size: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        const Text(
-                                          'Availability',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF2C3E50),
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
+                            final rightContent = Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
                                     Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(12),
+                                      padding: const EdgeInsets.all(6),
                                       decoration: BoxDecoration(
-                                        color: Colors.green[50],
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.green[200]!),
+                                        color: Colors.blue.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(6),
                                       ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          for (var range in room.availabilityRanges) ...[
-                                            if (range != room.availabilityRanges.first)
-                                              const SizedBox(height: 8),
-                                            Text(
-                                              '${range.start.toString().split(" ").first} → ${range.end.toString().split(" ").first}',
-                                              style: TextStyle(
-                                                color: Colors.green[700],
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
+                                      child: Icon(
+                                        Icons.home,
+                                        color: Colors.blue[600],
+                                        size: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Features',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF2C3E50),
+                                        fontSize: 16,
                                       ),
                                     ),
                                   ],
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 20),
-
-                            // Right Column - Property Features
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8F9FA),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFE9ECEF)),
+                                  ),
+                                  child: Column(
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Icon(
-                                          Icons.home,
-                                          color: Colors.blue[600],
-                                          size: 16,
-                                        ),
+                                      _FeatureRow(
+                                        icon: Icons.square_foot,
+                                        label: 'Size',
+                                        value: '${room.sizeSqm} m²',
                                       ),
-                                      const SizedBox(width: 8),
-                                      const Text(
-                                        'Features',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF2C3E50),
-                                          fontSize: 16,
-                                        ),
+                                      const SizedBox(height: 8),
+                                      _FeatureRow(
+                                        icon: room.furnished ? Icons.chair : Icons.chair_outlined,
+                                        label: 'Furnished',
+                                        value: room.furnished ? 'Yes' : 'No',
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _FeatureRow(
+                                        icon: room.utilitiesIncluded ? Icons.electric_bolt : Icons.electric_bolt_outlined,
+                                        label: 'Charges Included',
+                                        value: room.utilitiesIncluded ? 'Yes' : 'No',
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8F9FA),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: const Color(0xFFE9ECEF)),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        _FeatureRow(
-                                          icon: Icons.square_foot,
-                                          label: 'Size',
-                                          value: '${room.sizeSqm} m²',
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _FeatureRow(
-                                          icon: room.furnished ? Icons.chair : Icons.chair_outlined,
-                                          label: 'Furnished',
-                                          value: room.furnished ? 'Yes' : 'No',
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _FeatureRow(
-                                          icon: room.utilitiesIncluded ? Icons.electric_bolt : Icons.electric_bolt_outlined,
-                                          label: 'Charges Included',
-                                          value: room.utilitiesIncluded ? 'Yes' : 'No',
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                ),
+                              ],
+                            );
+
+                            if (constraints.maxWidth >= 720) {
+                              return Row(
+                                children: [
+                                  Expanded(child: leftContent),
+                                  const SizedBox(width: 20),
+                                  Expanded(child: rightContent),
                                 ],
-                              ),
-                            ),
-                          ],
+                              );
+                            } else {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  leftContent,
+                                  const SizedBox(height: 20),
+                                  rightContent,
+                                ],
+                              );
+                            }
+                          },
                         ),
                         const SizedBox(height: 24),
 
@@ -776,6 +814,494 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     }
   }
 
+  Widget _buildCommuteSection(Room room) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE9ECEF)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(Icons.directions, color: Colors.blue[600], size: 16),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Commute to University',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2C3E50),
+                  fontSize: 16,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: _loadingCommute ? null : () => _computeCommute(room),
+                child: _loadingCommute
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Calculate'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Sabah saat aralığı seçici (Wrap ile, taşmaya dayanıklı)
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _buildTimePicker('From', _startTime, (t) => setState(() => _startTime = t)),
+              _buildTimePicker('To', _endTime, (t) => setState(() => _endTime = t)),
+              TextButton(
+                onPressed: () => _computeBestModeInWindow(room),
+                child: const Text('Best in window'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_commuteSummary == null)
+            const Text(
+              'Get walking / cycling / driving times from this property to your university.',
+              style: TextStyle(color: Color(0xFF6C757D), fontSize: 13),
+            )
+          else
+            Text(
+              _commuteSummary!,
+              style: const TextStyle(color: Color(0xFF2C3E50), fontWeight: FontWeight.w600),
+            ),
+          if (_bestModeInWindow != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Fastest between ${_fmtTod(_startTime)}-${_fmtTod(_endTime)}: $_bestModeInWindow',
+              style: const TextStyle(color: Color(0xFF2C3E50)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimePicker(String label, TimeOfDay value, void Function(TimeOfDay) onChanged) {
+    return OutlinedButton.icon(
+      onPressed: () async {
+        await showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.white,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          builder: (ctx) {
+            DateTime temp = DateTime(0, 1, 1, value.hour, value.minute);
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      children: [
+                        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            onChanged(TimeOfDay(hour: temp.hour, minute: temp.minute));
+                          },
+                          child: const Text('Done'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    height: 200,
+                    child: CupertinoDatePicker(
+                      mode: CupertinoDatePickerMode.time,
+                      use24hFormat: true,
+                      initialDateTime: temp,
+                      onDateTimeChanged: (d) => temp = d,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+      icon: const Icon(Icons.schedule, size: 16),
+      label: Text('$label ${_fmtTod(value)}'),
+    );
+  }
+
+  Future<void> _computeCommute(Room room) async {
+    setState(() => _loadingCommute = true);
+    try {
+      // 1) Öğrencinin profiline göre üniversite adresini al ve geocode et; yoksa Sion'a düş
+      double uLat = hesSoValaisLat;
+      double uLng = hesSoValaisLng;
+      try {
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid != null) {
+          final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+          final m = doc.data() ?? {};
+          final uniAddress = (m['uniAddress'] ?? '').toString();
+          if (uniAddress.isNotEmpty) {
+            final geo = GeocodingService();
+            final pos = await geo.resolve(uniAddress);
+            if (pos.$1 != 0.0 || pos.$2 != 0.0) {
+              uLat = pos.$1;
+              uLng = pos.$2;
+            }
+          }
+        }
+      } catch (_) {}
+      final r = RoutingService();
+      final w = await r.routeDuration(
+        fromLat: room.lat,
+        fromLng: room.lng,
+        toLat: uLat,
+        toLng: uLng,
+        mode: TravelMode.walking,
+      );
+      final c = await r.routeDuration(
+        fromLat: room.lat,
+        fromLng: room.lng,
+        toLat: uLat,
+        toLng: uLng,
+        mode: TravelMode.cycling,
+      );
+      final d = await r.routeDuration(
+        fromLat: room.lat,
+        fromLng: room.lng,
+        toLat: uLat,
+        toLng: uLng,
+        mode: TravelMode.driving,
+      );
+
+      String fmt(Duration? x) => x == null ? '-' : '${x.inMinutes} min';
+      final summary = 'Walking: ${fmt(w)} • Cycling: ${fmt(c)} • Driving: ${fmt(d)}';
+      setState(() => _commuteSummary = summary);
+    } finally {
+      if (mounted) setState(() => _loadingCommute = false);
+    }
+  }
+
+  Future<void> _computeBestModeInWindow(Room room) async {
+    // Basit strateji: pencere içinde 30'ar dakikalık örnekleme ve üç mod + Swiss transit karşılaştırması
+    setState(() => _bestModeInWindow = null);
+    // Resolve university coords again
+    double uLat = hesSoValaisLat;
+    double uLng = hesSoValaisLng;
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final m = doc.data() ?? {};
+        final uniAddress = (m['uniAddress'] ?? '').toString();
+        if (uniAddress.isNotEmpty) {
+          final geo = GeocodingService();
+          final pos = await geo.resolve(uniAddress);
+          if (pos.$1 != 0.0 || pos.$2 != 0.0) {
+            uLat = pos.$1;
+            uLng = pos.$2;
+          }
+        }
+      }
+    } catch (_) {}
+
+    final r = RoutingService();
+    final s = SwissTransitService();
+
+    DateTime now = DateTime.now();
+    DateTime windowStart = DateTime(now.year, now.month, now.day, _startTime.hour, _startTime.minute);
+    DateTime windowEnd = DateTime(now.year, now.month, now.day, _endTime.hour, _endTime.minute);
+    if (windowEnd.isBefore(windowStart)) {
+      windowEnd = windowStart.add(const Duration(hours: 1));
+    }
+
+    final samples = <DateTime>[];
+    for (DateTime t = windowStart; !t.isAfter(windowEnd); t = t.add(const Duration(minutes: 30))) {
+      samples.add(t);
+    }
+
+    Duration? best;
+    String bestLabel = '';
+
+    Future<void> consider(String label, Duration? d) async {
+      if (d == null) return;
+      if (best == null || d < best!) {
+        best = d;
+        bestLabel = label;
+      }
+    }
+
+    for (final t in samples) {
+      final w = await r.routeDuration(fromLat: room.lat, fromLng: room.lng, toLat: uLat, toLng: uLng, mode: TravelMode.walking);
+      await consider('Walking (${w?.inMinutes} min)', w);
+      final c = await r.routeDuration(fromLat: room.lat, fromLng: room.lng, toLat: uLat, toLng: uLng, mode: TravelMode.cycling);
+      await consider('Cycling (${c?.inMinutes} min)', c);
+      final d = await r.routeDuration(fromLat: room.lat, fromLng: room.lng, toLat: uLat, toLng: uLng, mode: TravelMode.driving);
+      await consider('Driving (${d?.inMinutes} min)', d);
+      final pt = await s.connectionDuration(fromLat: room.lat, fromLng: room.lng, toLat: uLat, toLng: uLng, departureDateTime: t);
+      await consider('Transit (${pt?.inMinutes} min)', pt);
+    }
+
+    if (mounted) setState(() => _bestModeInWindow = bestLabel.isEmpty ? null : bestLabel);
+  }
+
+  String _fmtTod(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  Widget _buildTransitSection(Room room) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE9ECEF)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(Icons.directions_bus, color: Colors.orange[700], size: 16),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Nearby Public Transport',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2C3E50),
+                  fontSize: 16,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: _loadingStops ? null : () => _loadNearbyStops(room),
+                child: _loadingStops
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Find Stops'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_stops.isEmpty)
+            const Text(
+              'Find the closest bus/train/tram stops and walking time from the property.',
+              style: TextStyle(color: Color(0xFF6C757D), fontSize: 13),
+            )
+          else
+            Column(
+              children: _stops.take(5).map((s) {
+                final walkMins = walkingMinsFromKm(s.distanceKm);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.place, color: Colors.orange[700], size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${s.name} • ${s.type}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text('${walkMins} min walk', style: const TextStyle(color: Color(0xFF6C757D))),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _loadNearbyStops(Room room) async {
+    setState(() => _loadingStops = true);
+    try {
+      // Only use Swiss official stops API (OGC API – Features)
+      final swiss = SwissStopsService();
+      final res = await swiss.fetchNearbyStops(lat: room.lat, lng: room.lng);
+      setState(() => _stops = res);
+    } finally {
+      if (mounted) setState(() => _loadingStops = false);
+    }
+  }
+
+  Widget _buildConnectionsSection(Room room) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE9ECEF)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(Icons.alt_route, color: Colors.purple[700], size: 16),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Public Transport Connections',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2C3E50),
+                  fontSize: 16,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: _loadingItineraries ? null : () => _loadConnections(room),
+                child: _loadingItineraries
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Find Connections'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_itineraries.isEmpty)
+            const Text(
+              'See possible bus/train (multi-leg) connections to your university.',
+              style: TextStyle(color: Color(0xFF6C757D), fontSize: 13),
+            )
+          else
+            Column(
+              children: _itineraries.take(3).map((it) => _buildItineraryCard(it)).toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItineraryCard(TransitItinerary it) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    String fmt(DateTime d) => '${two(d.hour)}:${two(d.minute)}';
+    final coordRe = RegExp(r'^\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*$');
+    String cleanName(String s) => coordRe.hasMatch(s) ? 'Location' : s;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.purple[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.schedule, size: 16, color: Colors.purple[700]),
+              const SizedBox(width: 6),
+              Text('${fmt(it.departure)} → ${fmt(it.arrival)} • ${it.duration.inMinutes} min',
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...it.legs.map((l) => Row(
+            children: [
+              Icon(_legIcon(l.type), size: 16, color: Colors.purple[700]),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '${l.type.toUpperCase()} ${l.line ?? ''}  ${cleanName(l.fromName)} → ${cleanName(l.toName)}',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text('${fmt(l.departure)}-${fmt(l.arrival)}', style: const TextStyle(color: Color(0xFF6C757D))),
+            ],
+          )),
+        ],
+      ),
+    );
+  }
+
+  IconData _legIcon(String type) {
+    switch (type) {
+      case 'walk':
+        return Icons.directions_walk;
+      case 'bus':
+        return Icons.directions_bus;
+      case 'tram':
+        return Icons.tram;
+      case 'ship':
+        return Icons.directions_boat;
+      default:
+        return Icons.train;
+    }
+  }
+
+  Future<void> _loadConnections(Room room) async {
+    setState(() => _loadingItineraries = true);
+    try {
+      double uLat = hesSoValaisLat;
+      double uLng = hesSoValaisLng;
+      try {
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid != null) {
+          final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+          final m = doc.data() ?? {};
+          final uniAddress = (m['uniAddress'] ?? '').toString();
+          if (uniAddress.isNotEmpty) {
+            final geo = GeocodingService();
+            final pos = await geo.resolve(uniAddress);
+            if (pos.$1 != 0.0 || pos.$2 != 0.0) {
+              uLat = pos.$1;
+              uLng = pos.$2;
+            }
+          }
+        }
+      } catch (_) {}
+
+      final svc = SwissTransitService();
+      final now = DateTime.now();
+      final dep = DateTime(now.year, now.month, now.day, _startTime.hour, _startTime.minute);
+      final res = await svc.connections(
+        fromLat: room.lat,
+        fromLng: room.lng,
+        toLat: uLat,
+        toLng: uLng,
+        departureDateTime: dep,
+        limit: 5,
+      );
+      setState(() => _itineraries = res);
+    } finally {
+      if (mounted) setState(() => _loadingItineraries = false);
+    }
+  }
+
   Future<void> _deleteProperty(BuildContext context, Room room) async {
     // Check for pending or accepted booking requests
     try {
@@ -927,6 +1453,7 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
   DateTime? _rangeStart;
   DateTime? _rangeEnd;
   late Map<DateTime, String> _availabilityStatus;
+  StreamSubscription<List<BookingRequest>>? _requestsSub;
 
   @override
   void initState() {
@@ -934,53 +1461,54 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
     _focusedDay = DateTime.now();
     _selectedDay = DateTime.now();
     _availabilityStatus = {};
-    _loadAvailabilityData();
+    _subscribeAvailability();
   }
 
-  Future<void> _loadAvailabilityData() async {
-    final Map<DateTime, String> statusMap = {};
-    
-    print('DEBUG: Loading availability data for room: ${widget.room.id}');
-    print('DEBUG: Room availability ranges: ${widget.room.availabilityRanges.length}');
-    
-    // Load room availability ranges
+  void _subscribeAvailability() {
+    final Map<DateTime, String> baseMap = {};
+    // Base: room availability → available
     for (var range in widget.room.availabilityRanges) {
-      print('DEBUG: Processing range: ${range.start} to ${range.end}');
       for (DateTime day = range.start; day.isBefore(range.end.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
         final dateKey = DateTime(day.year, day.month, day.day);
-        statusMap[dateKey] = 'available';
-        print('DEBUG: Marked ${dateKey.toString().split(' ')[0]} as available');
+        baseMap[dateKey] = 'available';
       }
     }
 
-    print('DEBUG: Total available dates: ${statusMap.length}');
+    final bookingService = BookingService();
+    _requestsSub = bookingService.getRequestsForProperty(widget.room.id).listen((requests) {
+      final Map<DateTime, String> statusMap = Map.of(baseMap);
 
-    // Load existing booking requests
-    try {
-      final bookingService = BookingService();
-      final requests = await bookingService.getRequestsForProperty(widget.room.id).first;
-      print('DEBUG: Found ${requests.length} booking requests');
+      String normalize(String raw) {
+        final s = (raw).toLowerCase().trim();
+        if (s == 'accepted' || s == 'approved' || s == 'confirmed') return 'accepted';
+        if (s == 'pending' || s == 'awaiting' || s == 'waiting') return 'pending';
+        if (s == 'rejected' || s == 'declined' || s == 'denied' || s == 'cancelled' || s == 'canceled') return 'rejected';
+        return s;
+      }
 
       for (final request in requests) {
-        print('DEBUG: Processing request: ${request.status} for ${request.requestedRange.start} - ${request.requestedRange.end}');
+        final st = normalize(request.status);
         if (widget.isOwner) {
-          // Owner sees all booking statuses
-          if (request.status == 'accepted') {
+          // Owner tüm durumları görür: accepted → booked, pending → pending (availability olmasa bile göster)
+          if (st == 'accepted') {
             for (DateTime day = request.requestedRange.start; day.isBefore(request.requestedRange.end.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
               final dateKey = DateTime(day.year, day.month, day.day);
               statusMap[dateKey] = 'booked';
             }
-          } else if (request.status == 'pending') {
+          } else if (st == 'pending') {
             for (DateTime day = request.requestedRange.start; day.isBefore(request.requestedRange.end.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
               final dateKey = DateTime(day.year, day.month, day.day);
-              if (statusMap[dateKey] == 'available') {
+              // Pending, available değilse bile turuncu göster
+              // Booked (accepted) her zaman önceliklidir, o yüzden booked üzerine yazmayalım
+              if (statusMap[dateKey] != 'booked') {
                 statusMap[dateKey] = 'pending';
               }
             }
           }
+          // rejected → herhangi bir işaretleme yok, base availability'a geri döner
         } else {
-          // Students only see available/unavailable
-          if (request.status == 'accepted' || request.status == 'pending') {
+          // Öğrenci: accepted/pending → unavailable
+          if (st == 'accepted' || st == 'pending') {
             for (DateTime day = request.requestedRange.start; day.isBefore(request.requestedRange.end.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
               final dateKey = DateTime(day.year, day.month, day.day);
               statusMap[dateKey] = 'unavailable';
@@ -988,16 +1516,22 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
           }
         }
       }
-    } catch (e) {
-      print('DEBUG: Error loading booking requests: $e');
-    }
 
-    print('DEBUG: Final status map has ${statusMap.length} entries');
-    print('DEBUG: Available dates: ${statusMap.entries.where((e) => e.value == 'available').map((e) => e.key.toString().split(' ')[0]).toList()}');
-
-    setState(() {
-      _availabilityStatus = statusMap;
+      setState(() {
+        _availabilityStatus = statusMap;
+      });
+    }, onError: (e) {
+      // Hata durumunda en azından base availability göster
+      setState(() {
+        _availabilityStatus = Map.of(baseMap);
+      });
     });
+  }
+
+  @override
+  void dispose() {
+    _requestsSub?.cancel();
+    super.dispose();
   }
 
   String _getEventForDay(DateTime day) {
@@ -1135,13 +1669,128 @@ class _AvailabilityCalendarState extends State<_AvailabilityCalendar> {
                 leftChevronPadding: EdgeInsets.all(4),
                 rightChevronPadding: EdgeInsets.all(4),
               ),
-              enabledDayPredicate: _isDateSelectable,
+              enabledDayPredicate: widget.isOwner ? ((_) => true) : _isDateSelectable,
               eventLoader: (day) {
                 final status = _getEventForDay(day);
                 // Show markers for all statuses except default unavailable
                 return status != 'unavailable' ? [status] : [];
               },
               calendarBuilders: CalendarBuilders(
+                disabledBuilder: (context, day, focusedDay) {
+                  if (widget.isOwner) {
+                    final status = _getEventForDay(day);
+                    Color? bg;
+                    if (status == 'available') {
+                      bg = Colors.green[50];
+                    } else if (status == 'pending') {
+                      bg = Colors.orange[50];
+                    } else if (status == 'booked') {
+                      bg = Colors.blue[50];
+                    } else {
+                      bg = Colors.grey[100];
+                    }
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: bg,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${day.day}',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    );
+                  }
+                  return null;
+                },
+                todayBuilder: (context, day, focusedDay) {
+                  if (widget.isOwner) {
+                    final status = _getEventForDay(day);
+                    Color? bg;
+                    if (status == 'available') {
+                      bg = Colors.green[50];
+                    } else if (status == 'pending') {
+                      bg = Colors.orange[50];
+                    } else if (status == 'booked') {
+                      bg = Colors.blue[50];
+                    } else {
+                      bg = Colors.grey[100];
+                    }
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: bg,
+                        border: Border.all(color: const Color(0xFF6E56CF), width: 1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${day.day}',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    );
+                  }
+                  return null;
+                },
+                selectedBuilder: (context, day, focusedDay) {
+                  if (widget.isOwner) {
+                    final status = _getEventForDay(day);
+                    Color? bg;
+                    if (status == 'available') {
+                      bg = Colors.green[50];
+                    } else if (status == 'pending') {
+                      bg = Colors.orange[50];
+                    } else if (status == 'booked') {
+                      bg = Colors.blue[50];
+                    } else {
+                      bg = Colors.grey[100];
+                    }
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: bg,
+                        border: Border.all(color: const Color(0xFF6E56CF), width: 1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${day.day}',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    );
+                  }
+                  return null;
+                },
+                defaultBuilder: (context, day, focusedDay) {
+                  // Owner görünümünde hücre arka planını duruma göre renklendir
+                  if (widget.isOwner) {
+                    final status = _getEventForDay(day);
+                    Color? bg;
+                    if (status == 'available') {
+                      bg = Colors.green[50];
+                    } else if (status == 'pending') {
+                      bg = Colors.orange[50];
+                    } else if (status == 'booked') {
+                      bg = Colors.blue[50];
+                    } else {
+                      bg = Colors.grey[100];
+                    }
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: bg,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${day.day}',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    );
+                  }
+                  return null;
+                },
                 markerBuilder: (context, date, events) {
                   if (events.isNotEmpty) {
                     final status = events.first as String;

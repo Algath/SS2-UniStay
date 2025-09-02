@@ -38,11 +38,6 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) {
-        final ctrlSizeMin = TextEditingController(text: _sizeMin?.toString() ?? '');
-        final ctrlSizeMax = TextEditingController(text: _sizeMax?.toString() ?? '');
-        final ctrlRoomsMin = TextEditingController(text: _roomsMin?.toString() ?? '');
-        final ctrlBathsMin = TextEditingController(text: _bathsMin?.toString() ?? '');
-
         return StatefulBuilder(
           builder: (ctx, setM) {
           return Container(
@@ -278,6 +273,7 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Size sliders
                       Text(
                         'Size (m²)',
                         style: TextStyle(
@@ -287,93 +283,119 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Row(children: [
-                        Expanded(
-                          child: _buildModernTextField(
-                            controller: ctrlSizeMin,
-                            label: 'Min',
-                            hint: '15',
-                            onChanged: (s) {
-                              final value = int.tryParse(s);
-                              if (value != null && value >= 15 && value <= 500) {
-                                _sizeMin = value;
-                              } else if (value != null && (value < 15 || value > 500)) {
-                                ScaffoldMessenger.of(ctx).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Size should be between 15-500 m²'),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
+                      RangeSlider(
+                        min: 0,
+                        max: 500,
+                        divisions: 500,
+                        labels: RangeLabels(
+                          _sizeMin == null ? 'Any' : '${_sizeMin}',
+                          _sizeMax == null ? 'Any' : '${_sizeMax}',
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildModernTextField(
-                            controller: ctrlSizeMax,
-                            label: 'Max',
-                            hint: '200',
-                            onChanged: (s) {
-                              final value = int.tryParse(s);
-                              if (value != null && value >= 15 && value <= 500) {
-                                _sizeMax = value;
-                              } else if (value != null && (value < 15 || value > 500)) {
-                                ScaffoldMessenger.of(ctx).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Size should be between 15-500 m²'),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
-                              }
-                            },
+                        values: RangeValues((_sizeMin ?? 0).toDouble(), (_sizeMax ?? 500).toDouble()),
+                        onChanged: (values) => setM(() {
+                          _sizeMin = values.start.round() == 0 ? null : values.start.round();
+                          _sizeMax = values.end.round() == 500 ? null : values.end.round();
+                        }),
+                        activeColor: const Color(0xFF6E56CF),
+                        inactiveColor: const Color(0xFF6E56CF).withOpacity(0.3),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[300]!),
+                            ),
+                            child: Text('Min: ${_sizeMin ?? 'Any'}'),
                           ),
-                        ),
-                      ]),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[300]!),
+                            ),
+                            child: Text('Max: ${_sizeMax ?? 'Any'}'),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 16),
-                      Row(children: [
-                        Expanded(
-                          child: _buildModernTextField(
-                            controller: ctrlRoomsMin,
-                            label: 'Min rooms',
-                            hint: '1',
-                            onChanged: (s) {
-                              final value = int.tryParse(s);
-                              if (value != null && value >= 1 && value <= 10) {
-                                _roomsMin = value;
-                              } else if (value != null && (value < 1 || value > 10)) {
-                                ScaffoldMessenger.of(ctx).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Room count should be between 1-10'),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
+
+                      // Min rooms slider
+                      Text(
+                        'Min rooms',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildModernTextField(
-                            controller: ctrlBathsMin,
-                            label: 'Min bathrooms',
-                            hint: '1',
-                            onChanged: (s) {
-                              final value = int.tryParse(s);
-                              if (value != null && value >= 1 && value <= 5) {
-                                _bathsMin = value;
-                              } else if (value != null && (value < 1 || value > 5)) {
-                                ScaffoldMessenger.of(ctx).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Bathroom count should be between 1-5'),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
-                              }
-                            },
+                      ),
+                      const SizedBox(height: 8),
+                      Slider(
+                        min: 0,
+                        max: 10,
+                        divisions: 10,
+                        label: _roomsMin == null ? 'Any' : '${_roomsMin}',
+                        value: (_roomsMin ?? 0).toDouble(),
+                        onChanged: (v) => setM(() {
+                          final val = v.round();
+                          _roomsMin = val == 0 ? null : val;
+                        }),
+                        activeColor: const Color(0xFF6E56CF),
+                        inactiveColor: const Color(0xFF6E56CF).withOpacity(0.3),
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[300]!),
                           ),
+                          child: Text('Min: ${_roomsMin ?? 'Any'}'),
                         ),
-                      ]),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Min bathrooms slider
+                      Text(
+                        'Min bathrooms',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Slider(
+                        min: 0,
+                        max: 5,
+                        divisions: 5,
+                        label: _bathsMin == null ? 'Any' : '${_bathsMin}',
+                        value: (_bathsMin ?? 0).toDouble(),
+                        onChanged: (v) => setM(() {
+                          final val = v.round();
+                          _bathsMin = val == 0 ? null : val;
+                        }),
+                        activeColor: const Color(0xFF6E56CF),
+                        inactiveColor: const Color(0xFF6E56CF).withOpacity(0.3),
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: Text('Min: ${_bathsMin ?? 'Any'}'),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -393,10 +415,6 @@ class _HomePageState extends State<HomePage> {
                           _sizeMax = null;
                           _roomsMin = null;
                           _bathsMin = null;
-                          ctrlSizeMin.clear();
-                          ctrlSizeMax.clear();
-                          ctrlRoomsMin.clear();
-                          ctrlBathsMin.clear();
                         });
                       },
                       style: OutlinedButton.styleFrom(

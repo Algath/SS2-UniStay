@@ -104,8 +104,6 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
           label: 'Property Title *',
           validator: (v) {
             if (v == null || v.trim().isEmpty) return 'Required';
-            if (v.trim().length < 5) return 'Title should be at least 5 characters';
-            if (v.trim().length > 100) return 'Title should be less than 100 characters';
             return null;
           },
         ),
@@ -120,7 +118,6 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                 if (v == null || v.trim().isEmpty) return 'Required';
                 final price = num.tryParse(v);
                 if (price == null) return 'Enter valid number';
-                if (price < 200) return 'Price should be at least CHF 200';
                 return null;
               },
             ),
@@ -173,8 +170,6 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                 if (v == null || v.trim().isEmpty) return 'Required';
                 final size = int.tryParse(v);
                 if (size == null) return 'Enter valid number';
-                if (size < 15) return 'Size should be at least 15 m²';
-                if (size > 500) return 'Size should be less than 500 m²';
                 return null;
               },
             ),
@@ -186,8 +181,6 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                 if (v == null || v.trim().isEmpty) return 'Required';
                 final rooms = int.tryParse(v);
                 if (rooms == null) return 'Enter valid number';
-                if (rooms < 1) return 'Rooms should be at least 1';
-                if (rooms > 10) return 'Rooms should be less than 10';
                 return null;
               },
             ),
@@ -204,8 +197,6 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                 if (v == null || v.trim().isEmpty) return 'Required';
                 final baths = int.tryParse(v);
                 if (baths == null) return 'Enter valid number';
-                if (baths < 1) return 'Bathrooms should be at least 1';
-                if (baths > 5) return 'Bathrooms should be less than 5';
                 return null;
               },
             ),

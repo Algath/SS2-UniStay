@@ -17,6 +17,8 @@ firebase.json
 android/app/google-services.json
 lib/firebase_options.dart
 
+android/build.gradle.kts
+android/app/build.gradle.kts
 
 # IntelliJ related
 *.iml

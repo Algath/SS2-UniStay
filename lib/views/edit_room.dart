@@ -11,6 +11,8 @@ import 'package:latlong2/latlong.dart' as ll;
 import 'package:http/http.dart' as http;
 import 'package:unistay/services/storage_service.dart';
 import 'package:unistay/services/booking_service.dart';
+import 'package:unistay/models/booking_request.dart';
+import 'package:unistay/models/booking_request.dart';
 
 // Address suggestion model (copied from add_property.dart)
 class AddressSuggestion {
@@ -104,7 +106,9 @@ class _EditRoomPageState extends State<EditRoomPage> {
   
   bool _loading = true;
   bool _saving = false;
-
+  final List<DateTimeRange> _bookedRanges = [];
+  StreamSubscription<List<BookingRequest>>? _bookingSub;
+  
   @override
   void initState() {
     super.initState();
@@ -116,6 +120,7 @@ class _EditRoomPageState extends State<EditRoomPage> {
       }
     });
     _load();
+    _subscribeBookedRanges();
   }
 
   Future<void> _load() async {
@@ -172,6 +177,28 @@ class _EditRoomPageState extends State<EditRoomPage> {
     }
     
     if (mounted) setState(() => _loading = false);
+  }
+  
+  void _subscribeBookedRanges() {
+    try {
+      final bookingService = BookingService();
+      _bookingSub = bookingService.getRequestsForProperty(widget.roomId).listen((requests) {
+        final List<DateTimeRange> accepted = [];
+        for (final r in requests) {
+          final s = (r.status).toLowerCase().trim();
+          if (s == 'accepted' || s == 'approved' || s == 'confirmed' || s == 'validated') {
+            accepted.add(r.requestedRange);
+          }
+        }
+        if (mounted) {
+          setState(() {
+            _bookedRanges
+              ..clear()
+              ..addAll(accepted);
+          });
+        }
+      });
+    } catch (_) {}
   }
 
   // Search for addresses using Nominatim API
@@ -449,6 +476,7 @@ class _EditRoomPageState extends State<EditRoomPage> {
 
   @override
   void dispose() {
+    _bookingSub?.cancel();
     _debounce?.cancel();
     _title.dispose();
     _price.dispose();
@@ -992,6 +1020,101 @@ class _EditRoomPageState extends State<EditRoomPage> {
                             ),
                             _buildSpacing(),
 
+                            // Added Ranges (moved outside of calendar)
+                            if (_availabilityRanges.isNotEmpty)
+                              _buildCard(
+                                title: 'Added Ranges',
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.green[50],
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: Colors.green[200]!),
+                                    ),
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(Icons.check_circle, color: Colors.green[600], size: 20),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Ranges (${_availabilityRanges.length})',
+                                              style: TextStyle(
+                                                color: Colors.green[700],
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        ..._availabilityRanges.asMap().entries.map((entry) {
+                                          final i = entry.key;
+                                          final range = entry.value;
+                                          return Container(
+                                            margin: const EdgeInsets.only(bottom: 6),
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: Colors.green[300]!),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    '${range.start.day}/${range.start.month}/${range.start.year} → ${range.end.day}/${range.end.month}/${range.end.year}',
+                                                    style: TextStyle(
+                                                      color: Colors.green[700],
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ),
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    final bool overlapsBooked = _bookedRanges.any((b) {
+                                                      final startsBeforeOrAtEnd = !range.start.isAfter(b.end);
+                                                      final endsAfterOrAtStart = !range.end.isBefore(b.start);
+                                                      return startsBeforeOrAtEnd && endsAfterOrAtStart;
+                                                    });
+                                                    if (overlapsBooked) {
+                                                      showDialog(
+                                                        context: context,
+                                                        builder: (ctx) => AlertDialog(
+                                                          title: const Text('Cannot Remove Range'),
+                                                          content: const Text('This range includes booked dates and cannot be removed.'),
+                                                          actions: [
+                                                            TextButton(
+                                                              onPressed: () => Navigator.pop(ctx),
+                                                              child: const Text('OK'),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+                                                      return;
+                                                    }
+                                                    setState(() {
+                                                      _availabilityRanges.removeAt(i);
+                                                    });
+                                                  },
+                                                  child: Icon(
+                                                    Icons.close,
+                                                    color: Colors.red[600],
+                                                    size: 16,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            _buildSpacing(),
+
                             // Action Buttons
                             Row(
                               children: [
@@ -1311,73 +1434,7 @@ class _EditRoomCalendarState extends State<_EditRoomCalendar> {
             ),
           ),
         ],
-        if (_availabilityRanges.isNotEmpty) ...[
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.green[50],
-              border: Border(top: BorderSide(color: Colors.grey[300]!)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green[600], size: 20),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Added Ranges (${_availabilityRanges.length})',
-                      style: TextStyle(
-                        color: Colors.green[700],
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ..._availabilityRanges.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final range = entry.value;
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.green[300]!),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '${range.start.day}/${range.start.month}/${range.start.year} → ${range.end.day}/${range.end.month}/${range.end.year}',
-                            style: TextStyle(
-                              color: Colors.green[700],
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _availabilityRanges.removeAt(index);
-                            });
-                            widget.onRangesSelected(_availabilityRanges);
-                          },
-                          child: Icon(
-                            Icons.close,
-                            color: Colors.red[600],
-                            size: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ],
-            ),
-          ),
-        ],
+        // Added Ranges list moved outside of calendar
       ],
     );
   }

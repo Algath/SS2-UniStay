@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
+/// Face verification service using face-api server
 Future<String> verifyFaces(XFile image1, XFile image2) async {
   // 1. Read bytes and encode to Base64
   final bytes1 = await image1.readAsBytes();
@@ -10,7 +11,7 @@ Future<String> verifyFaces(XFile image1, XFile image2) async {
   final b64_2 = 'data:image/jpeg;base64,${base64Encode(bytes2)}';
 
   // 2. Prepare request
-  // TODO: Change the uir address to the online one (currently local docker)
+  // TODO: Change the URI address to the online one (currently local docker)
   final uri = Uri.parse("http://127.0.0.1:8080/verify");
   final resp = await http.post(
     uri,

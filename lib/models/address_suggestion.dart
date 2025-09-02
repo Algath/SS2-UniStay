@@ -1,3 +1,4 @@
+/// Address suggestion model for address autocomplete functionality
 class AddressSuggestion {
   final String displayName;
   final double lat;

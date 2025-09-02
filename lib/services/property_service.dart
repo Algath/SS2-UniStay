@@ -1,15 +1,11 @@
-import 'dart:io';
-import 'dart:typed_data';
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unistay/models/property_data.dart';
 import 'package:unistay/services/storage_service.dart';
-import 'package:unistay/services/image_optimization_service.dart';
 
+/// Service for property CRUD operations and validation
 class PropertyService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static final StorageService _storageService = StorageService();
 
   /// Save a new property to Firestore with photo uploads
   static Future<String> saveProperty({

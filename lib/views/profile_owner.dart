@@ -62,9 +62,7 @@ class _ProfileOwnerPageRefactoredState extends State<ProfileOwnerPageRefactored>
           _localProfileImage = file;
         });
       }
-    } catch (e) {
-      print('Error loading local profile picture: $e');
-    }
+    } catch (e) {}
   }
 
   @override

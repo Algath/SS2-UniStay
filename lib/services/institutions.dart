@@ -26,7 +26,7 @@ class InstitutionDistance {
   });
 }
 
-/// Trouve l’institution la plus proche d’un point (lat, lon)
+/// Find the nearest institution from a point (lat, lon)
 InstitutionDistance? findNearestInstitutionFromList(double lat, double lon, List<Institution> institutions) {
   InstitutionDistance? nearest;
   double? minDist;

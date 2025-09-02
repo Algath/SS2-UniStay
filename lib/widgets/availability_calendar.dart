@@ -287,7 +287,9 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
               }
             }
           } else {
-            if (st == 'accepted' || st == 'pending') {
+            // Student view: Only accepted (booked) days are unavailable.
+            // Pending requests should NOT block availability on home list/filter.
+            if (st == 'accepted') {
               for (DateTime d = req.requestedRange.start; d.isBefore(req.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
                 final k = DateTime(d.year, d.month, d.day);
                 map[k] = 'unavailable';

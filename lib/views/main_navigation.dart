@@ -38,7 +38,6 @@ class _MainNavigationState extends State<MainNavigation> {
           _isLoadingProfile = false;
         });
       } catch (e) {
-        print('Error loading user profile: $e');
         setState(() => _isLoadingProfile = false);
       }
     } else {

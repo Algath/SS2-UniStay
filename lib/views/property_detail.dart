@@ -34,12 +34,12 @@ class PropertyDetailPage extends StatefulWidget {
 class _PropertyDetailPageState extends State<PropertyDetailPage> {
   DateTimeRange? _selectedRange;
   String? _commuteSummary;
-  bool _loadingCommute = false;
+  bool _loadingCommute = false; // deprecated (commute section removed)
   List<TransitStop> _stops = [];
   bool _loadingStops = false;
   TimeOfDay _startTime = const TimeOfDay(hour: 6, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 10, minute: 0);
-  String? _bestModeInWindow;
+  String? _bestModeInWindow; // deprecated (commute section removed)
   List<TransitItinerary> _itineraries = [];
   bool _loadingItineraries = false;
 
@@ -164,9 +164,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Commute to University
-                        _buildCommuteSection(room),
-                        const SizedBox(height: 12),
+                        // Commute to University (removed)
                         _buildTransitSection(room),
                         const SizedBox(height: 12),
                         _buildConnectionsSection(room),
@@ -486,12 +484,15 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                             );
 
                             if (constraints.maxWidth >= 720) {
-                              return Row(
-                                children: [
-                                  Expanded(child: leftContent),
-                                  const SizedBox(width: 20),
-                                  Expanded(child: rightContent),
-                                ],
+                              return IntrinsicHeight(
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(child: leftContent),
+                                    const SizedBox(width: 20),
+                                    Expanded(child: rightContent),
+                                  ],
+                                ),
                               );
                             } else {
                               return Column(
@@ -509,51 +510,72 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
 
                         // Amenities Section
                         if (room.amenities.isNotEmpty) ...[
-                          Row(
-              children: [
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Icon(
-                                  Icons.star,
-                                  color: Colors.orange[600],
-                                  size: 16,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Amenities',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2C3E50),
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                ),
-                const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: room.amenities.map((amenity) => Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF6E56CF).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: const Color(0xFF6E56CF).withOpacity(0.3)),
-                              ),
-                              child: Text(
-                                amenity,
-                                style: const TextStyle(
-                                  color: Color(0xFF6E56CF),
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            )).toList(),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final content = Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Icon(
+                                          Icons.star,
+                                          color: Colors.orange[600],
+                                          size: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'Amenities',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF2C3E50),
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: room.amenities.map((amenity) => Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF6E56CF).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(color: const Color(0xFF6E56CF).withOpacity(0.3)),
+                                      ),
+                                      child: Text(
+                                        amenity,
+                                        style: const TextStyle(
+                                          color: Color(0xFF6E56CF),
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    )).toList(),
+                                  ),
+                                ],
+                              );
+
+                              if (constraints.maxWidth >= 720) {
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(child: const SizedBox()),
+                                    const SizedBox(width: 20),
+                                    Expanded(child: content),
+                                  ],
+                                );
+                              }
+                              return content;
+                            },
                           ),
                           const SizedBox(height: 24),
                         ],
@@ -1100,6 +1122,17 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
             ],
           ),
           const SizedBox(height: 8),
+          // Inline time pickers moved here from commute section
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _buildTimePicker('From', _startTime, (t) => setState(() => _startTime = t)),
+              _buildTimePicker('To', _endTime, (t) => setState(() => _endTime = t)),
+            ],
+          ),
+          const SizedBox(height: 8),
           if (_stops.isEmpty)
             const Text(
               'Find the closest bus/train/tram stops and walking time from the property.',
@@ -1208,8 +1241,15 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   Widget _buildItineraryCard(TransitItinerary it) {
     String two(int n) => n.toString().padLeft(2, '0');
     String fmt(DateTime d) => '${two(d.hour)}:${two(d.minute)}';
-    final coordRe = RegExp(r'^\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*$');
-    String cleanName(String s) => coordRe.hasMatch(s) ? 'Location' : s;
+    final coordAnywhere = RegExp(r'@?\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?');
+    final coordParens = RegExp(r'\(\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*\)');
+    String cleanName(String s) {
+      var t = s.replaceAll(coordParens, '');
+      t = t.replaceAll(coordAnywhere, '');
+      t = t.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
+      if (t.isEmpty) return 'Location';
+      return t;
+    }
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),

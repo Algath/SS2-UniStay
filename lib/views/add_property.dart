@@ -6,6 +6,7 @@ import 'package:unistay/widgets/address_autocomplete.dart';
 import 'package:unistay/widgets/amenities_selector.dart';
 import 'package:unistay/widgets/photo_picker_widget.dart';
 import 'package:unistay/widgets/availability_calendar.dart';
+import 'package:unistay/widgets/price_prediction_widget.dart';
 
 class AddPropertyPage extends StatefulWidget {
   static const route = '/add-property';
@@ -60,9 +61,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                           PropertyFormCard.buildSpacing(isTablet: isTablet, isLandscape: isLandscape),
                           _buildPhotosSection(vm, isTablet, isLandscape),
                           PropertyFormCard.buildSpacing(isTablet: isTablet, isLandscape: isLandscape),
-                          _buildSaveButton(vm),
-                          PropertyFormCard.buildSpacing(isTablet: isTablet, isLandscape: isLandscape),
                           _buildAvailabilitySection(vm, isTablet, isLandscape),
+                          PropertyFormCard.buildSpacing(isTablet: isTablet, isLandscape: isLandscape),
+                          _buildSaveButton(vm),
                           const SizedBox(height: 24),
                         ],
                       ),
@@ -120,6 +121,50 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                 if (price == null) return 'Enter valid number';
                 return null;
               },
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: SizedBox(
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      ),
+                      builder: (ctx) {
+                        final priceCtrl = TextEditingController(text: vm.priceController.text);
+                        return SafeArea(
+                          top: false,
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+                              top: 16,
+                            ),
+                            child: PricePredictionWidget(
+                              postalCodeController: vm.postcodeController,
+                              surfaceController: vm.sizeSqmController,
+                              numRoomsController: vm.roomsController,
+                              predictionController: priceCtrl,
+                              proximValue: 0,
+                            ),
+                          ),
+                        );
+                      },
+                    ).then((_) {});
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6E56CF),
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.auto_graph),
+                  label: const Text('Predict'),
+                ),
+              ),
             ),
             DropdownButtonFormField<String>(
               value: vm.type,

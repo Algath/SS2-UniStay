@@ -46,3 +46,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/ss2_unistay_price.tflite
+    - assets/PointExploitation.csv

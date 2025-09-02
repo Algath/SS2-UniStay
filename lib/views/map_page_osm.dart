@@ -1,4 +1,5 @@
 import 'dart:math' show sin, cos, sqrt, atan2;
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -101,6 +102,8 @@ class _MapPageOSMState extends State<MapPageOSM> {
   final _markers = <Marker>[];
   University? _selectedUniversity;
   ll.LatLng? _selectedLocation;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _roomsSub;
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _lastDocs = [];
 
   @override
   void initState() {
@@ -113,12 +116,22 @@ class _MapPageOSMState extends State<MapPageOSM> {
     } else {
       // Default to first university for normal mode
       _selectedUniversity = _universities.first;
-      _loadMarkers();
+      _subscribeMarkers();
     }
   }
 
-  Future<void> _loadMarkers() async {
-    final snap = await FirebaseFirestore.instance.collection('rooms').get();
+  void _subscribeMarkers() {
+    _roomsSub?.cancel();
+    _roomsSub = FirebaseFirestore.instance
+        .collection('rooms')
+        .snapshots()
+        .listen((snap) {
+      _lastDocs = snap.docs;
+      _updateMarkersFromDocs();
+    });
+  }
+
+  void _updateMarkersFromDocs() {
     final m = <Marker>[];
 
     // Add selected university marker
@@ -173,11 +186,14 @@ class _MapPageOSMState extends State<MapPageOSM> {
       );
     }
 
-    // Add property markers
-    for (final d in snap.docs) {
+    // Add property markers (only active)
+    for (final d in _lastDocs) {
       final r = d.data();
-      final lat = (r['lat'] ?? 0.0) as double;
-      final lng = (r['lng'] ?? 0.0) as double;
+      if ((r['status'] ?? 'active') != 'active') {
+        continue;
+      }
+      final lat = ((r['lat'] ?? 0.0) as num).toDouble();
+      final lng = ((r['lng'] ?? 0.0) as num).toDouble();
       final pos = ll.LatLng(lat, lng);
       final title = (r['title'] ?? '') as String;
       final price = (r['price'] ?? 0);
@@ -244,7 +260,8 @@ class _MapPageOSMState extends State<MapPageOSM> {
         _selectedUniversity = university;
       });
       _mapCtrl.move(university.location, 14);
-      _loadMarkers();
+      // Recompute distances and refresh markers with cached docs
+      _updateMarkersFromDocs();
     }
   }
 
@@ -770,6 +787,12 @@ class _MapPageOSMState extends State<MapPageOSM> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _roomsSub?.cancel();
+    super.dispose();
   }
 }
 

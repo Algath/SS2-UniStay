@@ -14,6 +14,7 @@ double haversineKm(double lat1, double lon1, double lat2, double lon2) {
 }
 
 int walkingMinsFromKm(double km) => (km / 4.5 * 60).round();
+int cyclingMinsFromKm(double km) => (km / 15.0 * 60).round();
 
 const double hesSoValaisLat = 46.2276;
 const double hesSoValaisLng = 7.3589;

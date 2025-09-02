@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'dart:async';
+import 'package:unistay/services/booking_service.dart';
+import 'package:unistay/models/booking_request.dart';
 
 class AvailabilityCalendar extends StatefulWidget {
   final Function(List<DateTimeRange>) onRangesSelected;
   final List<DateTimeRange> initialRanges;
+  // Opsiyonel: Owner görünümünde pending/booked renkleri göstermek için propertyId ve isOwner
+  final String? propertyId;
+  final bool isOwner;
 
   const AvailabilityCalendar({
     super.key,
     required this.onRangesSelected,
     this.initialRanges = const [],
+    this.propertyId,
+    this.isOwner = false,
   });
 
   @override
@@ -19,6 +27,8 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
   late DateTime _focusedDay;
   DateTimeRange? _selectedRange;
   List<DateTimeRange> _availabilityRanges = [];
+  Map<DateTime, String> _statusByDay = {}; // available | pending | booked | unavailable
+  StreamSubscription<List<BookingRequest>>? _requestsSub;
 
   @override
   void initState() {
@@ -26,6 +36,7 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
     _focusedDay = DateTime.now();
     _selectedRange = null;
     _availabilityRanges = List.from(widget.initialRanges);
+    _initStatusSubscription();
   }
 
   @override
@@ -86,14 +97,17 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
 
   Widget _buildCalendar() {
     return SingleChildScrollView(
-      child: TableCalendar<DateTimeRange>(
+      child: TableCalendar<String>(
         firstDay: DateTime.now(),
         lastDay: DateTime.now().add(const Duration(days: 365)),
         focusedDay: _focusedDay,
         rangeStartDay: _selectedRange?.start,
         rangeEndDay: _selectedRange?.end,
         rangeSelectionMode: RangeSelectionMode.toggledOn,
-        eventLoader: _getEventsForDay,
+        eventLoader: (day) {
+          final status = _getStatusForDay(day);
+          return status != 'unavailable' ? [status] : [];
+        },
         rowHeight: 40,
         daysOfWeekHeight: 35,
         onDaySelected: _onDaySelected,
@@ -125,15 +139,55 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
           formatButtonVisible: false,
           titleCentered: true,
         ),
+        calendarBuilders: CalendarBuilders(
+          defaultBuilder: (context, day, focusedDay) {
+            if (!widget.isOwner) return null;
+            final status = _getStatusForDay(day);
+            Color? bg;
+            if (status == 'available') {
+              bg = Colors.green[50];
+            } else if (status == 'pending') {
+              bg = Colors.orange[50];
+            } else if (status == 'booked') {
+              bg = Colors.blue[50];
+            } else {
+              bg = Colors.grey[100];
+            }
+            return Container(
+              margin: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              alignment: Alignment.center,
+              child: Text('${day.day}'),
+            );
+          },
+          markerBuilder: (context, date, events) {
+            if (events.isNotEmpty) {
+              final status = events.first as String;
+              return Positioned(
+                bottom: 2,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _eventColor(status),
+                  ),
+                ),
+              );
+            }
+            return null;
+          },
+        ),
       ),
     );
   }
 
-  List<DateTimeRange> _getEventsForDay(DateTime day) {
-    return _availabilityRanges.where((range) {
-      return day.isAfter(range.start.subtract(const Duration(days: 1))) &&
-          day.isBefore(range.end.add(const Duration(days: 1)));
-    }).toList();
+  String _getStatusForDay(DateTime day) {
+    final key = DateTime(day.year, day.month, day.day);
+    return _statusByDay[key] ?? 'unavailable';
   }
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
@@ -171,6 +225,7 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
       setState(() {
         _availabilityRanges.add(_selectedRange!);
         _selectedRange = null;
+        _rebuildBaseStatus();
       });
       widget.onRangesSelected(_availabilityRanges);
     }
@@ -179,12 +234,94 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
   void _removeRange(int index) {
     setState(() {
       _availabilityRanges.removeAt(index);
+      _rebuildBaseStatus();
     });
     widget.onRangesSelected(_availabilityRanges);
   }
 
   String _formatDateRange(DateTimeRange range) {
     return '${range.start.day}/${range.start.month}/${range.start.year} → ${range.end.day}/${range.end.month}/${range.end.year}';
+  }
+
+  void _initStatusSubscription() {
+    // Önce base: availabilityRanges -> available
+    _rebuildBaseStatus();
+
+    // Opsiyonel: propertyId sağlanmışsa rezervasyon akışına bağlan
+    if (widget.propertyId != null) {
+      final bookingService = BookingService();
+      _requestsSub = bookingService.getRequestsForProperty(widget.propertyId!).listen((requests) {
+        final Map<DateTime, String> map = Map.of(_statusByDay);
+
+        String normalize(String raw) {
+          final s = raw.toLowerCase().trim();
+          if (s == 'accepted' || s == 'approved' || s == 'confirmed') return 'accepted';
+          if (s == 'pending' || s == 'awaiting' || s == 'waiting') return 'pending';
+          if (s == 'rejected' || s == 'declined' || s == 'denied' || s == 'cancelled' || s == 'canceled') return 'rejected';
+          return s;
+        }
+
+        // Üzerine pending/booked yaz
+        for (final req in requests) {
+          final st = normalize(req.status);
+          if (widget.isOwner) {
+            if (st == 'accepted') {
+              for (DateTime d = req.requestedRange.start; d.isBefore(req.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+                final k = DateTime(d.year, d.month, d.day);
+                map[k] = 'booked';
+              }
+            } else if (st == 'pending') {
+              for (DateTime d = req.requestedRange.start; d.isBefore(req.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+                final k = DateTime(d.year, d.month, d.day);
+                if (map[k] != 'booked') map[k] = 'pending';
+              }
+            }
+          } else {
+            if (st == 'accepted' || st == 'pending') {
+              for (DateTime d = req.requestedRange.start; d.isBefore(req.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+                final k = DateTime(d.year, d.month, d.day);
+                map[k] = 'unavailable';
+              }
+            }
+          }
+        }
+
+        setState(() {
+          _statusByDay = map;
+        });
+      });
+    }
+  }
+
+  void _rebuildBaseStatus() {
+    final Map<DateTime, String> base = {};
+    for (final range in _availabilityRanges) {
+      for (DateTime d = range.start; d.isBefore(range.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+        base[DateTime(d.year, d.month, d.day)] = 'available';
+      }
+    }
+    setState(() {
+      _statusByDay = base;
+    });
+  }
+
+  Color _eventColor(String status) {
+    switch (status) {
+      case 'available':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'booked':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  @override
+  void dispose() {
+    _requestsSub?.cancel();
+    super.dispose();
   }
 
   Widget _buildSelectedRangeInfo() {

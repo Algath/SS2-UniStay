@@ -292,7 +292,6 @@ class _MapPageOSMState extends State<MapPageOSM> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-<<<<<<< HEAD
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: room.photoUrls.isNotEmpty

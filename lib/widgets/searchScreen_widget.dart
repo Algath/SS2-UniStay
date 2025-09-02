@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:nominatim_flutter/model/request/search_request.dart';
 import 'package:nominatim_flutter/model/response/nominatim_response.dart';
 import 'package:nominatim_flutter/nominatim_flutter.dart';
-import '../transportStop.dart';
+import '../services/transportStop.dart';
+import '../services/utils.dart';
+
 
 class AddressSearchWidget extends StatefulWidget {
   final TextEditingController controller;
-  final Function(SearchResultWithStop) onResultSelected;
+  final Function(SearchResultWithDistance) onResultSelected;
 
   const AddressSearchWidget({
     super.key,
@@ -18,15 +20,19 @@ class AddressSearchWidget extends StatefulWidget {
   _AddressSearchWidgetState createState() => _AddressSearchWidgetState();
 }
 
-class SearchResultWithStop {
+class SearchResultWithDistance {
   final NominatimResponse result;
   final TransportStop? nearestStop;
-  final double? distanceMeters;
+  final double? distanceStopMeters;
+  final String? nearestInstitution;
+  final double distanceToUniversityKm;
 
-  SearchResultWithStop({
+  SearchResultWithDistance({
     required this.result,
     required this.nearestStop,
-    required this.distanceMeters,
+    required this.distanceStopMeters,
+    required this.nearestInstitution,
+    required this.distanceToUniversityKm,
   });
 }
 
@@ -65,9 +71,13 @@ String formatDistance(double? meters) {
 }
 
 class _AddressSearchWidgetState extends State<AddressSearchWidget> {
-  List<SearchResultWithStop> _results = [];
+  List<SearchResultWithDistance> _results = [];
   bool _loading = false;
   String? _error;
+
+  // Coordonnées par défaut si nécessaire
+  final double defaultUniversityLat = 46.2276;
+  final double defaultUniversityLon = 7.3589;
 
   Future<void> _performSearch(String query) async {
     if (query.trim().isEmpty) return;
@@ -100,19 +110,31 @@ class _AddressSearchWidgetState extends State<AddressSearchWidget> {
         final lon = double.tryParse(result.lon ?? '0') ?? 0.0;
 
         final (e, n) = SwissProjection.wgs84ToLv95(lat, lon);
-
         final nearestStop = TransportStopService.findNearestStop(e, n);
 
-        double? distance;
+        double? distanceStop;
         if (nearestStop != null) {
-          distance = TransportStopService.euclideanDistance(
+          distanceStop = TransportStopService.euclideanDistance(
               e, n, nearestStop.e, nearestStop.n);
         }
 
-        return SearchResultWithStop(
+        // Trouver l'institution la plus proche
+        String? nearestInstitution;
+        double minDistance = double.infinity;
+        institutionCoords.forEach((name, coords) {
+          final d = haversineKm(lat, lon, coords.$1, coords.$2);
+          if (d < minDistance) {
+            minDistance = d;
+            nearestInstitution = name;
+          }
+        });
+
+        return SearchResultWithDistance(
           result: result,
           nearestStop: nearestStop,
-          distanceMeters: distance,
+          distanceStopMeters: distanceStop,
+          nearestInstitution: nearestInstitution,
+          distanceToUniversityKm: minDistance,
         );
       }).toList();
 
@@ -168,10 +190,17 @@ class _AddressSearchWidgetState extends State<AddressSearchWidget> {
             final stop = enriched.nearestStop;
             return ListTile(
               title: Text(enriched.result.displayName ?? 'Unknown'),
-              subtitle: stop != null
-                  ? Text(
-                  '🚏 ${stop.name} (${stop.transportType}) - ${formatDistance(enriched.distanceMeters)}')
-                  : null,
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (stop != null)
+                    Text(
+                        '🚏 ${stop.name} (${stop.transportType}) - ${formatDistance(enriched.distanceStopMeters)}'),
+                  if (enriched.nearestInstitution != null)
+                    Text(
+                        '🏫 ${enriched.nearestInstitution} (${enriched.distanceToUniversityKm.toStringAsFixed(1)} km)'),
+                ],
+              ),
               onTap: () {
                 widget.onResultSelected(enriched);
               },

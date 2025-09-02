@@ -18,13 +18,21 @@ int walkingMinsFromKm(double km) => (km / 4.5 * 60).round();
 const double hesSoValaisLat = 46.2276;
 const double hesSoValaisLng = 7.3589;
 
-const swissUniversities = {
-  'HES-SO Valais-Wallis (Sion)': 'Rue de l\'Industrie 21, 1950 Sion',
-  'HES-SO Valais-Wallis (Sierre)': 'Route de la Plaine 2, 3960 Sierre',
-  'HEP-VS (St-Maurice)': 'Avenue du Simplon 13, 1890 St-Maurice',
-  'HEP-VS (Brig)': 'Alte Simplonstrasse 33, 3900 Brig-Glis',
-  'FFHS / Swiss Distance University (Brig)': 'Überlandstrasse 12, 3900 Brig',
-  'César Ritz Colleges (Brig)': 'English Gruss Strasse 43, 3902 Brig',
+/// Toutes les HES, universités et antennes en Valais
+/// Coordonnées WGS84 des institutions
+const Map<String, (double, double)> institutionCoords = {
+  'HES-SO Valais-Wallis (Sion - HEI, ingénierie)': (46.226395, 7.359848),
+  'HES-SO Valais-Wallis (Sion - HEdS, santé)': (46.22518, 7.37132),
+  'HES-SO Valais-Wallis (Sierre - HEG, gestion)': (46.29305, 7.53645),
+  'EDHEA - École de design & Haute école d\'art': (46.291386, 7.520819),
+  'HEdS - Filière Physiothérapie (Loèche-les-Bains)': (46.37806, 7.62722),
+  'EPFL Valais Wallis (Sion - Energypolis)': (46.22747, 7.36299),
+  'UNIL Valais (Tourisme - IUKB)': (46.23022, 7.39843),
+  'UNIGE Valais (CIDE - IUKB)': (46.23022, 7.39843),
+  'UniDistance Suisse (siège, Brig)': (46.318611, 7.992222),
+  'HEP-VS (site francophone - St-Maurice)': (46.21374, 7.00257),
+  'HEP-VS (site germanophone - Brig)': (46.31590, 7.98782),
+  'EPAC - École professionnelle des arts contemporains (Saxon)': (46.1381, 7.1747),
+  'César Ritz Colleges (Brig)': (46.31900, 7.98950),
+  'FFHS / Swiss Distance University (Brig)': (46.31719, 7.98789),
 };
-
-

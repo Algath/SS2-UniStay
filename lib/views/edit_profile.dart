@@ -90,7 +90,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (address.isEmpty) return null;
 
     // Find the university key that matches the saved address
-    for (var entry in swissUniversities.entries) {
+    for (var entry in institutionCoords.entries) {
       if (entry.value == address) {
         return entry.key;
       }
@@ -236,7 +236,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     try {
       // Get the university address from the selected key
       final uniAddress = _selectedUniversity != null
-          ? swissUniversities[_selectedUniversity!] ?? ''
+          ? institutionCoords[_selectedUniversity!] ?? ''
           : '';
 
       // Save profile data to Firestore
@@ -327,7 +327,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Widget _buildUniversityField() {
-    final universities = swissUniversities.keys.toList();
+    final universities = institutionCoords.keys.toList();
 
     if (_userRole == 'student') {
       // For students, university is required - show dropdown with validation

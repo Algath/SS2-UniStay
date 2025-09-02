@@ -6,7 +6,7 @@ class PricePredictionWidget extends StatefulWidget {
   final TextEditingController postalCodeController;
   final TextEditingController surfaceController;
   final TextEditingController numRoomsController;
-  final TextEditingController predictionController; // résultat affiché ici
+  final TextEditingController predictionController; // affichage du résultat
   final double proximValue; // distance calculée en externe
 
   const PricePredictionWidget({
@@ -59,7 +59,7 @@ class _PricePredictionWidgetState extends State<PricePredictionWidget> {
       final postalCode = int.tryParse(widget.postalCodeController.text) ?? 0;
       final surface = double.tryParse(widget.surfaceController.text) ?? 0.0;
       final numRooms = int.tryParse(widget.numRoomsController.text) ?? 0;
-      final proxim = widget.proximValue; // récupéré de l’extérieur
+      final proxim = widget.proximValue;
 
       if (selectedType == null) {
         widget.predictionController.text = "⚠️ Choisis un type !";

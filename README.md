@@ -1,16 +1,115 @@
-# ss2_unit_stud
+# UniStay – Student Housing App (Switzerland)
 
-A new Flutter project.
+UniStay is a Flutter-based application designed to help students in Switzerland find housing easily.  
+It provides separate interfaces for students (to book properties) and landlords (to list properties).
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 🌟 Features
 
-A few resources to get you started if this is your first Flutter project:
+- **User Registration & Login**
+  - Student accounts
+  - Landlord accounts
+  - (In progress) Face authentication
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- **Search & Booking**
+  - Search for available housing
+  - Book properties
+  - View property locations on map
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **Landlord Management**
+  - Create, update, and delete property listings
+  - Manage bookings
+
+- **Additional Features**
+  - Price prediction for properties
+  - Multiplatform support (Android + Web)
+
+> ⚠️ Note: Payment system is not included in this project.
+
+---
+
+## 🛠️ Technologies
+
+- **Frontend:** Flutter (Dart)
+- **Backend:** Firebase (Authentication, Firestore, Storage)
+- **Database:** Firestore (NoSQL)
+- **External APIs:** Price prediction, Map services
+
+---
+
+## 💻 Installation
+
+### From Source (Flutter)
+
+1. Make sure you have Flutter installed.
+2. Clone the repository:
+   ```bash
+   git clone https://github.com/Algath/SS2-UniStay.git
+   cd SS2-UniStay
+   ```
+3. ```bash
+   flutter pub get
+   ```
+4. ```bash
+   flutter run
+   ```
+   Can be run on Android device/emulator or in a browser (Edge).
+
+### Using the App (Internal Testing)
+- Available via Google Play internal testing.
+- Testers need to be registered via their Google account in the testing group
+
+## 📂 Project Structure
+Inside the `lib/` folder:
+- `screens/` -> Main UI screens (Login, Register, Home, Property Details, Booking)
+- `widgets/` -> Reusable UI components
+- `models/` -> Data models (User, Property, Reservation)
+- `services/` → Firebase interactions (AuthService, DatabaseService, StorageService)
+- `providers/` → State management
+- `utils/` → Helper functions
+
+## 🔐 Authentication
+- Managed via Firebase Authentication
+- Supports student and landlord accounts
+- Face authentication fully implemented and functional
+
+## 🗄️ Database (Firestore)
+Main collections:
+- users → student & landlord profiles
+- properties → property listings
+- bookings → reservations linked to users & properties
+
+## 🖼️ Media Storage
+- Property images stored in Firebase Storage
+- Image URLs referenced in Firestore
+
+## 🌍 Platform Support
+- Android (internal testing)
+- Web (Edge browser)
+
+## 📡 APIs & Services
+- Firebase services (auth, Firestore, storage)
+- External APIs for price prediction
+- Map integration
+
+## ⚙️ Architecture Overview
+- Flutter App ↔ Firebase Authentication ↔ Firestore ↔ Firebase Storage
+- External APIs for price prediction & map services
+
+## 🎯 Target Users
+- Students looking for housing in Switzerland
+- Landlords seeking to rent properties to students
+
+## 📄 Known Limitations
+- No payment system
+- Only internal testing on Google Play
+
+## 🎥 Demonstration
+- 1-minute overview video (UI + main flows)
+- 5-minute detailed video (walkthrough of features)
+- Screenshots included for reference
+
+## 📝 Guides
+- User Guide: (Coming soon – see USER_GUIDE.md)
+- Technical Guide: (See TECHNICAL_GUIDE.md)

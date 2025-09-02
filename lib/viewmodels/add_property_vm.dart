@@ -213,8 +213,8 @@ class AddPropertyViewModel extends ChangeNotifier {
     }
 
     final sizeSqm = int.tryParse(sizeSqmController.text.trim());
-    if (sizeSqm == null || sizeSqm < 15 || sizeSqm > 500) {
-      return 'Size must be between 15 and 500 m²';
+    if (sizeSqm == null) {
+      return 'Enter valid number for size';
     }
 
     final rooms = int.tryParse(roomsController.text.trim());

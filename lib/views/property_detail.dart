@@ -296,32 +296,94 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Property Details Row
-                        Row(
-                          children: [
-                            // Left Column - Address & Availability
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Address Section
+                        // Property Details Row (responsive)
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final leftContent = Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Address Section
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Icon(
+                                        Icons.location_on,
+                                        color: Colors.red[600],
+                                        size: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Address',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF2C3E50),
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8F9FA),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFE9ECEF)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${room.street} ${room.houseNumber}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF2C3E50),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${room.postcode} ${room.city}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF6C757D),
+                                        ),
+                                      ),
+                                      Text(
+                                        room.country,
+                                        style: const TextStyle(
+                                          color: Color(0xFF6C757D),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // Availability Section
+                                if (room.availabilityRanges.isNotEmpty) ...[
                                   Row(
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.all(6),
                                         decoration: BoxDecoration(
-                                          color: Colors.red.withOpacity(0.1),
+                                          color: Colors.green.withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Icon(
-                                          Icons.location_on,
-                                          color: Colors.red[600],
+                                          Icons.calendar_today,
+                                          color: Colors.green[600],
                                           size: 16,
                                         ),
                                       ),
                                       const SizedBox(width: 8),
                                       const Text(
-                                        'Address',
+                                        'Availability',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           color: Color(0xFF2C3E50),
@@ -335,163 +397,112 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                                     width: double.infinity,
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF8F9FA),
+                                      color: Colors.green[50],
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: const Color(0xFFE9ECEF)),
+                                      border: Border.all(color: Colors.green[200]!),
                                     ),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          '${room.street} ${room.houseNumber}',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF2C3E50),
+                                        for (var range in room.availabilityRanges) ...[
+                                          if (range != room.availabilityRanges.first)
+                                            const SizedBox(height: 8),
+                                          Text(
+                                            '${range.start.toString().split(" ").first} → ${range.end.toString().split(" ").first}',
+                                            style: TextStyle(
+                                              color: Colors.green[700],
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          '${room.postcode} ${room.city}',
-                                          style: const TextStyle(
-                                            color: Color(0xFF6C757D),
-                                          ),
-                                        ),
-                                        Text(
-                                          room.country,
-                                          style: const TextStyle(
-                                            color: Color(0xFF6C757D),
-                                            fontSize: 12,
-                                          ),
-                                        ),
+                                        ],
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(height: 16),
+                                ],
+                              ],
+                            );
 
-                                  // Availability Section
-                                  if (room.availabilityRanges.isNotEmpty) ...[
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: Colors.green.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(6),
-                                          ),
-                                          child: Icon(
-                                            Icons.calendar_today,
-                                            color: Colors.green[600],
-                                            size: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        const Text(
-                                          'Availability',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF2C3E50),
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
+                            final rightContent = Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
                                     Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(12),
+                                      padding: const EdgeInsets.all(6),
                                       decoration: BoxDecoration(
-                                        color: Colors.green[50],
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.green[200]!),
+                                        color: Colors.blue.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(6),
                                       ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          for (var range in room.availabilityRanges) ...[
-                                            if (range != room.availabilityRanges.first)
-                                              const SizedBox(height: 8),
-                                            Text(
-                                              '${range.start.toString().split(" ").first} → ${range.end.toString().split(" ").first}',
-                                              style: TextStyle(
-                                                color: Colors.green[700],
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
+                                      child: Icon(
+                                        Icons.home,
+                                        color: Colors.blue[600],
+                                        size: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Features',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF2C3E50),
+                                        fontSize: 16,
                                       ),
                                     ),
                                   ],
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 20),
-
-                            // Right Column - Property Features
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8F9FA),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFE9ECEF)),
+                                  ),
+                                  child: Column(
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Icon(
-                                          Icons.home,
-                                          color: Colors.blue[600],
-                                          size: 16,
-                                        ),
+                                      _FeatureRow(
+                                        icon: Icons.square_foot,
+                                        label: 'Size',
+                                        value: '${room.sizeSqm} m²',
                                       ),
-                                      const SizedBox(width: 8),
-                                      const Text(
-                                        'Features',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF2C3E50),
-                                          fontSize: 16,
-                                        ),
+                                      const SizedBox(height: 8),
+                                      _FeatureRow(
+                                        icon: room.furnished ? Icons.chair : Icons.chair_outlined,
+                                        label: 'Furnished',
+                                        value: room.furnished ? 'Yes' : 'No',
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _FeatureRow(
+                                        icon: room.utilitiesIncluded ? Icons.electric_bolt : Icons.electric_bolt_outlined,
+                                        label: 'Charges Included',
+                                        value: room.utilitiesIncluded ? 'Yes' : 'No',
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8F9FA),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: const Color(0xFFE9ECEF)),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        _FeatureRow(
-                                          icon: Icons.square_foot,
-                                          label: 'Size',
-                                          value: '${room.sizeSqm} m²',
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _FeatureRow(
-                                          icon: room.furnished ? Icons.chair : Icons.chair_outlined,
-                                          label: 'Furnished',
-                                          value: room.furnished ? 'Yes' : 'No',
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _FeatureRow(
-                                          icon: room.utilitiesIncluded ? Icons.electric_bolt : Icons.electric_bolt_outlined,
-                                          label: 'Charges Included',
-                                          value: room.utilitiesIncluded ? 'Yes' : 'No',
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                ),
+                              ],
+                            );
+
+                            if (constraints.maxWidth >= 720) {
+                              return Row(
+                                children: [
+                                  Expanded(child: leftContent),
+                                  const SizedBox(width: 20),
+                                  Expanded(child: rightContent),
                                 ],
-                              ),
-                            ),
-                          ],
+                              );
+                            } else {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  leftContent,
+                                  const SizedBox(height: 20),
+                                  rightContent,
+                                ],
+                              );
+                            }
+                          },
                         ),
                         const SizedBox(height: 24),
 

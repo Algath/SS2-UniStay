@@ -50,9 +50,22 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
       child: Column(
         children: [
           _buildHeader(),
-          Expanded(child: _buildCalendar()),
-          _buildSelectedRangeInfo(),
-          _buildSavedRanges(),
+          Expanded(
+            child: SafeArea(
+              top: false,
+              bottom: true,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  children: [
+                    _buildCalendar(),
+                    _buildSelectedRangeInfo(),
+                    _buildSavedRanges(),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -96,8 +109,7 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
   }
 
   Widget _buildCalendar() {
-    return SingleChildScrollView(
-      child: TableCalendar<String>(
+    return TableCalendar<String>(
         firstDay: DateTime.now(),
         lastDay: DateTime.now().add(const Duration(days: 365)),
         focusedDay: _focusedDay,
@@ -181,8 +193,7 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
             return null;
           },
         ),
-      ),
-    );
+      );
   }
 
   String _getStatusForDay(DateTime day) {

@@ -183,8 +183,8 @@ class AddPropertyViewModel extends ChangeNotifier {
 
   // Validation
   String? validateForm() {
-    if (titleController.text.trim().isEmpty || titleController.text.trim().length < 5) {
-      return 'Title must be at least 5 characters long';
+    if (titleController.text.trim().isEmpty) {
+      return 'Title is required';
     }
 
     if (titleController.text.trim().length > 100) {
@@ -192,8 +192,8 @@ class AddPropertyViewModel extends ChangeNotifier {
     }
 
     final price = num.tryParse(priceController.text.trim());
-    if (price == null || price < 200) {
-      return 'Price must be at least CHF 200';
+    if (price == null) {
+      return 'Enter valid number for price';
     }
 
     if (streetController.text.trim().isEmpty) {

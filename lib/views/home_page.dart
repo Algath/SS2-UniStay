@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'package:unistay/viewmodels/home_vm.dart';
 import 'package:unistay/models/room.dart';
 import 'package:unistay/views/property_detail.dart';
@@ -685,26 +686,145 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Helper method for modern date range picker
+  // Helper method for modern date range picker (TableCalendar-based)
   void _showDateRangePicker(BuildContext ctx, StateSetter setM) async {
     final now = DateTime.now();
-    final d = await showDateRangePicker(
+    DateTime focused = _avail?.start ?? now;
+    DateTime? start = _avail?.start;
+    DateTime? end = _avail?.end;
+
+    final picked = await showModalBottomSheet<DateTimeRange>(
       context: ctx,
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: const Color(0xFF6E56CF),
-              onPrimary: Colors.white,
-            ),
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (bctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: 16 + MediaQuery.of(bctx).viewInsets.bottom,
           ),
-          child: child!,
+          child: StatefulBuilder(builder: (bctx, setBtm) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.calendar_month, color: Colors.white, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Select Dates',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        color: Color(0xFF2C3E50),
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => Navigator.pop(bctx),
+                      child: const Text('Cancel'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F9FA),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE9ECEF)),
+                  ),
+                  child: TableCalendar<void>(
+                    firstDay: now,
+                    lastDay: now.add(const Duration(days: 365)),
+                    focusedDay: focused,
+                    rangeStartDay: start,
+                    rangeEndDay: end,
+                    rangeSelectionMode: RangeSelectionMode.toggledOn,
+                    onDaySelected: (sel, f) {
+                      // toggle logic for start/end
+                      if (start == null || (start != null && end != null)) {
+                        setBtm(() {
+                          start = sel;
+                          end = null;
+                          focused = f;
+                        });
+                      } else {
+                        setBtm(() {
+                          if (sel.isBefore(start!)) {
+                            end = start;
+                            start = sel;
+                          } else {
+                            end = sel;
+                          }
+                          focused = f;
+                        });
+                      }
+                    },
+                    onPageChanged: (f) => setBtm(() => focused = f),
+                    headerStyle: const HeaderStyle(
+                      formatButtonVisible: false,
+                      titleCentered: true,
+                    ),
+                    daysOfWeekHeight: 35,
+                    rowHeight: 40,
+                    calendarStyle: CalendarStyle(
+                      outsideDaysVisible: false,
+                      rangeHighlightColor: const Color(0xFF6E56CF).withOpacity(0.25),
+                      rangeStartDecoration: const BoxDecoration(
+                        color: Color(0xFF6E56CF),
+                        shape: BoxShape.circle,
+                      ),
+                      rangeEndDecoration: const BoxDecoration(
+                        color: Color(0xFF6E56CF),
+                        shape: BoxShape.circle,
+                      ),
+                      withinRangeDecoration: BoxDecoration(
+                        color: const Color(0xFF6E56CF).withOpacity(0.15),
+                        shape: BoxShape.rectangle,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => setBtm(() { start = null; end = null; }),
+                      child: const Text('Clear'),
+                    ),
+                    const Spacer(),
+                    FilledButton(
+                      onPressed: (start != null && end != null)
+                          ? () => Navigator.pop(bctx, DateTimeRange(start: start!, end: end!))
+                          : null,
+                      child: const Text('Apply'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+            );
+          }),
         );
       },
     );
-    if (d != null) setM(() => _avail = d);
+
+    if (picked != null) setM(() => _avail = picked);
   }
 
   // Helper method for filter cards

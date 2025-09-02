@@ -60,9 +60,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                           PropertyFormCard.buildSpacing(isTablet: isTablet, isLandscape: isLandscape),
                           _buildPhotosSection(vm, isTablet, isLandscape),
                           PropertyFormCard.buildSpacing(isTablet: isTablet, isLandscape: isLandscape),
-                          _buildAvailabilitySection(vm, isTablet, isLandscape),
-                          PropertyFormCard.buildSpacing(isTablet: isTablet, isLandscape: isLandscape),
                           _buildSaveButton(vm),
+                          PropertyFormCard.buildSpacing(isTablet: isTablet, isLandscape: isLandscape),
+                          _buildAvailabilitySection(vm, isTablet, isLandscape),
                           const SizedBox(height: 24),
                         ],
                       ),
@@ -280,8 +280,10 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       isTablet: isTablet,
       isLandscape: isLandscape,
       children: [
-        Container(
-          height: isTablet ? (isLandscape ? 450 : 420) : 380,
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: isTablet ? (isLandscape ? 520 : 480) : 440,
+          ),
           child: AvailabilityCalendar(
             onRangesSelected: vm.setAvailabilityRanges,
             initialRanges: vm.availabilityRanges,

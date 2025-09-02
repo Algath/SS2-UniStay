@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unistay/models/room.dart';
 import 'package:unistay/models/booking_request.dart';
@@ -893,8 +894,48 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   Widget _buildTimePicker(String label, TimeOfDay value, void Function(TimeOfDay) onChanged) {
     return OutlinedButton.icon(
       onPressed: () async {
-        final picked = await showTimePicker(context: context, initialTime: value);
-        if (picked != null) onChanged(picked);
+        await showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.white,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          builder: (ctx) {
+            DateTime temp = DateTime(0, 1, 1, value.hour, value.minute);
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      children: [
+                        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            onChanged(TimeOfDay(hour: temp.hour, minute: temp.minute));
+                          },
+                          child: const Text('Done'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    height: 200,
+                    child: CupertinoDatePicker(
+                      mode: CupertinoDatePickerMode.time,
+                      use24hFormat: true,
+                      initialDateTime: temp,
+                      onDateTimeChanged: (d) => temp = d,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
       },
       icon: const Icon(Icons.schedule, size: 16),
       label: Text('$label ${_fmtTod(value)}'),
@@ -1167,6 +1208,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   Widget _buildItineraryCard(TransitItinerary it) {
     String two(int n) => n.toString().padLeft(2, '0');
     String fmt(DateTime d) => '${two(d.hour)}:${two(d.minute)}';
+    final coordRe = RegExp(r'^\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*$');
+    String cleanName(String s) => coordRe.hasMatch(s) ? 'Location' : s;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -1193,7 +1236,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  '${l.type.toUpperCase()} ${l.line ?? ''}  ${l.fromName} → ${l.toName}',
+                  '${l.type.toUpperCase()} ${l.line ?? ''}  ${cleanName(l.fromName)} → ${cleanName(l.toName)}',
                   overflow: TextOverflow.ellipsis,
                 ),
               ),

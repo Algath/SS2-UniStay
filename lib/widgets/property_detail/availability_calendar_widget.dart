@@ -37,11 +37,18 @@ class _AvailabilityCalendarWidgetState extends State<AvailabilityCalendarWidget>
     _subscribe();
   }
 
-    void _subscribe() {
+  void _subscribe() {
     final Map<DateTime, String> base = {};
+    final now = DateTime.now();
+    final todayKey = DateTime(now.year, now.month, now.day);
     for (final range in widget.room.availabilityRanges) {
       for (DateTime d = range.start; d.isBefore(range.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-        base[DateTime(d.year, d.month, d.day)] = 'available';
+        final key = DateTime(d.year, d.month, d.day);
+        if (key.isBefore(todayKey)) {
+          base[key] = 'unavailable';
+        } else {
+          base[key] = 'available';
+        }
       }
     }
 
@@ -62,34 +69,48 @@ class _AvailabilityCalendarWidgetState extends State<AvailabilityCalendarWidget>
         if (widget.isOwner) {
           if (st == 'accepted') {
             for (DateTime d = r.requestedRange.start; d.isBefore(r.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-              map[DateTime(d.year, d.month, d.day)] = 'booked';
+              final k = DateTime(d.year, d.month, d.day);
+              if (k.isBefore(todayKey)) {
+                map[k] = 'unavailable';
+              } else {
+                map[k] = 'booked';
+              }
             }
           } else if (st == 'pending') {
             for (DateTime d = r.requestedRange.start; d.isBefore(r.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
               final k = DateTime(d.year, d.month, d.day);
-              if (map[k] != 'booked') map[k] = 'pending';
+              if (k.isBefore(todayKey)) {
+                map[k] = 'unavailable';
+              } else if (map[k] != 'booked') {
+                map[k] = 'pending';
+              }
             }
           }
         } else {
           // Student: only accepted blocks availability
           if (st == 'accepted') {
             for (DateTime d = r.requestedRange.start; d.isBefore(r.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-              map[DateTime(d.year, d.month, d.day)] = 'unavailable';
+              final k = DateTime(d.year, d.month, d.day);
+              map[k] = 'unavailable';
             }
           }
         }
       }
       
-      // Mark unavailable days for both owner and student
-      // Add unavailable days for dates that are not in availability ranges
-      final now = DateTime.now();
-      final endDate = now.add(const Duration(days: 365));
-      
-      for (DateTime d = now; d.isBefore(endDate); d = d.add(const Duration(days: 1))) {
+      // Mark unavailable for dates not in availability ranges (future window only)
+      final endDate = todayKey.add(const Duration(days: 365));
+      for (DateTime d = todayKey; d.isBefore(endDate); d = d.add(const Duration(days: 1))) {
         final key = DateTime(d.year, d.month, d.day);
         if (!base.containsKey(key)) {
           map[key] = 'unavailable';
         }
+      }
+
+      // Ensure all past days are unavailable
+      final pastLimit = todayKey.subtract(const Duration(days: 3650));
+      for (DateTime d = pastLimit; d.isBefore(todayKey); d = d.add(const Duration(days: 1))) {
+        final key = DateTime(d.year, d.month, d.day);
+        map[key] = 'unavailable';
       }
 
       if (mounted) setState(() => _statusByDay = map);
@@ -239,13 +260,18 @@ class _AvailabilityCalendarWidgetState extends State<AvailabilityCalendarWidget>
         children: [
           Flexible(
             child: TableCalendar<String>(
-              firstDay: DateTime.utc(2020, 1, 1),
-              lastDay: DateTime.utc(2030, 12, 31),
+              firstDay: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day),
+              lastDay: DateTime.now().add(const Duration(days: 365)),
               focusedDay: _focusedDay,
               calendarFormat: _calendarFormat,
               eventLoader: (day) {
                 final status = _statusByDay[DateTime(day.year, day.month, day.day)];
                 return status != null ? [status] : [];
+              },
+              enabledDayPredicate: (day) {
+                final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+                final key = DateTime(day.year, day.month, day.day);
+                return !key.isBefore(today);
               },
               startingDayOfWeek: StartingDayOfWeek.monday,
               calendarStyle: CalendarStyle(

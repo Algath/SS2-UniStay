@@ -7,6 +7,7 @@ class StudentBookingCard extends StatelessWidget {
   final String status;
   final bool isTablet;
   final String? dateRangeText;
+  final VoidCallback? onTap;
 
   const StudentBookingCard({
     super.key,
@@ -16,6 +17,7 @@ class StudentBookingCard extends StatelessWidget {
     required this.status,
     this.isTablet = false,
     this.dateRangeText,
+    this.onTap,
   });
 
   @override
@@ -38,7 +40,7 @@ class StudentBookingCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {},
+          onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(12),

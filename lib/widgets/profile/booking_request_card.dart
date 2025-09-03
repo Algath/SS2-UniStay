@@ -3,14 +3,16 @@ import 'package:unistay/models/booking_request.dart';
 
 class BookingRequestCard extends StatelessWidget {
   final BookingRequest request;
-  final VoidCallback onAccept;
-  final VoidCallback onReject;
+  final VoidCallback? onAccept;
+  final VoidCallback? onReject;
+  final bool isHistory;
 
   const BookingRequestCard({
     super.key,
     required this.request,
-    required this.onAccept,
-    required this.onReject,
+    this.onAccept,
+    this.onReject,
+    this.isHistory = false,
   });
 
   @override
@@ -20,10 +22,10 @@ class BookingRequestCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+        border: Border.all(color: (isHistory ? Colors.blue : Colors.orange).withOpacity(0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withOpacity(0.1),
+            color: (isHistory ? Colors.blue : Colors.orange).withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -33,29 +35,34 @@ class BookingRequestCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeaderRow(),
+                  children: [
+          _buildHeaderRow(),
+          if (!isHistory) ...[
             const SizedBox(height: 12),
             _buildActionButtons(),
           ],
+        ],
         ),
       ),
     );
   }
 
   Widget _buildHeaderRow() {
+    final isHistory = this.isHistory;
+    final color = isHistory ? Colors.blue : Colors.orange;
+    
     return Row(
       children: [
         Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.1),
+            color: color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Icon(
-            Icons.person,
-            color: Colors.orange,
+          child: Icon(
+            isHistory ? Icons.history : Icons.person,
+            color: color,
             size: 20,
           ),
         ),
@@ -84,10 +91,10 @@ class BookingRequestCard extends StatelessWidget {
         ),
         Text(
           '${request.requestedRange.start.day}/${request.requestedRange.start.month} - ${request.requestedRange.end.day}/${request.requestedRange.end.month}',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Colors.orange,
+            color: color,
           ),
         ),
       ],

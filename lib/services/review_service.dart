@@ -44,9 +44,19 @@ class ReviewService {
     
     final batch = _firestore.batch();
     
-    // Add review
+    // Add review (ensure server timestamps and do not rely on client clock)
     final reviewRef = _firestore.collection('reviews').doc();
-    batch.set(reviewRef, review.toFirestore());
+    batch.set(reviewRef, {
+      'propertyId': review.propertyId,
+      'reviewerId': review.reviewerId,
+      'reviewerName': review.reviewerName,
+      'reviewerType': review.reviewerType,
+      'rating': review.rating,
+      'comment': review.comment,
+      'status': review.status,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': null,
+    });
     
     // Update or create property rating
     await _updatePropertyRating(review.propertyId, batch);
@@ -71,11 +81,13 @@ class ReviewService {
     
     final batch = _firestore.batch();
     
-    // Update review
+    // Update review (do not overwrite createdAt)
     final reviewRef = _firestore.collection('reviews').doc(review.id);
     batch.update(reviewRef, {
-      ...review.toFirestore(),
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
+      'rating': review.rating,
+      'comment': review.comment,
+      'status': review.status,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
     
     // Update property rating
@@ -92,7 +104,7 @@ class ReviewService {
     final reviewRef = _firestore.collection('reviews').doc(reviewId);
     batch.update(reviewRef, {
       'status': 'deleted',
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
     
     // Update property rating

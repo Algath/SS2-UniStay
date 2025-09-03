@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unistay/viewmodels/home_vm.dart';
 import 'package:unistay/models/room.dart';
 import 'package:unistay/views/property_detail.dart';
+import 'package:unistay/services/favorites_service.dart';
 import 'package:unistay/widgets/availability_calendar.dart';
 import 'package:unistay/services/booking_service.dart';
 import 'package:unistay/models/booking_request.dart';
@@ -237,71 +238,73 @@ class _HomePageState extends State<HomePage> {
                 ),
 
                 const SizedBox(height: 20),
-                // Availability card
+                // Availability card (inline calendar)
                 _buildFilterCard(
                   title: 'Availability',
                   child: Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [const Color(0xFF6E56CF).withOpacity(0.05), const Color(0xFF9C88FF).withOpacity(0.05)],
-                      ),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF6E56CF).withOpacity(0.2)),
+                      border: Border.all(color: const Color(0xFFE9ECEF)),
                     ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () => _showDateRangePicker(ctx, setM),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                          child: Row(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
-                                  ),
+                                  gradient: const LinearGradient(colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)]),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: const Icon(Icons.calendar_today, color: Colors.white, size: 18),
                               ),
                               const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _avail == null ? 'Any time' : 'Selected dates',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF2C3E50),
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    if (_avail != null) ...[
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '${_avail!.start.toString().split(" ").first} → ${_avail!.end.toString().split(" ").first}',
-                                        style: TextStyle(
-                                          color: Colors.grey[600],
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: Colors.grey[400],
+                              const Text('Select Availability', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF2C3E50))),
+                              const Spacer(),
+                              TextButton(
+                                onPressed: () => setM(() => _avail = null),
+                                child: const Text('Clear'),
                               ),
                             ],
                           ),
-                        ),
+                          const SizedBox(height: 12),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFE9ECEF)),
+                            ),
+                            child: SizedBox(
+                              height: 460,
+                              child: AvailabilityCalendar(
+                                onRangesSelected: (rs) {
+                                  setM(() {
+                                    if (rs.isEmpty) {
+                                      _avail = null;
+                                    } else {
+                                      final minStart = rs.map((r) => r.start).reduce((a, b) => a.isBefore(b) ? a : b);
+                                      final maxEnd = rs.map((r) => r.end).reduce((a, b) => a.isAfter(b) ? a : b);
+                                      _avail = DateTimeRange(start: minStart, end: maxEnd);
+                                    }
+                                  });
+                                },
+                                initialRanges: _avail == null ? const [] : [ _avail! ],
+                              ),
+                            ),
+                          ),
+                          if (_avail != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              '${_avail!.start.toString().split(' ')[0]} → ${_avail!.end.toString().split(' ')[0]}',
+                              style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ),
@@ -1230,10 +1233,38 @@ class _HomePageState extends State<HomePage> {
                 ),
             
                 // Arrow
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Colors.grey[400],
+                // Favorite toggle + arrow
+                StreamBuilder<Set<String>>(
+                  stream: FavoritesService.favoritesStream(),
+                  builder: (context, favSnap) {
+                    final favs = favSnap.data ?? const <String>{};
+                    final isFav = favs.contains(room.id);
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: isFav ? 'Remove from favorites' : 'Save to favorites',
+                          icon: Icon(isFav ? Icons.bookmark : Icons.bookmark_outline, color: isFav ? const Color(0xFF6E56CF) : Colors.grey[500]),
+                          onPressed: () async {
+                            try {
+                              await FavoritesService.toggleFavorite(room.id);
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please log in to use favorites')),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
+                          color: Colors.grey[400],
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),

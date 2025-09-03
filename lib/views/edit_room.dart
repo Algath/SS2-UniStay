@@ -157,8 +157,8 @@ class _EditRoomPageState extends State<EditRoomPage> {
       }
     }
     
-    // Load existing photos
-    _existingPhotoUrls = (m['photos'] as List?)?.cast<String>() ?? [];
+    // Load existing photos (unified key: photoUrls)
+    _existingPhotoUrls = (m['photoUrls'] as List?)?.cast<String>() ?? [];
     
     // Load availability ranges
     final rangesData = m['availabilityRanges'] as List?;
@@ -358,7 +358,7 @@ class _EditRoomPageState extends State<EditRoomPage> {
           'start': range.start,
           'end': range.end,
         }).toList(),
-        'photos': urls,
+        'photoUrls': urls,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 

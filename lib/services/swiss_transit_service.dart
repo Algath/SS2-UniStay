@@ -85,16 +85,20 @@ class SwissTransitService {
       for (final c in conns) {
         final durationStr = (c['duration'] ?? '').toString();
         final dur = _parseSwissDuration(durationStr) ?? Duration.zero;
-        final fromDt = DateTime.tryParse(c['from']?['departure'] ?? '') ?? DateTime.now();
-        final toDt = DateTime.tryParse(c['to']?['arrival'] ?? '') ?? fromDt.add(dur);
+        final fromDtRaw = DateTime.tryParse(c['from']?['departure'] ?? '') ?? DateTime.now();
+        final toDtRaw = DateTime.tryParse(c['to']?['arrival'] ?? '') ?? fromDtRaw.add(dur);
+        final fromDt = fromDtRaw.toLocal();
+        final toDt = toDtRaw.toLocal();
         final sections = (c['sections'] as List?) ?? [];
         final legs = <TransitLeg>[];
         for (final s in sections) {
           if (s is! Map) continue;
           final walk = s['walk'];
           if (walk != null) {
-            final dep = DateTime.tryParse(s['departure']?['departure'] ?? '') ?? fromDt;
-            final arr = DateTime.tryParse(s['arrival']?['arrival'] ?? '') ?? dep;
+            final depRaw = DateTime.tryParse(s['departure']?['departure'] ?? '') ?? fromDt;
+            final arrRaw = DateTime.tryParse(s['arrival']?['arrival'] ?? '') ?? depRaw;
+            final dep = depRaw.toLocal();
+            final arr = arrRaw.toLocal();
             legs.add(TransitLeg(
               type: 'walk',
               line: null,
@@ -108,8 +112,10 @@ class SwissTransitService {
           if (journey != null) {
             final category = (journey['category'] ?? '').toString().toLowerCase();
             final name = (journey['name'] ?? journey['number'] ?? '').toString();
-            final dep = DateTime.tryParse(s['departure']?['departure'] ?? '') ?? fromDt;
-            final arr = DateTime.tryParse(s['arrival']?['arrival'] ?? '') ?? dep;
+            final depRaw = DateTime.tryParse(s['departure']?['departure'] ?? '') ?? fromDt;
+            final arrRaw = DateTime.tryParse(s['arrival']?['arrival'] ?? '') ?? depRaw;
+            final dep = depRaw.toLocal();
+            final arr = arrRaw.toLocal();
             legs.add(TransitLeg(
               type: _normalizeCategory(category),
               line: name.isEmpty ? null : name,

@@ -94,10 +94,7 @@ class OwnerRequestsSection extends StatelessWidget {
               style: const TextStyle(color: Colors.red),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Owner UID: $ownerUid',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+            // Hide owner id to avoid leaking identifiers
           ],
         ),
       );
@@ -150,13 +147,7 @@ class OwnerRequestsSection extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          Text(
-            'Owner UID: $ownerUid',
-            style: TextStyle(
-              color: Colors.grey[400],
-              fontSize: 12,
-            ),
-          ),
+          // Owner UID hidden
         ],
       ),
     );

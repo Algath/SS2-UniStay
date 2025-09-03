@@ -6,13 +6,24 @@ class HomeViewModel {
   final _fs = FirebaseFirestore.instance;
 
   Stream<List<Room>> streamRooms() {
-    // OrderBy removed to prevent loading issues due to index requirements.
-    // Can be re-added when composite index is implemented.
+    // Firestore'da indeks gerektirmemek için server-side orderBy kullanmıyoruz.
+    // Bunun yerine client-side createdAt (varsa) alanına göre sıralıyoruz.
     return _fs
         .collection('rooms')
         .where('status', isEqualTo: 'active')
         .snapshots()
-        .map((q) => q.docs.map((d) => Room.fromFirestore(d)).toList());
+        .map((q) {
+          final docs = q.docs.toList();
+          docs.sort((a, b) {
+            final ta = (a.data()['createdAt'] as Timestamp?)?.toDate();
+            final tb = (b.data()['createdAt'] as Timestamp?)?.toDate();
+            if (ta == null && tb == null) return 0;
+            if (ta == null) return 1; // createdAt'i olmayanlar sona
+            if (tb == null) return -1;
+            return tb.compareTo(ta); // yeni -> eski
+          });
+          return docs.map((d) => Room.fromFirestore(d)).toList();
+        });
   }
 
   void dispose() {}

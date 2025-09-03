@@ -44,9 +44,19 @@ class ReviewService {
     
     final batch = _firestore.batch();
     
-    // Add review
+    // Add review (ensure server timestamps and do not rely on client clock)
     final reviewRef = _firestore.collection('reviews').doc();
-    batch.set(reviewRef, review.toFirestore());
+    batch.set(reviewRef, {
+      'propertyId': review.propertyId,
+      'reviewerId': review.reviewerId,
+      'reviewerName': review.reviewerName,
+      'reviewerType': review.reviewerType,
+      'rating': review.rating,
+      'comment': review.comment,
+      'status': review.status,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': null,
+    });
     
     // Update or create property rating
     await _updatePropertyRating(review.propertyId, batch);
@@ -71,11 +81,13 @@ class ReviewService {
     
     final batch = _firestore.batch();
     
-    // Update review
+    // Update review (do not overwrite createdAt)
     final reviewRef = _firestore.collection('reviews').doc(review.id);
     batch.update(reviewRef, {
-      ...review.toFirestore(),
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
+      'rating': review.rating,
+      'comment': review.comment,
+      'status': review.status,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
     
     // Update property rating
@@ -92,7 +104,7 @@ class ReviewService {
     final reviewRef = _firestore.collection('reviews').doc(reviewId);
     batch.update(reviewRef, {
       'status': 'deleted',
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
     
     // Update property rating
@@ -200,4 +212,134 @@ class ReviewService {
             .map((doc) => Review.fromFirestore(doc))
             .toList());
   }
+
+  // NEW METHODS FOR STUDENT REVIEWS - Add these to your ReviewService class
+
+  // Get reviews for a specific user (student)
+  Stream<List<Review>> getReviewsForUser(String userId) {
+    return _firestore
+        .collection('reviews')
+        .where('revieweeId', isEqualTo: userId)
+        .where('reviewType', isEqualTo: 'user')
+        .where('status', isEqualTo: 'active')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Review.fromFirestore(doc))
+            .toList());
+  }
+
+  // Get user rating summary (calculate on-the-fly)
+  Future<Map<String, dynamic>> getUserRating(String userId) async {
+    final reviewsSnapshot = await _firestore
+        .collection('reviews')
+        .where('revieweeId', isEqualTo: userId)
+        .where('reviewType', isEqualTo: 'user')
+        .where('status', isEqualTo: 'active')
+        .get();
+
+    final reviews = reviewsSnapshot.docs
+        .map((doc) => Review.fromFirestore(doc))
+        .toList();
+
+    if (reviews.isEmpty) {
+      return {
+        'averageRating': 0.0,
+        'totalReviews': 0,
+        'ratingDistribution': {'1': 0, '2': 0, '3': 0, '4': 0, '5': 0},
+      };
+    }
+
+    final totalReviews = reviews.length;
+    final totalRating = reviews.fold(0.0, (sum, review) => sum + review.rating);
+    final averageRating = totalRating / totalReviews;
+
+    // Calculate rating distribution
+    final distribution = <String, int>{'1': 0, '2': 0, '3': 0, '4': 0, '5': 0};
+    for (final review in reviews) {
+      final ratingKey = review.rating.round().toString();
+      distribution[ratingKey] = (distribution[ratingKey] ?? 0) + 1;
+    }
+
+    return {
+      'averageRating': averageRating,
+      'totalReviews': totalReviews,
+      'ratingDistribution': distribution,
+    };
+  }
+
+  // Add a user review (homeowner reviewing student)
+  Future<void> addUserReview({
+    required String propertyId,
+    required String reviewerId,
+    required String reviewerName,
+    required String revieweeId, // Student being reviewed
+    required double rating,
+    required String comment,
+    String? bookingId, // Optional: link to specific booking
+  }) async {
+    // Validate: Only homeowners can review students
+    final propertyDoc = await _firestore.collection('rooms').doc(propertyId).get();
+    if (!propertyDoc.exists) {
+      throw Exception('Property not found');
+    }
+    
+    final propertyData = propertyDoc.data()!;
+    final propertyOwnerId = propertyData['ownerUid'] as String;
+    
+    if (reviewerId != propertyOwnerId) {
+      throw Exception('Only property owners can review students');
+    }
+
+    // Check if reviewer has already reviewed this student for this property
+    final existingReview = await _firestore
+        .collection('reviews')
+        .where('reviewerId', isEqualTo: reviewerId)
+        .where('revieweeId', isEqualTo: revieweeId)
+        .where('propertyId', isEqualTo: propertyId)
+        .where('reviewType', isEqualTo: 'user')
+        .where('status', isEqualTo: 'active')
+        .limit(1)
+        .get();
+
+    if (existingReview.docs.isNotEmpty) {
+      throw Exception('You have already reviewed this student for this property');
+    }
+
+    // Add the user review
+    final reviewRef = _firestore.collection('reviews').doc();
+    await reviewRef.set({
+      'propertyId': propertyId,
+      'reviewerId': reviewerId,
+      'reviewerName': reviewerName,
+      'reviewerType': 'owner',
+      'revieweeId': revieweeId,
+      'revieweeType': 'student',
+      'reviewType': 'user',
+      'rating': rating,
+      'comment': comment,
+      'status': 'active',
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': null,
+      if (bookingId != null) 'bookingId': bookingId,
+    });
+  }
+
+  // Check if homeowner has already reviewed a student for a specific property
+  Future<bool> hasReviewedStudent(String ownerId, String studentId, String propertyId) async {
+    final doc = await _firestore
+        .collection('reviews')
+        .where('reviewerId', isEqualTo: ownerId)
+        .where('revieweeId', isEqualTo: studentId)
+        .where('propertyId', isEqualTo: propertyId)
+        .where('reviewType', isEqualTo: 'user')
+        .where('status', isEqualTo: 'active')
+        .limit(1)
+        .get();
+    
+    return doc.docs.isNotEmpty;
+  }
+
+
+  
 }

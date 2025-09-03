@@ -50,16 +50,31 @@ class _HomePageState extends State<HomePage> {
 
   Map<DateTime, String> _buildDailyStatus(Room room, List<BookingRequest> requests) {
     final Map<DateTime, String> map = {};
+    final today = DateTime.now();
+    final todayKey = DateTime(today.year, today.month, today.day);
+    
     for (final range in room.availabilityRanges) {
       for (DateTime d = range.start; d.isBefore(range.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-        map[DateTime(d.year, d.month, d.day)] = 'available';
+        final dayKey = DateTime(d.year, d.month, d.day);
+        // Geçmiş tarihleri unavailable olarak işaretle
+        if (dayKey.isBefore(todayKey)) {
+          map[dayKey] = 'unavailable';
+        } else {
+          map[dayKey] = 'available';
+        }
       }
     }
     for (final req in requests) {
       final st = _normalizeBookingStatus(req.status);
       if (st == 'accepted') {
         for (DateTime d = req.requestedRange.start; d.isBefore(req.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-          map[DateTime(d.year, d.month, d.day)] = 'unavailable';
+          final dayKey = DateTime(d.year, d.month, d.day);
+          // Geçmiş tarihleri her zaman unavailable yap
+          if (dayKey.isBefore(todayKey)) {
+            map[dayKey] = 'unavailable';
+          } else {
+            map[dayKey] = 'unavailable';
+          }
         }
       }
     }
@@ -79,7 +94,7 @@ class _HomePageState extends State<HomePage> {
           prev = day;
         } else {
           final expected = prev!.add(const Duration(days: 1));
-          if (!isSameDay(expected, day)) {
+          if (expected.year != day.year || expected.month != day.month || expected.day != day.day) {
             out.add(DateTimeRange(start: start, end: prev!));
             start = day;
           }
@@ -87,7 +102,14 @@ class _HomePageState extends State<HomePage> {
         }
       }
     }
-    if (start != null && prev != null) out.add(DateTimeRange(start: start, end: prev));
+    if (start != null && prev != null) {
+      // Only add if start and prev are different, or if it's a single day range
+      if (start.year != prev.year || start.month != prev.month || start.day != prev.day) {
+        out.add(DateTimeRange(start: start, end: prev));
+      } else {
+        out.add(DateTimeRange(start: start, end: start));
+      }
+    }
     return out;
   }
 
@@ -280,7 +302,7 @@ class _HomePageState extends State<HomePage> {
                               border: Border.all(color: const Color(0xFFE9ECEF)),
                             ),
                             child: SizedBox(
-                              height: 460,
+                              height: 360,
                               child: AvailabilityCalendar(
                                 onRangesSelected: (rs) {
                                   setM(() {
@@ -294,6 +316,9 @@ class _HomePageState extends State<HomePage> {
                                   });
                                 },
                                 initialRanges: _avail == null ? const [] : [ _avail! ],
+                                showHeader: false,
+                                showSavedRanges: false,
+                                calendarHeight: 300,
                               ),
                             ),
                           ),
@@ -680,7 +705,7 @@ class _HomePageState extends State<HomePage> {
                                           return r.amenities.contains(a);
                                         });
 
-                                  // Base availability: overlap with owner's declared availability ranges
+                                  // Base availability: only applies when a date filter is selected
                                   final baseAvailOk = _avail == null
                                       ? true
                                       : r.availabilityRanges.any((range) => _rangesOverlap(range, _avail!));
@@ -1125,48 +1150,59 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 6),
 
                       // Availability badge (live, accepted blocks only)
-                      if (room.availabilityRanges.isNotEmpty) ...[
-                        StreamBuilder<List<BookingRequest>>(
-                          stream: BookingService().getRequestsForProperty(room.id),
-                          builder: (context, reqSnap) {
-                            final reqs = reqSnap.data ?? const <BookingRequest>[];
-                            final statusMap = _buildDailyStatus(room, reqs);
-                            final liveAvail = _deriveRangesFromStatus(statusMap, 'available');
-                            final String label;
-                            if (liveAvail.isEmpty) {
-                              label = 'All availability dates booked';
-                            } else if (liveAvail.length == 1) {
-                              final r = liveAvail.first;
-                              label = 'Available: ${r.start.toString().split(' ').first} → ${r.end.toString().split(' ').first}';
-                            } else {
-                              label = '${liveAvail.length} availability periods';
-                            }
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: liveAvail.isEmpty ? Colors.red[50] : Colors.blue[50],
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      label,
-                                      style: TextStyle(
-                                        fontSize: isTablet ? 13 : 12,
-                                        color: liveAvail.isEmpty ? Colors.red[700] : Colors.blue[700],
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                      StreamBuilder<List<BookingRequest>>(
+                        stream: BookingService().getRequestsForProperty(room.id),
+                        builder: (context, reqSnap) {
+                          final reqs = reqSnap.data ?? const <BookingRequest>[];
+                          final statusMap = _buildDailyStatus(room, reqs);
+                          final liveAvailAll = _deriveRangesFromStatus(statusMap, 'available');
+                          final todayKey = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+                          // Filtrele: geçmişte bitmiş aralıkları çıkar
+                          final liveAvail = liveAvailAll.where((r) {
+                            final endKey = DateTime(r.end.year, r.end.month, r.end.day);
+                            return !endKey.isBefore(todayKey);
+                          }).toList();
+                          
+                          // Only show if there are available ranges
+                          if (liveAvail.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          
+                          final String label;
+                          if (liveAvail.length == 1) {
+                            final r = liveAvail.first;
+                            final todayKey = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+                            final startDisp = r.start.isBefore(todayKey) ? todayKey : r.start;
+                            label = 'Available: ${startDisp.toString().split(' ').first} → ${r.end.toString().split(' ').first}';
+                          } else {
+                            label = '${liveAvail.length} availability periods';
+                          }
+                          
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[50],
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    label,
+                                    style: TextStyle(
+                                      fontSize: isTablet ? 13 : 12,
+                                      color: Colors.blue[700],
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                ]),
-                                const SizedBox(height: 6),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
+                                ),
+                              ]),
+                              const SizedBox(height: 6),
+                            ],
+                          );
+                        },
+                      ),
 
                       // Details with icons (removed walk mins)
                       Row(

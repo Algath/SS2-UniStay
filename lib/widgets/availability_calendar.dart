@@ -10,6 +10,9 @@ class AvailabilityCalendar extends StatefulWidget {
   // Opsiyonel: Owner görünümünde pending/booked renkleri göstermek için propertyId ve isOwner
   final String? propertyId;
   final bool isOwner;
+  final bool showHeader;
+  final bool showSavedRanges;
+  final double calendarHeight;
 
   const AvailabilityCalendar({
     super.key,
@@ -17,6 +20,9 @@ class AvailabilityCalendar extends StatefulWidget {
     this.initialRanges = const [],
     this.propertyId,
     this.isOwner = false,
+    this.showHeader = true,
+    this.showSavedRanges = true,
+    this.calendarHeight = 320,
   });
 
   @override
@@ -49,9 +55,9 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
       ),
       child: Column(
         children: [
-          _buildHeader(),
+          if (widget.showHeader) _buildHeader(),
           SizedBox(
-            height: 320,
+            height: widget.calendarHeight,
             child: _buildCalendar(),
           ),
           Expanded(
@@ -60,7 +66,7 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
               child: Column(
                 children: [
                   _buildSelectedRangeInfo(),
-                  _buildSavedRanges(),
+                  if (widget.showSavedRanges) _buildSavedRanges(),
                 ],
               ),
             ),
@@ -109,12 +115,17 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
 
   Widget _buildCalendar() {
     return TableCalendar<String>(
-        firstDay: DateTime.now(),
-        lastDay: DateTime.now().add(const Duration(days: 365)),
+        firstDay: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day),
+        lastDay: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day).add(const Duration(days: 365)),
         focusedDay: _focusedDay,
         rangeStartDay: _selectedRange?.start,
         rangeEndDay: _selectedRange?.end,
         rangeSelectionMode: RangeSelectionMode.toggledOn,
+        enabledDayPredicate: (day) {
+          final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+          final key = DateTime(day.year, day.month, day.day);
+          return !key.isBefore(today);
+        },
         eventLoader: (day) {
           final status = _getStatusForDay(day);
           return status != 'unavailable' ? [status] : [];
@@ -196,11 +207,31 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
   }
 
   String _getStatusForDay(DateTime day) {
+    // Geçmiş tarihleri otomatik olarak unavailable yap
+    final today = DateTime.now();
+    final todayKey = DateTime(today.year, today.month, today.day);
+    final dayKey = DateTime(day.year, day.month, day.day);
+    
+    // Eğer tarih bugünden önceyse, unavailable döndür
+    if (dayKey.isBefore(todayKey)) {
+      return 'unavailable';
+    }
+    
     final key = DateTime(day.year, day.month, day.day);
     return _statusByDay[key] ?? 'unavailable';
   }
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
+    // Geçmiş tarihleri seçmeyi engelle
+    final today = DateTime.now();
+    final todayKey = DateTime(today.year, today.month, today.day);
+    final selectedKey = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
+    
+    if (selectedKey.isBefore(todayKey)) {
+      // Geçmiş tarih seçildiğinde hiçbir şey yapma
+      return;
+    }
+    
     if (_selectedRange == null) {
       setState(() {
         _selectedRange = DateTimeRange(start: selectedDay, end: selectedDay);
@@ -232,11 +263,22 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
 
   void _addRange() {
     if (_selectedRange != null) {
+      // Geçmiş tarih aralığı kontrolü
+      final today = DateTime.now();
+      final todayKey = DateTime(today.year, today.month, today.day);
+      final startKey = DateTime(_selectedRange!.start.year, _selectedRange!.start.month, _selectedRange!.start.day);
+      final endKey = DateTime(_selectedRange!.end.year, _selectedRange!.end.month, _selectedRange!.end.day);
+      
+      // Eğer aralığın herhangi bir kısmı geçmişteyse, ekleme
+      if (startKey.isBefore(todayKey) || endKey.isBefore(todayKey)) {
+        return;
+      }
+      
       setState(() {
         _availabilityRanges.add(_selectedRange!);
         _selectedRange = null;
-        _rebuildBaseStatus();
       });
+      _rebuildBaseStatus();
       widget.onRangesSelected(_availabilityRanges);
     }
   }
@@ -244,8 +286,8 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
   void _removeRange(int index) {
     setState(() {
       _availabilityRanges.removeAt(index);
-      _rebuildBaseStatus();
     });
+    _rebuildBaseStatus();
     widget.onRangesSelected(_availabilityRanges);
   }
 
@@ -261,60 +303,113 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
     if (widget.propertyId != null) {
       final bookingService = BookingService();
       _requestsSub = bookingService.getRequestsForProperty(widget.propertyId!).listen((requests) {
-        final Map<DateTime, String> map = Map.of(_statusByDay);
-
-        String normalize(String raw) {
-          final s = raw.toLowerCase().trim();
-          if (s == 'accepted' || s == 'approved' || s == 'confirmed') return 'accepted';
-          if (s == 'pending' || s == 'awaiting' || s == 'waiting') return 'pending';
-          if (s == 'rejected' || s == 'declined' || s == 'denied' || s == 'cancelled' || s == 'canceled') return 'rejected';
-          return s;
-        }
-
-        // Üzerine pending/booked yaz
-        for (final req in requests) {
-          final st = normalize(req.status);
-          if (widget.isOwner) {
-            if (st == 'accepted') {
-              for (DateTime d = req.requestedRange.start; d.isBefore(req.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-                final k = DateTime(d.year, d.month, d.day);
-                map[k] = 'booked';
-              }
-            } else if (st == 'pending') {
-              for (DateTime d = req.requestedRange.start; d.isBefore(req.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-                final k = DateTime(d.year, d.month, d.day);
-                if (map[k] != 'booked') map[k] = 'pending';
-              }
-            }
-          } else {
-            // Student view: Only accepted (booked) days are unavailable.
-            // Pending requests should NOT block availability on home list/filter.
-            if (st == 'accepted') {
-              for (DateTime d = req.requestedRange.start; d.isBefore(req.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-                final k = DateTime(d.year, d.month, d.day);
-                map[k] = 'unavailable';
-              }
-            }
-          }
-        }
-
-        setState(() {
-          _statusByDay = map;
-        });
+        _updateStatusWithRequests(requests);
       });
     }
   }
 
-  void _rebuildBaseStatus() {
-    final Map<DateTime, String> base = {};
+  void _updateStatusWithRequests(List<BookingRequest> requests) {
+    // Önce base status'ü oluştur
+    final Map<DateTime, String> map = {};
+    final today = DateTime.now();
+    final todayKey = DateTime(today.year, today.month, today.day);
+    
     for (final range in _availabilityRanges) {
       for (DateTime d = range.start; d.isBefore(range.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-        base[DateTime(d.year, d.month, d.day)] = 'available';
+        final dayKey = DateTime(d.year, d.month, d.day);
+        // Geçmiş tarihleri unavailable olarak işaretle
+        if (dayKey.isBefore(todayKey)) {
+          map[dayKey] = 'unavailable';
+        } else {
+          map[dayKey] = 'available';
+        }
       }
     }
+
+    String normalize(String raw) {
+      final s = raw.toLowerCase().trim();
+      if (s == 'accepted' || s == 'approved' || s == 'confirmed') return 'accepted';
+      if (s == 'pending' || s == 'awaiting' || s == 'waiting') return 'pending';
+      if (s == 'rejected' || s == 'declined' || s == 'denied' || s == 'cancelled' || s == 'canceled') return 'rejected';
+      return s;
+    }
+
+    // Üzerine pending/booked yaz
+    
+    for (final req in requests) {
+      final st = normalize(req.status);
+      if (widget.isOwner) {
+        if (st == 'accepted') {
+          for (DateTime d = req.requestedRange.start; d.isBefore(req.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+            final k = DateTime(d.year, d.month, d.day);
+            // Geçmiş tarihleri her zaman unavailable yap
+            if (k.isBefore(todayKey)) {
+              map[k] = 'unavailable';
+            } else {
+              map[k] = 'booked';
+            }
+          }
+        } else if (st == 'pending') {
+          for (DateTime d = req.requestedRange.start; d.isBefore(req.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+            final k = DateTime(d.year, d.month, d.day);
+            // Geçmiş tarihleri her zaman unavailable yap
+            if (k.isBefore(todayKey)) {
+              map[k] = 'unavailable';
+            } else if (map[k] != 'booked') {
+              map[k] = 'pending';
+            }
+          }
+        }
+      } else {
+        // Student view: Only accepted (booked) days are unavailable.
+        // Pending requests should NOT block availability on home list/filter.
+        if (st == 'accepted') {
+          for (DateTime d = req.requestedRange.start; d.isBefore(req.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+            final k = DateTime(d.year, d.month, d.day);
+            // Geçmiş tarihleri her zaman unavailable yap
+            if (k.isBefore(todayKey)) {
+              map[k] = 'unavailable';
+            } else {
+              map[k] = 'unavailable';
+            }
+          }
+        }
+      }
+    }
+
     setState(() {
-      _statusByDay = base;
+      _statusByDay = map;
     });
+  }
+
+  void _rebuildBaseStatus() {
+    final Map<DateTime, String> base = {};
+    final today = DateTime.now();
+    final todayKey = DateTime(today.year, today.month, today.day);
+    
+    for (final range in _availabilityRanges) {
+      for (DateTime d = range.start; d.isBefore(range.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+        final dayKey = DateTime(d.year, d.month, d.day);
+        // Geçmiş tarihleri unavailable olarak işaretle
+        if (dayKey.isBefore(todayKey)) {
+          base[dayKey] = 'unavailable';
+        } else {
+          base[dayKey] = 'available';
+        }
+      }
+    }
+    
+    // Eğer propertyId varsa, mevcut booking isteklerini koru
+    if (widget.propertyId != null) {
+      final bookingService = BookingService();
+      bookingService.getRequestsForProperty(widget.propertyId!).first.then((requests) {
+        _updateStatusWithRequests(requests);
+      });
+    } else {
+      setState(() {
+        _statusByDay = base;
+      });
+    }
   }
 
   Color _eventColor(String status) {

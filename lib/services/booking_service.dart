@@ -104,4 +104,52 @@ class BookingService {
             .map((doc) => BookingRequest.fromFirestore(doc))
             .toList());
   }
+
+  // Get accepted booking requests for an owner (past bookings)
+  Stream<List<BookingRequest>> getAcceptedRequestsForOwner(String ownerUid) {
+    final now = DateTime.now();
+    return _firestore
+        .collection('booking_requests')
+        .where('ownerUid', isEqualTo: ownerUid)
+        .where('status', isEqualTo: 'accepted')
+        .snapshots()
+        .map((snapshot) {
+          final requests = snapshot.docs
+              .map((doc) => BookingRequest.fromFirestore(doc))
+              .toList();
+          
+          // Filter to only include past bookings (end date is before today)
+          final pastBookings = requests.where((request) => 
+            request.requestedRange.end.isBefore(now)
+          ).toList();
+          
+          // Sort by end date (most recent first)
+          pastBookings.sort((a, b) => b.requestedRange.end.compareTo(a.requestedRange.end));
+          return pastBookings;
+        });
+  }
+
+  // Get accepted booking requests for a student (past bookings)
+  Stream<List<BookingRequest>> getAcceptedRequestsForStudent(String studentUid) {
+    final now = DateTime.now();
+    return _firestore
+        .collection('booking_requests')
+        .where('studentUid', isEqualTo: studentUid)
+        .where('status', isEqualTo: 'accepted')
+        .snapshots()
+        .map((snapshot) {
+          final requests = snapshot.docs
+              .map((doc) => BookingRequest.fromFirestore(doc))
+              .toList();
+          
+          // Filter to only include past bookings (end date is before today)
+          final pastBookings = requests.where((request) => 
+            request.requestedRange.end.isBefore(now)
+          ).toList();
+          
+          // Sort by end date (most recent first)
+          pastBookings.sort((a, b) => b.requestedRange.end.compareTo(a.requestedRange.end));
+          return pastBookings;
+        });
+  }
 }

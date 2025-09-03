@@ -32,9 +32,18 @@ class _AvailabilitySummaryState extends State<AvailabilitySummary> {
 
   void _subscribe() {
     final Map<DateTime, String> base = {};
+    final today = DateTime.now();
+    final todayKey = DateTime(today.year, today.month, today.day);
+    
     for (final range in widget.room.availabilityRanges) {
       for (DateTime d = range.start; d.isBefore(range.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-        base[DateTime(d.year, d.month, d.day)] = 'available';
+        final dayKey = DateTime(d.year, d.month, d.day);
+        // Geçmiş tarihleri unavailable olarak işaretle
+        if (dayKey.isBefore(todayKey)) {
+          base[dayKey] = 'unavailable';
+        } else {
+          base[dayKey] = 'available';
+        }
       }
     }
 
@@ -50,28 +59,48 @@ class _AvailabilitySummaryState extends State<AvailabilitySummary> {
         return s;
       }
 
-      for (final r in reqs) {
-        final st = norm(r.status);
-        if (widget.isOwner) {
-          if (st == 'accepted') {
-            for (DateTime d = r.requestedRange.start; d.isBefore(r.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-              map[DateTime(d.year, d.month, d.day)] = 'booked';
-            }
-          } else if (st == 'pending') {
-            for (DateTime d = r.requestedRange.start; d.isBefore(r.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-              final k = DateTime(d.year, d.month, d.day);
-              if (map[k] != 'booked') map[k] = 'pending';
-            }
-          }
-        } else {
-          // Student: only accepted blocks availability
-          if (st == 'accepted') {
-            for (DateTime d = r.requestedRange.start; d.isBefore(r.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-              map[DateTime(d.year, d.month, d.day)] = 'unavailable';
-            }
-          }
-        }
-      }
+             final today = DateTime.now();
+       final todayKey = DateTime(today.year, today.month, today.day);
+       
+       for (final r in reqs) {
+         final st = norm(r.status);
+         if (widget.isOwner) {
+           if (st == 'accepted') {
+             for (DateTime d = r.requestedRange.start; d.isBefore(r.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+               final k = DateTime(d.year, d.month, d.day);
+               // Geçmiş tarihleri her zaman unavailable yap
+               if (k.isBefore(todayKey)) {
+                 map[k] = 'unavailable';
+               } else {
+                 map[k] = 'booked';
+               }
+             }
+           } else if (st == 'pending') {
+             for (DateTime d = r.requestedRange.start; d.isBefore(r.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+               final k = DateTime(d.year, d.month, d.day);
+               // Geçmiş tarihleri her zaman unavailable yap
+               if (k.isBefore(todayKey)) {
+                 map[k] = 'unavailable';
+               } else if (map[k] != 'booked') {
+                 map[k] = 'pending';
+               }
+             }
+           }
+         } else {
+           // Student: only accepted blocks availability
+           if (st == 'accepted') {
+             for (DateTime d = r.requestedRange.start; d.isBefore(r.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+               final k = DateTime(d.year, d.month, d.day);
+               // Geçmiş tarihleri her zaman unavailable yap
+               if (k.isBefore(todayKey)) {
+                 map[k] = 'unavailable';
+               } else {
+                 map[k] = 'unavailable';
+               }
+             }
+           }
+         }
+       }
 
       if (mounted) setState(() => _statusByDay = map);
     });
@@ -110,7 +139,12 @@ class _AvailabilitySummaryState extends State<AvailabilitySummary> {
     }
 
     if (start != null && prev != null) {
-      ranges.add(DateTimeRange(start: start, end: prev));
+      // Only add if start and prev are different, or if it's a single day range
+      if (start.year != prev.year || start.month != prev.month || start.day != prev.day) {
+        ranges.add(DateTimeRange(start: start, end: prev));
+      } else {
+        ranges.add(DateTimeRange(start: start, end: start));
+      }
     }
 
     return ranges;
@@ -166,18 +200,10 @@ class _AvailabilitySummaryState extends State<AvailabilitySummary> {
             String formatDate(DateTime date) {
               final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-              return '${date.day} ${months[date.month - 1]}';
-            }
-
-            String formatDateWithYear(DateTime date) {
-              final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
               return '${date.day} ${months[date.month - 1]} ${date.year}';
             }
 
-            final rangeText = isSameMonth
-                ? '${formatDate(start)} - ${formatDate(end)}'
-                : '${formatDateWithYear(start)} - ${formatDateWithYear(end)}';
+            final rangeText = '${formatDate(start)} - ${formatDate(end)}';
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 4),

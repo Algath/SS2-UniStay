@@ -10,6 +10,7 @@ import 'package:unistay/widgets/profile/profile_edit_button.dart';
 import 'package:unistay/widgets/profile/settings_section.dart';
 import 'package:unistay/widgets/profile/owner_properties_section.dart';
 import 'package:unistay/widgets/profile/owner_requests_section.dart';
+import 'package:unistay/widgets/profile/owner_history_section.dart';
 import 'package:unistay/widgets/profile/favorites_section.dart';
 import 'package:unistay/widgets/profile/student_bookings_section.dart';
 
@@ -169,7 +170,7 @@ class _ProfileOwnerPageRefactoredState extends State<ProfileOwnerPageRefactored>
 
   Widget _buildTabbedContent(String uid, bool isTablet, bool isLandscape) {
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
@@ -213,6 +214,10 @@ class _ProfileOwnerPageRefactoredState extends State<ProfileOwnerPageRefactored>
                     text: 'Requests',
                   ),
                   Tab(
+                    icon: Icon(Icons.history),
+                    text: 'History',
+                  ),
+                  Tab(
                     icon: Icon(Icons.bookmark_outlined),
                     text: 'Bookings',
                   ),
@@ -243,6 +248,14 @@ class _ProfileOwnerPageRefactoredState extends State<ProfileOwnerPageRefactored>
                   SingleChildScrollView(
                     padding: const EdgeInsets.all(20),
                     child: OwnerRequestsSection(
+                      ownerUid: uid,
+                      isTablet: isTablet,
+                    ),
+                  ),
+                  // History Tab
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: OwnerHistorySection(
                       ownerUid: uid,
                       isTablet: isTablet,
                     ),

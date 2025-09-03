@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:unistay/services/auth_service.dart';
 import 'package:unistay/views/main_navigation.dart';
+import 'package:unistay/views/face_id_verification.dart'; // Add this import
 
 import 'sign_up.dart';
 
@@ -76,6 +77,10 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  void _navigateToFaceID() {
+    Navigator.of(context).pushNamed(FaceIDVerificationPage.route);
+  }
+
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return 'Please enter your email';
@@ -128,6 +133,67 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 40),
+
+                  // Face ID Button
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 24),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: OutlinedButton.icon(
+                        onPressed: _navigateToFaceID,
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF6E56CF), width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          backgroundColor: const Color(0xFF6E56CF).withOpacity(0.05),
+                        ),
+                        icon: const Icon(
+                          Icons.face,
+                          color: Color(0xFF6E56CF),
+                          size: 24,
+                        ),
+                        label: Text(
+                          'Continue with Face ID',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF6E56CF),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Divider
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          thickness: 1,
+                          color: Colors.grey[300],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'or',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          thickness: 1,
+                          color: Colors.grey[300],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
 
                   // Email field
                   TextFormField(

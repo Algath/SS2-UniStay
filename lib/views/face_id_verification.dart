@@ -61,21 +61,18 @@ class _FaceIDVerificationPageState extends State<FaceIDVerificationPage> {
     _verify(photo);
   }
 
-  Future<void> deleteXFile(XFile xfile) async {
-    final file = File(xfile.path);
-
-    // Optionally check if the file actually exists
-    if (await file.exists()) {
-      try {
-        await file.delete();
-        print('File deleted: ${xfile.path}');
-      } catch (e) {
-        print('Error deleting file: $e');
-      }
-    } else {
-      print('File not found, cannot delete: ${xfile.path}');
+  Future<void> _deleteSelfie(XFile file) async {
+  try {
+    final f = File(file.path);
+    if (await f.exists()) {
+      await f.delete();
+      print('Selfie deleted: ${file.path}');
     }
+  } catch (e) {
+    print('Error deleting selfie: $e');
   }
+}
+
 
   /// Loop through stored profiles, stop on first match
   Future<void> _verify(XFile selfie) async {
@@ -95,7 +92,7 @@ class _FaceIDVerificationPageState extends State<FaceIDVerificationPage> {
       if (result['success'] == true &&
           result['verified'] == true &&
           (result['customToken'] as String?)?.isNotEmpty == true) {
-        deleteXFile(selfie);
+        await _deleteSelfie(selfie);
         return _loginWithToken(
           result['customToken'] as String,
           result['uid'] as String,
@@ -107,7 +104,7 @@ class _FaceIDVerificationPageState extends State<FaceIDVerificationPage> {
       _loading = false;
       _error = 'Face verification failed';
     });
-    deleteXFile(selfie);
+    await _deleteSelfie(selfie);
   }
 
   /// Sign in using the Firebase custom token
@@ -141,63 +138,58 @@ class _FaceIDVerificationPageState extends State<FaceIDVerificationPage> {
       appBar: AppBar(
         title: const Text('Face ID Verification'),
         centerTitle: true,
-        leading: BackButton(onPressed: _goBackToLogin),
+        leading: _loading ? null : BackButton(onPressed: _goBackToLogin),
       ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 80, color: color),
-            const SizedBox(height: 16),
-            Text(
-              _loading
-                  ? 'Verifying your face…'
-                  : (_error ?? 'Align your face and take a selfie'),
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, color: color),
-            ),
-            if (_loading) ...[
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 80, color: color),
+              const SizedBox(height: 16),
+              Text(
+                _loading
+                    ? 'Verifying your face…'
+                    : (_error ?? 'Align your face and take a selfie'),
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 18, color: color),
+              ),
               const SizedBox(height: 24),
-              CircularProgressIndicator(color: color),
-            ] else if (!_loading) ...[
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _startFlow,
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Start identification'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: color,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _goBackToLogin,
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Back to Login'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: color,
-              ),
-            ),
-          ] else if (_error != null && !_loading) ...[
-            ElevatedButton.icon(
-              onPressed: _startFlow,
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Start identification'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: color,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _goBackToLogin,
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Back to Login'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: color,
-              ),
-            ),
-          ],
-          ]),
+
+              if (_loading) ...[
+                CircularProgressIndicator(color: color),
+              ] else if (_error != null) ...[
+                ElevatedButton.icon(
+                  onPressed: _startFlow,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Try Again'),
+                  style: ElevatedButton.styleFrom(backgroundColor: color),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: _goBackToLogin,
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Back to Login'),
+                  style: ElevatedButton.styleFrom(backgroundColor: color),
+                ),
+              ] else ...[
+                ElevatedButton.icon(
+                  onPressed: _startFlow,
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('Start Identification'),
+                  style: ElevatedButton.styleFrom(backgroundColor: color),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: _goBackToLogin,
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Back to Login'),
+                  style: ElevatedButton.styleFrom(backgroundColor: color),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

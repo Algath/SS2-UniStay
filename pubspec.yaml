@@ -47,6 +47,7 @@ flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/icon/unistay_logo.png"
+  android_icon_background_color: "#ffffff"
   min_sdk_android: 21
 
   web:

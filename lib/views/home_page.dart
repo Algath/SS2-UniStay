@@ -578,6 +578,7 @@ class _HomePageState extends State<HomePage> {
             color: Colors.black87,
           ),
         ),
+
       ),
       body: SafeArea(
         child: LayoutBuilder(

@@ -10,7 +10,12 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 
 class AddPropertyPage extends StatefulWidget {
   static const route = '/add-property';
-  const AddPropertyPage({super.key});
+  final String? propertyId; // For edit mode
+  
+  const AddPropertyPage({
+    super.key,
+    this.propertyId,
+  });
 
   @override
   State<AddPropertyPage> createState() => _AddPropertyPageState();
@@ -26,7 +31,14 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     return ChangeNotifierProvider(
-      create: (_) => AddPropertyViewModel(),
+      create: (_) {
+        final vm = AddPropertyViewModel();
+        // Load property data if in edit mode
+        if (widget.propertyId != null) {
+          vm.loadPropertyForEdit(widget.propertyId!);
+        }
+        return vm;
+      },
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F9FA),
         appBar: _buildAppBar(),
@@ -83,9 +95,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       backgroundColor: const Color(0xFF2C3E50),
       elevation: 0,
       foregroundColor: Colors.white,
-      title: const Text(
-        'Add Property',
-        style: TextStyle(
+      title: Text(
+        widget.propertyId != null ? 'Edit Property' : 'Add Property',
+        style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w600,
         ),
@@ -333,9 +345,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
             color: Colors.white,
           ),
         )
-            : const Text(
-          'Save Property',
-          style: TextStyle(
+            : Text(
+          widget.propertyId != null ? 'Update Property' : 'Save Property',
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -359,12 +371,18 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
     if (!mounted) return;
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Property saved successfully!'), backgroundColor: Colors.green),
+        SnackBar(
+          content: Text(widget.propertyId != null ? 'Property updated successfully!' : 'Property saved successfully!'),
+          backgroundColor: Colors.green,
+        ),
       );
       Navigator.of(context).pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.errorMessage ?? 'Failed to save property'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(vm.errorMessage ?? (widget.propertyId != null ? 'Failed to update property' : 'Failed to save property')),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }

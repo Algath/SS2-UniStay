@@ -16,3 +16,6 @@ export 'itinerary_card_widget.dart';
 export 'feature_row_widget.dart';
 export 'section_header_widget.dart';
 export 'weather_summary_widget.dart';
+export 'property_rating_widget.dart';
+export 'property_reviews_widget.dart';
+export 'review_form_widget.dart';

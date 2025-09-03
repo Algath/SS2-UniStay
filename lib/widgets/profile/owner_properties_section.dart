@@ -105,7 +105,9 @@ class OwnerPropertiesSection extends StatelessWidget {
         if (docs.isEmpty)
           _buildEmptyState()
         else
-          ...docs.map((doc) => OwnerPropertyCard(room: doc.data())),
+          ...docs.take(3).map((doc) => OwnerPropertyCard(room: doc.data())),
+        if (docs.length > 3)
+          _buildViewAllButton(context, docs.length),
       ],
     );
   }
@@ -216,6 +218,140 @@ class OwnerPropertiesSection extends StatelessWidget {
               fontSize: 14,
             ),
             textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildViewAllButton(BuildContext context, int totalCount) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            // Navigate to a dedicated properties page or show dialog
+            _showAllPropertiesDialog(context, totalCount);
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: const Color(0xFF6E56CF).withOpacity(0.3),
+                width: 1.5,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.visibility,
+                  color: const Color(0xFF6E56CF),
+                  size: 20,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'View All $totalCount Properties',
+                  style: const TextStyle(
+                    color: Color(0xFF6E56CF),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAllPropertiesDialog(BuildContext context, int totalCount) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('All Properties ($totalCount)'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 300,
+          child: StreamBuilder<QuerySnapshot<Room>>(
+            stream: FirebaseFirestore.instance
+                .collection('rooms')
+                .where('ownerUid', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                .where('status', isEqualTo: 'active')
+                .withConverter<Room>(
+              fromFirestore: (d, _) => Room.fromFirestore(d),
+              toFirestore: (r, _) => <String, dynamic>{},
+            ).snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final docs = snapshot.data?.docs ?? [];
+              return ListView.builder(
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final room = docs[index].data();
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    leading: room.photoUrls.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.network(
+                              room.photoUrls.first,
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    color: Colors.grey[300],
+                                    child: const Icon(Icons.home, size: 16),
+                                  ),
+                            ),
+                          )
+                        : Container(
+                            width: 40,
+                            height: 40,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.home, size: 16),
+                          ),
+                    title: Text(
+                      room.title,
+                      style: const TextStyle(fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      '${room.city}, ${room.price} CHF',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => AddPropertyPage(propertyId: room.id),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
           ),
         ],
       ),

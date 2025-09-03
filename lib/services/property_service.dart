@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unistay/models/property_data.dart';
+import 'package:unistay/models/room.dart';
 import 'package:unistay/services/storage_service.dart';
 
 /// Service for property CRUD operations and validation
@@ -105,10 +106,10 @@ class PropertyService {
   }
 
   /// Get a single property by ID
-  static Future<DocumentSnapshot?> getPropertyById(String propertyId) async {
+  static Future<Room?> getPropertyById(String propertyId) async {
     try {
       final doc = await _firestore.collection('rooms').doc(propertyId).get();
-      return doc.exists ? doc : null;
+      return doc.exists ? Room.fromFirestore(doc) : null;
     } catch (e) {
       throw Exception('Failed to fetch property: $e');
     }

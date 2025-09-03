@@ -12,6 +12,7 @@ class BookingRequest {
   final String status; // 'pending' | 'accepted' | 'rejected'
   final String? studentName;
   final String? propertyTitle;
+  final double totalPrice;
 
   BookingRequest({
     required this.id,
@@ -23,6 +24,7 @@ class BookingRequest {
     this.status = 'pending',
     this.studentName,
     this.propertyTitle,
+    this.totalPrice = 0.0,
   });
 
   factory BookingRequest.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -46,6 +48,7 @@ class BookingRequest {
       status: (m['status'] ?? 'pending') as String,
       studentName: m['studentName'] as String?,
       propertyTitle: m['propertyTitle'] as String?,
+      totalPrice: (m['totalPrice'] ?? 0.0).toDouble(),
     );
   }
 
@@ -60,6 +63,7 @@ class BookingRequest {
       },
       'createdAt': createdAt,
       'status': status,
+      'totalPrice': totalPrice,
       if (studentName != null) 'studentName': studentName,
       if (propertyTitle != null) 'propertyTitle': propertyTitle,
     };
@@ -75,6 +79,7 @@ class BookingRequest {
     String? status,
     String? studentName,
     String? propertyTitle,
+    double? totalPrice,
   }) {
     return BookingRequest(
       id: id ?? this.id,
@@ -86,6 +91,11 @@ class BookingRequest {
       status: status ?? this.status,
       studentName: studentName ?? this.studentName,
       propertyTitle: propertyTitle ?? this.propertyTitle,
+      totalPrice: totalPrice ?? this.totalPrice,
     );
   }
+
+  // Getters for convenience
+  DateTime get startDate => requestedRange.start;
+  DateTime get endDate => requestedRange.end;
 }

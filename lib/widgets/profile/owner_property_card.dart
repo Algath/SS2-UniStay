@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:unistay/models/room.dart';
 import 'package:unistay/views/property_detail.dart';
+import 'package:unistay/views/add_property.dart';
 
 class OwnerPropertyCard extends StatelessWidget {
   final Room room;
@@ -42,10 +43,20 @@ class OwnerPropertyCard extends StatelessWidget {
                 Expanded(
                   child: _buildPropertyInfo(),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Colors.grey[400],
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => _navigateToEditProperty(context),
+                      tooltip: 'Edit Property',
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: Colors.grey[400],
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -91,14 +102,19 @@ class OwnerPropertyCard extends StatelessWidget {
         Text(
           room.title,
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.w700,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 4),
         Text(
           'CHF ${room.price}/month · ${room.type} · ${room.sizeSqm} m²',
-          style: const TextStyle(color: Colors.grey),
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 12,
+          ),
         ),
       ],
     );
@@ -111,6 +127,14 @@ class OwnerPropertyCard extends StatelessWidget {
           roomId: room.id,
           isOwnerView: true,
         ),
+      ),
+    );
+  }
+
+  void _navigateToEditProperty(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AddPropertyPage(propertyId: room.id),
       ),
     );
   }

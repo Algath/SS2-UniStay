@@ -94,7 +94,7 @@ class StudentBookingsSection extends StatelessWidget {
           return _buildEmptyState();
         }
 
-        // Map to model and sort into tabs: Pending, Accepted, Refused
+        // Map to model and sort into tabs: Pending, Accepted, Refused, History
         final requests = docs.map((d) => BookingRequest.fromFirestore(d)).toList();
 
         return _TabbedStudentBookings(
@@ -159,7 +159,7 @@ class _TabbedStudentBookingsState extends State<_TabbedStudentBookings> with Sin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this); // 4 tabs now
   }
 
   @override
@@ -170,9 +170,16 @@ class _TabbedStudentBookingsState extends State<_TabbedStudentBookings> with Sin
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    
     final pending = widget.requests.where((r) => r.status == 'pending').toList();
-    final accepted = widget.requests.where((r) => r.status == 'accepted').toList();
+    final accepted = widget.requests.where((r) => r.status == 'accepted' && r.endDate.isAfter(now)).toList();
     final refused = widget.requests.where((r) => r.status == 'rejected' || r.status == 'refused' || r.status == 'declined').toList();
+    
+    // History: Accepted bookings where end date is in the past
+    final history = widget.requests.where((r) => 
+      r.status == 'accepted' && r.endDate.isBefore(now)
+    ).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,10 +197,11 @@ class _TabbedStudentBookingsState extends State<_TabbedStudentBookings> with Sin
               color: Colors.white,
               borderRadius: BorderRadius.circular(10),
             ),
-            tabs: const [
-              Tab(text: 'Pending'),
-              Tab(text: 'Accepted'),
-              Tab(text: 'Refused'),
+            tabs: [
+              Tab(text: 'Pending (${pending.length})'),
+              Tab(text: 'Accepted (${accepted.length})'),
+              Tab(text: 'Refused (${refused.length})'),
+              Tab(text: 'History (${history.length})'),
             ],
           ),
         ),
@@ -206,6 +214,7 @@ class _TabbedStudentBookingsState extends State<_TabbedStudentBookings> with Sin
               _buildListFor(pending, color: Colors.orange),
               _buildListFor(accepted, color: Colors.green),
               _buildListFor(refused, color: Colors.red),
+              _buildHistoryList(history),
             ],
           ),
         ),
@@ -242,6 +251,45 @@ class _TabbedStudentBookingsState extends State<_TabbedStudentBookings> with Sin
     );
   }
 
+  Widget _buildHistoryList(List<BookingRequest> history) {
+    if (history.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.history,
+              color: Colors.grey[400],
+              size: 48,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No completed bookings',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Your completed stays will appear here',
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      children: history.map((r) => _HistoryBookingTile(req: r)).toList(),
+    );
+  }
+
   Widget _subheader(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -253,6 +301,127 @@ class _TabbedStudentBookingsState extends State<_TabbedStudentBookings> with Sin
         ),
       ),
     );
+  }
+}
+
+class _HistoryBookingTile extends StatelessWidget {
+  final BookingRequest req;
+
+  const _HistoryBookingTile({required this.req});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      future: FirebaseFirestore.instance.collection('rooms').doc(req.propertyId).get(),
+      builder: (context, snap) {
+        final room = snap.data?.data();
+        final title = (room?['title'] ?? 'Property').toString();
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE9ECEF)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2C3E50),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_formatDate(req.startDate)} - ${_formatDate(req.endDate)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6C757D),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF28A745).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Text(
+                      'Completed',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF28A745),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'CHF ${req.totalPrice.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF2C3E50),
+                      ),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // Navigate to property detail page
+                      Navigator.of(context).pushNamed(
+                        '/property-detail',
+                        arguments: req.propertyId,
+                      );
+                    },
+                    icon: const Icon(Icons.rate_review, size: 16),
+                    label: const Text('Add Review'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6E56CF),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 }
 

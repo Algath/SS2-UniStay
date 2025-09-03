@@ -114,23 +114,8 @@ class _ProfileStudentPageRefactoredState extends State<ProfileStudentPageRefacto
                       _buildProfileCard(isTablet, isLandscape),
                       SizedBox(height: isTablet ? (isLandscape ? 32 : 24) : 20),
 
-                      // My Bookings Section
-                      StudentBookingsSection(
-                        studentUid: user!.uid,
-                        isTablet: isTablet,
-                        isLandscape: isLandscape,
-                      ),
-                      SizedBox(height: isTablet ? (isLandscape ? 32 : 24) : 20),
-
-                      // Favorites Section
-                      FavoritesSection(isTablet: isTablet),
-                      SizedBox(height: isTablet ? (isLandscape ? 32 : 24) : 20),
-
-                      // Settings Section
-                      SettingsSection(
-                        isTablet: isTablet,
-                        isLandscape: isLandscape,
-                      ),
+                      // Tab-based content for better organization
+                      _buildTabbedContent(user!.uid, isTablet, isLandscape),
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -179,6 +164,94 @@ class _ProfileStudentPageRefactoredState extends State<ProfileStudentPageRefacto
             onProfileUpdated: _loadUserProfile,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTabbedContent(String uid, bool isTablet, bool isLandscape) {
+    return DefaultTabController(
+      length: 3,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Tab Bar
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: TabBar(
+                labelColor: const Color(0xFF6E56CF),
+                unselectedLabelColor: Colors.grey[600],
+                indicatorColor: const Color(0xFF6E56CF),
+                indicatorWeight: 3,
+                labelStyle: TextStyle(
+                  fontSize: isTablet ? 16 : 14,
+                  fontWeight: FontWeight.w600,
+                ),
+                tabs: const [
+                  Tab(
+                    icon: Icon(Icons.bookmark_outlined),
+                    text: 'Bookings',
+                  ),
+                  Tab(
+                    icon: Icon(Icons.favorite),
+                    text: 'Favorites',
+                  ),
+                  Tab(
+                    icon: Icon(Icons.settings),
+                    text: 'Settings',
+                  ),
+                ],
+              ),
+            ),
+            // Tab Content
+            SizedBox(
+              height: isTablet ? 600 : 500, // Fixed height for better UX
+              child: TabBarView(
+                children: [
+                  // Bookings Tab
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: StudentBookingsSection(
+                      studentUid: uid,
+                      isTablet: isTablet,
+                      isLandscape: isLandscape,
+                    ),
+                  ),
+                  // Favorites Tab
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: FavoritesSection(isTablet: isTablet),
+                  ),
+                  // Settings Tab
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: SettingsSection(
+                      isTablet: isTablet,
+                      isLandscape: isLandscape,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

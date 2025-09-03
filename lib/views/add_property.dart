@@ -6,6 +6,7 @@ import 'package:unistay/widgets/address_autocomplete.dart';
 import 'package:unistay/widgets/amenities_selector.dart';
 import 'package:unistay/widgets/photo_picker_widget.dart';
 import 'package:unistay/widgets/availability_calendar.dart';
+import 'package:tflite_flutter/tflite_flutter.dart';
 
 class AddPropertyPage extends StatefulWidget {
   static const route = '/add-property';
@@ -60,9 +61,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                           PropertyFormCard.buildSpacing(isTablet: isTablet, isLandscape: isLandscape),
                           _buildPhotosSection(vm, isTablet, isLandscape),
                           PropertyFormCard.buildSpacing(isTablet: isTablet, isLandscape: isLandscape),
-                          _buildSaveButton(vm),
-                          PropertyFormCard.buildSpacing(isTablet: isTablet, isLandscape: isLandscape),
                           _buildAvailabilitySection(vm, isTablet, isLandscape),
+                          PropertyFormCard.buildSpacing(isTablet: isTablet, isLandscape: isLandscape),
+                          _buildSaveButton(vm),
                           const SizedBox(height: 24),
                         ],
                       ),
@@ -121,9 +122,11 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                 return null;
               },
             ),
+            // Removed predict button to avoid overflow; keep only price and type
             DropdownButtonFormField<String>(
               value: vm.type,
               decoration: PropertyFormCard.getInputDecoration('Property Type *'),
+              isExpanded: true,
               items: const [
                 DropdownMenuItem(value: 'room', child: Text('Single room')),
                 DropdownMenuItem(value: 'whole', child: Text('Whole property')),
@@ -343,32 +346,120 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
   }
 
   Future<void> _handleSave(AddPropertyViewModel vm) async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    // Clear any previous error
+    // 1) Fiyat tahmini dene, kullanıcıya inceleme penceresi göster
+    final predicted = await _predictPriceIfPossible(vm);
+    final accepted = await _showPriceReviewDialog(vm, predicted);
+    if (accepted != true) return; // kullanıcı iptal etti
+
+    // 2) Kaydet
     vm.clearError();
-
     final success = await vm.saveProperty();
-
     if (!mounted) return;
-
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Property saved successfully!'),
-          backgroundColor: Colors.green,
-        ),
+        const SnackBar(content: Text('Property saved successfully!'), backgroundColor: Colors.green),
       );
       Navigator.of(context).pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(vm.errorMessage ?? 'Failed to save property'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text(vm.errorMessage ?? 'Failed to save property'), backgroundColor: Colors.red),
       );
     }
+  }
+
+  Future<double?> _predictPriceIfPossible(AddPropertyViewModel vm) async {
+    try {
+      Interpreter? interpreter;
+      try {
+        // Most assets in tflite_flutter use asset key without the 'assets/' prefix
+        interpreter = await Interpreter.fromAsset('ss2_unistay_price.tflite');
+      } catch (_) {
+        interpreter = await Interpreter.fromAsset('assets/ss2_unistay_price.tflite');
+      }
+      if (interpreter == null) return null;
+
+      double parseDouble(String s) => double.tryParse(s.trim()) ?? 0.0;
+      int parseInt(String s) => int.tryParse(s.trim()) ?? 0;
+
+      final postal = parseInt(vm.postcodeController.text).toDouble();
+      final surface = parseDouble(vm.sizeSqmController.text);
+      final rooms = parseInt(vm.roomsController.text).toDouble();
+      final proxim = 0.0; // İleri aşamada üniversiteye km hesaplayıp besleyebiliriz
+
+      final isEntire = vm.type == 'whole';
+      final isRoom = vm.type == 'room';
+      final furnished = vm.furnished;
+      final wifi = vm.selectedAmenities.contains('Internet');
+      final carPark = false; // Şu an formda alan yok
+
+      final features = <double>[
+        postal,
+        surface,
+        rooms,
+        proxim,
+        isEntire ? 1.0 : 0.0,
+        isRoom ? 1.0 : 0.0,
+        furnished ? 0.0 : 1.0,
+        furnished ? 1.0 : 0.0,
+        wifi ? 0.0 : 1.0,
+        wifi ? 1.0 : 0.0,
+        carPark ? 0.0 : 1.0,
+        carPark ? 1.0 : 0.0,
+      ];
+
+      final input = [features];
+      final output = List.filled(1, 0.0).reshape([1, 1]);
+      interpreter.run(input, output);
+      final price = (output[0][0] as num).toDouble();
+      interpreter.close();
+      if (price.isNaN || price.isInfinite) return null;
+      return price;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool?> _showPriceReviewDialog(AddPropertyViewModel vm, double? predicted) async {
+    final ctrl = TextEditingController(
+      text: predicted != null ? predicted.toStringAsFixed(0) : vm.priceController.text,
+    );
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Suggested price'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (predicted != null)
+                Text('Predicted: CHF ${predicted.toStringAsFixed(0)}.-', style: const TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: ctrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Listing price (CHF)'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () {
+                final val = num.tryParse(ctrl.text.trim());
+                if (val != null) {
+                  vm.priceController.text = val.toString();
+                }
+                Navigator.pop(ctx, true);
+              },
+              child: const Text('Save and publish'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

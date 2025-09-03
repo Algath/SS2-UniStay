@@ -1,3 +1,4 @@
+/// User profile model for application users
 class UserProfile {
   final String uid;
   final String email;

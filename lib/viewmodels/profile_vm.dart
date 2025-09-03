@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../services/storage_service.dart';
 
+/// ViewModel for user profile management and photo uploads
 class ProfileViewModel {
   final _fs = FirebaseFirestore.instance;
 

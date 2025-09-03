@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart' show DateTimeRange;
 
+/// Booking request model for property rental requests
 class BookingRequest {
   final String id;
   final String propertyId;

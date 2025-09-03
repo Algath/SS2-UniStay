@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:unistay/models/address_suggestion.dart';
 
+/// Service for address search and geocoding using Nominatim API
 class AddressService {
   static const String _nominatimUrl = 'https://nominatim.openstreetmap.org/search';
   static const String _userAgent = 'UniStay/1.0';

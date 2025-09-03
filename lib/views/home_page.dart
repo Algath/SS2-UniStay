@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:math' show min;
 import 'package:table_calendar/table_calendar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unistay/viewmodels/home_vm.dart';
 import 'package:unistay/models/room.dart';
 import 'package:unistay/views/property_detail.dart';
+import 'package:unistay/widgets/availability_calendar.dart';
+import 'package:unistay/services/booking_service.dart';
+import 'package:unistay/models/booking_request.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -17,7 +22,7 @@ class _HomePageState extends State<HomePage> {
   final _vm = HomeViewModel();
 
   // Filters
-  double _priceMin = 200; // CHF
+  double _priceMin = 0; // CHF
   double? _priceMax; // CHF - null means "Any" (no upper limit)
   String _type = 'Any'; // room | whole | Any
   DateTimeRange? _avail;
@@ -30,11 +35,66 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  bool _rangesOverlap(DateTimeRange a, DateTimeRange b) {
+    return !a.start.isAfter(b.end) && !a.end.isBefore(b.start);
+  }
+
+  String _normalizeBookingStatus(String raw) {
+    final s = raw.toLowerCase().trim();
+    if (s == 'accepted' || s == 'approved' || s == 'confirmed') return 'accepted';
+    if (s == 'pending' || s == 'awaiting' || s == 'waiting') return 'pending';
+    if (s == 'rejected' || s == 'declined' || s == 'denied' || s == 'cancelled' || s == 'canceled') return 'rejected';
+    return s;
+  }
+
+  Map<DateTime, String> _buildDailyStatus(Room room, List<BookingRequest> requests) {
+    final Map<DateTime, String> map = {};
+    for (final range in room.availabilityRanges) {
+      for (DateTime d = range.start; d.isBefore(range.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+        map[DateTime(d.year, d.month, d.day)] = 'available';
+      }
+    }
+    for (final req in requests) {
+      final st = _normalizeBookingStatus(req.status);
+      if (st == 'accepted') {
+        for (DateTime d = req.requestedRange.start; d.isBefore(req.requestedRange.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+          map[DateTime(d.year, d.month, d.day)] = 'unavailable';
+        }
+      }
+    }
+    return map;
+  }
+
+  List<DateTimeRange> _deriveRangesFromStatus(Map<DateTime, String> statusMap, String target) {
+    if (statusMap.isEmpty) return [];
+    final days = statusMap.keys.toList()..sort((a, b) => a.compareTo(b));
+    final List<DateTimeRange> out = [];
+    DateTime? start;
+    DateTime? prev;
+    for (final day in days) {
+      if (statusMap[day] == target) {
+        if (start == null) {
+          start = day;
+          prev = day;
+        } else {
+          final expected = prev!.add(const Duration(days: 1));
+          if (!isSameDay(expected, day)) {
+            out.add(DateTimeRange(start: start, end: prev!));
+            start = day;
+          }
+          prev = day;
+        }
+      }
+    }
+    if (start != null && prev != null) out.add(DateTimeRange(start: start, end: prev));
+    return out;
+  }
+
   void _openFilters() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -103,9 +163,9 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     children: [
                       RangeSlider(
-                        min: 200,
+                        min: 0,
                         max: 5000,
-                        divisions: (5000 - 200) ~/ 100,
+                        divisions: 5000 ~/ 100,
                         labels: RangeLabels(
                           'CHF ${_priceMin.round()}',
                           _priceMax == null ? 'Any' : 'CHF ${_priceMax!.round()}',
@@ -260,7 +320,8 @@ class _HomePageState extends State<HomePage> {
                         'Furnished',
                         'Private bathroom',
                         'Kitchen access',
-                        'Charges included'
+                        'Charges included',
+                        'Parking'
                       ])
                         _buildFilterChip(a, _amen.contains(a), (s) => setM(() => s ? _amen.add(a) : _amen.remove(a))),
                     ],
@@ -407,7 +468,7 @@ class _HomePageState extends State<HomePage> {
                     child: OutlinedButton(
                       onPressed: () {
                         setM(() {
-                          _priceMin = 200;
+                          _priceMin = 0;
                           _priceMax = null;
                           _type = 'Any';
                           _avail = null;
@@ -489,7 +550,7 @@ class _HomePageState extends State<HomePage> {
     final isTablet = screenWidth > 600;
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
-    final filtersOn = _priceMin > 200 ||
+    final filtersOn = _priceMin > 0 ||
         _priceMax != null ||
         _type != 'Any' ||
         _avail != null ||
@@ -580,95 +641,127 @@ class _HomePageState extends State<HomePage> {
                       Expanded(
                         child: StreamBuilder<List<Room>>(
                           stream: _vm.streamRooms(),
-                          builder: (context, snap) {
-                            if (snap.connectionState == ConnectionState.waiting) {
+                          builder: (context, roomsSnap) {
+                            if (roomsSnap.connectionState == ConnectionState.waiting) {
                               return const Center(child: CircularProgressIndicator());
                             }
 
-                            final rooms = (snap.data ?? []).where((r) {
-                              final priceOk = r.price >= _priceMin && (_priceMax == null || r.price <= _priceMax!);
-                              final typeOk = _type == 'Any' ? true : r.type == _type;
-                              final amenOk = _amen.isEmpty
-                                  ? true
-                                  : _amen.every((a) {
-                                      if (a == 'Furnished') return r.furnished == true;
-                                      if (a == 'Charges included') return r.utilitiesIncluded == true;
-                                      return r.amenities.contains(a);
-                                    });
-                              final availOk = _avail == null
-                                  ? true
-                                  : r.availabilityRanges.any((range) =>
-                                      !range.start.isAfter(_avail!.end) &&
-                                      !range.end.isBefore(_avail!.start));
-                              final sizeOk = (_sizeMin == null || r.sizeSqm >= _sizeMin!) &&
-                                  (_sizeMax == null || r.sizeSqm <= _sizeMax!);
-                              final roomsOk =
-                              _roomsMin == null ? true : r.rooms >= _roomsMin!;
-                              final bathsOk =
-                              _bathsMin == null ? true : r.bathrooms >= _bathsMin!;
+                            return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                              stream: FirebaseFirestore.instance
+                                  .collection('booking_requests')
+                                  .where('status', whereIn: ['pending', 'accepted'])
+                                  .snapshots(),
+                              builder: (context, reqSnap) {
+                                if (reqSnap.connectionState == ConnectionState.waiting) {
+                                  return const Center(child: CircularProgressIndicator());
+                                }
 
-                              return priceOk &&
-                                  typeOk &&
-                                  amenOk &&
-                                  availOk &&
-                                  sizeOk &&
-                                  roomsOk &&
-                                  bathsOk;
-                            }).toList();
+                                final allReqs = reqSnap.data?.docs
+                                        .map((d) => BookingRequest.fromFirestore(d))
+                                        .toList() ??
+                                    [];
+                                final byProperty = <String, List<BookingRequest>>{};
+                                for (final r in allReqs) {
+                                  byProperty.putIfAbsent(r.propertyId, () => []).add(r);
+                                }
 
-                            if (rooms.isEmpty) {
-                              return Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.search_off,
-                                      size: 64,
-                                      color: Colors.grey[300],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'No properties match your filters',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    TextButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _priceMin = 200;
-                                          _priceMax = null;
-                                          _type = 'Any';
-                                          _avail = null;
-                                          _amen.clear();
-                                          _sizeMin = null;
-                                          _sizeMax = null;
-                                          _roomsMin = null;
-                                          _bathsMin = null;
+                                final rooms = (roomsSnap.data ?? []).where((r) {
+                                  final priceOk = r.price >= _priceMin && (_priceMax == null || r.price <= _priceMax!);
+                                  final typeOk = _type == 'Any' ? true : r.type == _type;
+                                  final amenOk = _amen.isEmpty
+                                      ? true
+                                      : _amen.every((a) {
+                                          if (a == 'Furnished') return r.furnished == true;
+                                          if (a == 'Charges included') return r.utilitiesIncluded == true;
+                                          return r.amenities.contains(a);
                                         });
-                                      },
-                                      child: const Text('Clear filters'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
 
-                            return ListView.separated(
-                              itemCount: rooms.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 12),
-                              itemBuilder: (_, i) {
-                                final r = rooms[i];
-                                return _buildPropertyCard(
-                                  room: r,
-                                  isTablet: isTablet,
-                                  onTap: () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => PropertyDetailPage(roomId: r.id),
+                                  // Base availability: overlap with owner's declared availability ranges
+                                  final baseAvailOk = _avail == null
+                                      ? true
+                                      : r.availabilityRanges.any((range) => _rangesOverlap(range, _avail!));
+
+                                  // If a date is selected, block results that have accepted OR pending requests overlapping that date range.
+                                  // If no date is selected, ignore pending requests (show as available); accepted still reflected on detail page.
+                                  bool blockedByRequests = false;
+                                  if (_avail != null) {
+                                    final reqs = byProperty[r.id] ?? const <BookingRequest>[];
+                                    for (final req in reqs) {
+                                      if (_rangesOverlap(req.requestedRange, _avail!)) {
+                                        final st = req.status.toLowerCase();
+                                        if (st == 'accepted' || st == 'pending') {
+                                          blockedByRequests = true;
+                                          break;
+                                        }
+                                      }
+                                    }
+                                  }
+
+                                  final availOk = baseAvailOk && !blockedByRequests;
+
+                                  final sizeOk = (_sizeMin == null || r.sizeSqm >= _sizeMin!) &&
+                                      (_sizeMax == null || r.sizeSqm <= _sizeMax!);
+                                  final roomsOk = _roomsMin == null ? true : r.rooms >= _roomsMin!;
+                                  final bathsOk = _bathsMin == null ? true : r.bathrooms >= _bathsMin!;
+
+                                  return priceOk && typeOk && amenOk && availOk && sizeOk && roomsOk && bathsOk;
+                                }).toList();
+
+                                if (rooms.isEmpty) {
+                                  return Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.search_off,
+                                          size: 64,
+                                          color: Colors.grey[300],
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'No properties match your filters',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        TextButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              _priceMin = 0;
+                                              _priceMax = null;
+                                              _type = 'Any';
+                                              _avail = null;
+                                              _amen.clear();
+                                              _sizeMin = null;
+                                              _sizeMax = null;
+                                              _roomsMin = null;
+                                              _bathsMin = null;
+                                            });
+                                          },
+                                          child: const Text('Clear filters'),
+                                        ),
+                                      ],
                                     ),
-                                  ),
+                                  );
+                                }
+
+                                return ListView.separated(
+                                  itemCount: rooms.length,
+                                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                                  itemBuilder: (_, i) {
+                                    final r = rooms[i];
+                                    return _buildPropertyCard(
+                                      room: r,
+                                      isTablet: isTablet,
+                                      onTap: () => Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => PropertyDetailPage(roomId: r.id),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 );
                               },
                             );
@@ -688,11 +781,6 @@ class _HomePageState extends State<HomePage> {
 
   // Helper method for modern date range picker (TableCalendar-based)
   void _showDateRangePicker(BuildContext ctx, StateSetter setM) async {
-    final now = DateTime.now();
-    DateTime focused = _avail?.start ?? now;
-    DateTime? start = _avail?.start;
-    DateTime? end = _avail?.end;
-
     final picked = await showModalBottomSheet<DateTimeRange>(
       context: ctx,
       isScrollControlled: true,
@@ -701,125 +789,73 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (bctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: 16 + MediaQuery.of(bctx).viewInsets.bottom,
-          ),
-          child: StatefulBuilder(builder: (bctx, setBtm) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+        final screenH = MediaQuery.of(bctx).size.height;
+        final sheetH = min(520.0, screenH * 0.8);
+        List<DateTimeRange> ranges = _avail == null ? [] : [ _avail! ];
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+            child: SizedBox(
+              height: sheetH,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)]),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        borderRadius: BorderRadius.circular(10),
+                        child: const Icon(Icons.calendar_month, color: Colors.white, size: 18),
                       ),
-                      child: const Icon(Icons.calendar_month, color: Colors.white, size: 18),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Select Dates',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                        color: Color(0xFF2C3E50),
-                      ),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () => Navigator.pop(bctx),
-                      child: const Text('Cancel'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8F9FA),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE9ECEF)),
+                      const SizedBox(width: 12),
+                      const Text('Select Availability', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Color(0xFF2C3E50))),
+                      const Spacer(),
+                      TextButton(onPressed: () => Navigator.pop(bctx), child: const Text('Cancel')),
+                    ],
                   ),
-                  child: TableCalendar<void>(
-                    firstDay: now,
-                    lastDay: now.add(const Duration(days: 365)),
-                    focusedDay: focused,
-                    rangeStartDay: start,
-                    rangeEndDay: end,
-                    rangeSelectionMode: RangeSelectionMode.toggledOn,
-                    onDaySelected: (sel, f) {
-                      // toggle logic for start/end
-                      if (start == null || (start != null && end != null)) {
-                        setBtm(() {
-                          start = sel;
-                          end = null;
-                          focused = f;
-                        });
-                      } else {
-                        setBtm(() {
-                          if (sel.isBefore(start!)) {
-                            end = start;
-                            start = sel;
-                          } else {
-                            end = sel;
-                          }
-                          focused = f;
-                        });
-                      }
-                    },
-                    onPageChanged: (f) => setBtm(() => focused = f),
-                    headerStyle: const HeaderStyle(
-                      formatButtonVisible: false,
-                      titleCentered: true,
-                    ),
-                    daysOfWeekHeight: 35,
-                    rowHeight: 40,
-                    calendarStyle: CalendarStyle(
-                      outsideDaysVisible: false,
-                      rangeHighlightColor: const Color(0xFF6E56CF).withOpacity(0.25),
-                      rangeStartDecoration: const BoxDecoration(
-                        color: Color(0xFF6E56CF),
-                        shape: BoxShape.circle,
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE9ECEF)),
                       ),
-                      rangeEndDecoration: const BoxDecoration(
-                        color: Color(0xFF6E56CF),
-                        shape: BoxShape.circle,
-                      ),
-                      withinRangeDecoration: BoxDecoration(
-                        color: const Color(0xFF6E56CF).withOpacity(0.15),
-                        shape: BoxShape.rectangle,
+                      child: AvailabilityCalendar(
+                        onRangesSelected: (rs) { ranges = rs; },
+                        initialRanges: ranges,
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    OutlinedButton(
-                      onPressed: () => setBtm(() { start = null; end = null; }),
-                      child: const Text('Clear'),
-                    ),
-                    const Spacer(),
-                    FilledButton(
-                      onPressed: (start != null && end != null)
-                          ? () => Navigator.pop(bctx, DateTimeRange(start: start!, end: end!))
-                          : null,
-                      child: const Text('Apply'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ],
-            );
-          }),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      OutlinedButton(
+                        onPressed: () => Navigator.pop(bctx, null),
+                        child: const Text('Clear'),
+                      ),
+                      const Spacer(),
+                      FilledButton(
+                        onPressed: ranges.isNotEmpty
+                            ? () {
+                                // collapse multi-ranges to a single filter window
+                                DateTime minStart = ranges.map((r) => r.start).reduce((a, b) => a.isBefore(b) ? a : b);
+                                DateTime maxEnd = ranges.map((r) => r.end).reduce((a, b) => a.isAfter(b) ? a : b);
+                                Navigator.pop(bctx, DateTimeRange(start: minStart, end: maxEnd));
+                              }
+                            : null,
+                        child: const Text('Apply'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );
@@ -1084,28 +1120,48 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 6),
 
-                      // Availability badge
+                      // Availability badge (live, accepted blocks only)
                       if (room.availabilityRanges.isNotEmpty) ...[
-                        Row(children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.blue[50],
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              room.availabilityRanges.length == 1
-                                  ? 'Available: ${room.availabilityRanges[0].start.toString().split(" ").first} → ${room.availabilityRanges[0].end.toString().split(" ").first}'
-                                  : '${room.availabilityRanges.length} availability periods',
-                              style: TextStyle(
-                                fontSize: isTablet ? 13 : 12,
-                                color: Colors.blue[700],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ]),
-                        const SizedBox(height: 6),
+                        StreamBuilder<List<BookingRequest>>(
+                          stream: BookingService().getRequestsForProperty(room.id),
+                          builder: (context, reqSnap) {
+                            final reqs = reqSnap.data ?? const <BookingRequest>[];
+                            final statusMap = _buildDailyStatus(room, reqs);
+                            final liveAvail = _deriveRangesFromStatus(statusMap, 'available');
+                            final String label;
+                            if (liveAvail.isEmpty) {
+                              label = 'All availability dates booked';
+                            } else if (liveAvail.length == 1) {
+                              final r = liveAvail.first;
+                              label = 'Available: ${r.start.toString().split(' ').first} → ${r.end.toString().split(' ').first}';
+                            } else {
+                              label = '${liveAvail.length} availability periods';
+                            }
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: liveAvail.isEmpty ? Colors.red[50] : Colors.blue[50],
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      label,
+                                      style: TextStyle(
+                                        fontSize: isTablet ? 13 : 12,
+                                        color: liveAvail.isEmpty ? Colors.red[700] : Colors.blue[700],
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ]),
+                                const SizedBox(height: 6),
+                              ],
+                            );
+                          },
+                        ),
                       ],
 
                       // Details with icons (removed walk mins)

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Booking model for confirmed property rentals
 class Booking {
   final String id;
   final String roomId;

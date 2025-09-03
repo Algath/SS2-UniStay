@@ -20,7 +20,6 @@ class ImageOptimizationService {
         return await _optimizeForMobile(imageBytes);
       }
     } catch (e) {
-      print('Image optimization failed: $e');
       // Fallback: return original bytes (truncated if too large)
       if (imageBytes.lengthInBytes > 1200 * 1024) {
         return imageBytes.sublist(0, 1200 * 1024);
@@ -43,7 +42,7 @@ class ImageOptimizationService {
 
       return result;
     } catch (e) {
-      print('WebP compression failed, falling back to JPEG: $e');
+      // Fallback to JPEG
       // Fallback to JPEG if WebP fails
       final result = await FlutterImageCompress.compressWithList(
         imageBytes,
@@ -71,7 +70,7 @@ class ImageOptimizationService {
 
       return webpResult;
     } catch (e) {
-      print('WebP compression failed on web, using JPEG: $e');
+      // Fallback to JPEG for web
       // Fallback to JPEG for web compatibility
       final result = await FlutterImageCompress.compressWithList(
         imageBytes,
@@ -98,7 +97,6 @@ class ImageOptimizationService {
 
       return result ?? await imageFile.readAsBytes();
     } catch (e) {
-      print('File compression failed: $e');
       // Fallback to reading original file
       return await imageFile.readAsBytes();
     }

@@ -86,6 +86,7 @@ class _EditRoomPageState extends State<EditRoomPage> {
     'Internet': false,
     'Private bathroom': false,
     'Kitchen access': false,
+    'Parking': false,
   };
   
   List<DateTimeRange> _availabilityRanges = [];
@@ -423,9 +424,7 @@ class _EditRoomPageState extends State<EditRoomPage> {
         );
         return;
       }
-    } catch (e) {
-      print('Error checking bookings: $e');
-    }
+    } catch (e) {}
 
     final ok = await showDialog<bool>(
       context: context,

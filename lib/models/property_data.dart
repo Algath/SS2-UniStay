@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart' as ll;
 
+/// Property data model for rental properties
 class PropertyData {
   final String title;
   final num price;

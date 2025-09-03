@@ -65,3 +65,4 @@ flutter:
   assets:
     - assets/ss2_unistay_price.tflite
     - assets/PointExploitation.csv
+    - assets/synthetic_valais_price.csv

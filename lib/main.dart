@@ -22,6 +22,7 @@ import 'views/add_property.dart';
 import 'views/main_navigation.dart';
 import 'views/property_detail.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -96,7 +97,7 @@ class UniStayApp extends StatelessWidget {
         HomePage.route: (_) => const HomePage(),
         MainNavigation.route: (_) => const MainNavigation(),
         EditProfilePage.route: (_) => const EditProfilePage(),
-        MapPageOSM.route: (_) => const MapPageOSM(),
+        '/map': (_) => const MapPageOSM(),
         ProfileGate.route: (_) => const ProfileGate(),
         ProfileStudentPageRefactored.route: (_) => const ProfileStudentPageRefactored(), // Changed
         ProfileOwnerPageRefactored.route: (_) => const ProfileOwnerPageRefactored(),     // Changed
@@ -106,6 +107,7 @@ class UniStayApp extends StatelessWidget {
           final roomId = ModalRoute.of(context)!.settings.arguments as String;
           return PropertyDetailPage(roomId: roomId);
         },
+
       },
     );
   }

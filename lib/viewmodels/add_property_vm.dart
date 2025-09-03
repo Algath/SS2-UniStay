@@ -45,6 +45,7 @@ class AddPropertyViewModel extends ChangeNotifier {
   // State
   bool _isSaving = false;
   String? _errorMessage;
+  String? _editingPropertyId; // For edit mode
 
   // Getters
   String get type => _type;
@@ -295,13 +296,18 @@ class AddPropertyViewModel extends ChangeNotifier {
     try {
       final propertyData = _createPropertyData();
 
-      // UPDATED: No need to pass photos separately - they're already in photoUrls
-      final propertyId = await PropertyService.saveProperty(
-        propertyData: propertyData,
-        // Remove these parameters since photos are already uploaded
-        // localPhotos: null,
-        // webPhotos: null,
-      );
+      if (_editingPropertyId != null) {
+        // Update existing property
+        await PropertyService.updateProperty(
+          propertyId: _editingPropertyId!,
+          propertyData: propertyData,
+        );
+      } else {
+        // Create new property
+        await PropertyService.saveProperty(
+          propertyData: propertyData,
+        );
+      }
 
       _isSaving = false;
       notifyListeners();
@@ -347,6 +353,7 @@ class AddPropertyViewModel extends ChangeNotifier {
 
     _isSaving = false;
     _errorMessage = null;
+    _editingPropertyId = null; // Reset editing property ID
 
     notifyListeners();
   }
@@ -381,5 +388,52 @@ class AddPropertyViewModel extends ChangeNotifier {
     if (hasAvailability) completed++;
 
     return completed / total;
+  }
+
+  // Load property data for edit mode
+  Future<void> loadPropertyForEdit(String propertyId) async {
+    try {
+      _editingPropertyId = propertyId; // Set the editing property ID
+      final property = await PropertyService.getPropertyById(propertyId);
+      if (property != null) {
+        // Fill form fields with existing data
+        titleController.text = property.title;
+        priceController.text = property.price.toString();
+        streetController.text = property.street;
+        houseNumberController.text = property.houseNumber;
+        cityController.text = property.city;
+        postcodeController.text = property.postcode;
+        descriptionController.text = property.description;
+        sizeSqmController.text = property.sizeSqm.toString();
+        roomsController.text = property.rooms.toString();
+        bathroomsController.text = property.bathrooms.toString();
+
+        // Set property details
+        _type = property.type;
+        _furnished = property.furnished;
+        _utilitiesIncluded = property.utilitiesIncluded;
+        _position = ll.LatLng(property.lat, property.lng);
+
+        // Set photos
+        _photoUrls.clear();
+        _photoUrls.addAll(property.photoUrls);
+
+        // Set amenities
+        _amenities = {
+          'Internet': property.amenities.contains('Internet'),
+          'Private bathroom': property.amenities.contains('Private bathroom'),
+          'Kitchen access': property.amenities.contains('Kitchen access'),
+          'Parking': property.amenities.contains('Parking'),
+        };
+
+        // Set availability ranges
+        _availabilityRanges = property.availabilityRanges;
+
+        notifyListeners();
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to load property: $e';
+      notifyListeners();
+    }
   }
 }

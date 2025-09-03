@@ -6,6 +6,9 @@ import 'package:unistay/services/booking_service.dart';
 import 'package:unistay/views/edit_room.dart';
 import 'package:unistay/widgets/property_detail/index.dart';
 import 'package:unistay/widgets/property_detail/availability_summary_widget.dart';
+import 'package:unistay/widgets/property_detail/property_rating_widget.dart';
+import 'package:unistay/widgets/property_detail/property_reviews_widget.dart';
+import 'package:unistay/widgets/property_detail/review_form_widget.dart';
 
 class PropertyDetailPage extends StatefulWidget {
   final String roomId;
@@ -131,6 +134,18 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     }
   }
 
+  void _navigateToMap(Room room) {
+    Navigator.of(context).pushNamed(
+      '/map',
+      arguments: {
+        'initialLat': room.lat,
+        'initialLng': room.lng,
+        'title': room.title,
+        'address': room.fullAddress,
+      },
+    );
+  }
+
   Widget _buildContentContainer(Room room) {
     return Container(
       width: double.infinity,
@@ -160,7 +175,10 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
           const SizedBox(height: 24),
           PropertyAmenitiesWidget(amenities: room.amenities),
           const SizedBox(height: 24),
-          PropertyAddressWidget(room: room),
+          PropertyAddressWidget(
+            room: room,
+            onMapTap: () => _navigateToMap(room),
+          ),
           const SizedBox(height: 24),
           ConnectionsSectionWidget(room: room),
           const SizedBox(height: 24),
@@ -178,6 +196,10 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
             onEdit: () => _editProperty(),
             onDelete: () => _deleteProperty(room),
           ),
+          const SizedBox(height: 24),
+          _buildReviewsSection(room),
+          const SizedBox(height: 24),
+          _buildRatingSection(room),
         ],
       ),
     );
@@ -243,6 +265,49 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRatingSection(Room room) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeaderWidget(
+          icon: Icons.star,
+          iconColor: const Color(0xFFFFD700),
+          title: 'Ratings & Reviews',
+        ),
+        const SizedBox(height: 12),
+        PropertyRatingWidget(propertyId: room.id),
+      ],
+    );
+  }
+
+  Widget _buildReviewsSection(Room room) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final userType = _isOwner ? 'owner' : 'student';
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Existing reviews first
+        PropertyReviewsWidget(propertyId: room.id),
+        const SizedBox(height: 24),
+        
+        // Review form at the bottom (for all users - validation is handled inside the widget)
+        if (currentUser != null) ...[
+          ReviewFormWidget(
+            propertyId: room.id,
+            userType: userType,
+            onReviewSubmitted: () {
+              setState(() {
+                // Refresh the page to show new review
+              });
+            },
+          ),
+        ],
+
+      ],
     );
   }
 

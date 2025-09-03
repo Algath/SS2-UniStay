@@ -114,33 +114,8 @@ class _ProfileOwnerPageRefactoredState extends State<ProfileOwnerPageRefactored>
                       _buildProfileCard(isTablet),
                       const SizedBox(height: 24),
 
-                      // Properties Section
-                      OwnerPropertiesSection(isTablet: isTablet),
-                      const SizedBox(height: 24),
-
-                      // Waiting Requests Section
-                      OwnerRequestsSection(
-                        ownerUid: uid,
-                        isTablet: isTablet,
-                      ),
-                      const SizedBox(height: 24),
-                      // Favorites Section (owner may save listings too)
-                      FavoritesSection(isTablet: isTablet),
-                      const SizedBox(height: 24),
-
-                      // My Bookings (Owner perspective) — list owner-related requests grouped
-                      StudentBookingsSection(
-                        studentUid: uid, // reuse widget; filtering will be adapted below if needed
-                        isTablet: isTablet,
-                        isLandscape: isLandscape,
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Settings Section
-                      SettingsSection(
-                        isTablet: isTablet,
-                        isLandscape: isLandscape,
-                      ),
+                      // Tab-based content for better organization
+                      _buildTabbedContent(uid, isTablet, isLandscape),
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -188,6 +163,112 @@ class _ProfileOwnerPageRefactoredState extends State<ProfileOwnerPageRefactored>
             onProfileUpdated: _loadUserProfile,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTabbedContent(String uid, bool isTablet, bool isLandscape) {
+    return DefaultTabController(
+      length: 4,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Tab Bar
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: TabBar(
+                labelColor: const Color(0xFF6E56CF),
+                unselectedLabelColor: Colors.grey[600],
+                indicatorColor: const Color(0xFF6E56CF),
+                indicatorWeight: 3,
+                labelStyle: TextStyle(
+                  fontSize: isTablet ? 16 : 14,
+                  fontWeight: FontWeight.w600,
+                ),
+                tabs: const [
+                  Tab(
+                    icon: Icon(Icons.home_work),
+                    text: 'Properties',
+                  ),
+                  Tab(
+                    icon: Icon(Icons.pending_actions),
+                    text: 'Requests',
+                  ),
+                  Tab(
+                    icon: Icon(Icons.bookmark_outlined),
+                    text: 'Bookings',
+                  ),
+                  Tab(
+                    icon: Icon(Icons.settings),
+                    text: 'Settings',
+                  ),
+                ],
+              ),
+            ),
+            // Tab Content
+            SizedBox(
+              height: isTablet ? 600 : 500, // Fixed height for better UX
+              child: TabBarView(
+                children: [
+                  // Properties Tab
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        OwnerPropertiesSection(isTablet: isTablet),
+                        const SizedBox(height: 20),
+                        FavoritesSection(isTablet: isTablet),
+                      ],
+                    ),
+                  ),
+                  // Requests Tab
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: OwnerRequestsSection(
+                      ownerUid: uid,
+                      isTablet: isTablet,
+                    ),
+                  ),
+                  // Bookings Tab
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: StudentBookingsSection(
+                      studentUid: uid,
+                      isTablet: isTablet,
+                      isLandscape: isLandscape,
+                    ),
+                  ),
+                  // Settings Tab
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: SettingsSection(
+                      isTablet: isTablet,
+                      isLandscape: isLandscape,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

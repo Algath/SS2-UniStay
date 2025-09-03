@@ -37,7 +37,7 @@ class _AvailabilityCalendarWidgetState extends State<AvailabilityCalendarWidget>
     _subscribe();
   }
 
-  void _subscribe() {
+    void _subscribe() {
     final Map<DateTime, String> base = {};
     for (final range in widget.room.availabilityRanges) {
       for (DateTime d = range.start; d.isBefore(range.end.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
@@ -77,6 +77,18 @@ class _AvailabilityCalendarWidgetState extends State<AvailabilityCalendarWidget>
               map[DateTime(d.year, d.month, d.day)] = 'unavailable';
             }
           }
+        }
+      }
+      
+      // Mark unavailable days for both owner and student
+      // Add unavailable days for dates that are not in availability ranges
+      final now = DateTime.now();
+      final endDate = now.add(const Duration(days: 365));
+      
+      for (DateTime d = now; d.isBefore(endDate); d = d.add(const Duration(days: 1))) {
+        final key = DateTime(d.year, d.month, d.day);
+        if (!base.containsKey(key)) {
+          map[key] = 'unavailable';
         }
       }
 
@@ -166,8 +178,11 @@ class _AvailabilityCalendarWidgetState extends State<AvailabilityCalendarWidget>
   bool _isInSelectedRange(DateTime day) {
     if (_selectedRange == null) return false;
     final normalizedDay = DateTime(day.year, day.month, day.day);
-    return normalizedDay.isAfter(_selectedRange!.start.subtract(const Duration(days: 1))) &&
-        normalizedDay.isBefore(_selectedRange!.end.add(const Duration(days: 1)));
+    final start = DateTime(_selectedRange!.start.year, _selectedRange!.start.month, _selectedRange!.start.day);
+    final end = DateTime(_selectedRange!.end.year, _selectedRange!.end.month, _selectedRange!.end.day);
+    return normalizedDay.isAtSameMomentAs(start) || 
+           normalizedDay.isAtSameMomentAs(end) ||
+           (normalizedDay.isAfter(start) && normalizedDay.isBefore(end));
   }
 
   Widget _buildCalendarLegend() {
@@ -199,6 +214,7 @@ class _AvailabilityCalendarWidgetState extends State<AvailabilityCalendarWidget>
     if (widget.isOwner) {
       addLegendItem(Colors.orange, 'Pending');
       addLegendItem(Colors.red, 'Booked');
+      addLegendItem(Colors.grey, 'Unavailable');
     } else {
       addLegendItem(Colors.grey, 'Unavailable');
     }
@@ -219,127 +235,136 @@ class _AvailabilityCalendarWidgetState extends State<AvailabilityCalendarWidget>
         border: Border.all(color: const Color(0xFFE9ECEF)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          TableCalendar<String>(
-            firstDay: DateTime.utc(2020, 1, 1),
-            lastDay: DateTime.utc(2030, 12, 31),
-            focusedDay: _focusedDay,
-            calendarFormat: _calendarFormat,
-            eventLoader: (day) {
-              final status = _statusByDay[DateTime(day.year, day.month, day.day)];
-              return status != null ? [status] : [];
-            },
-            startingDayOfWeek: StartingDayOfWeek.monday,
-            calendarStyle: CalendarStyle(
-              outsideDaysVisible: false,
-              markersMaxCount: 1,
-              markerDecoration: const BoxDecoration(),
-              selectedDecoration: BoxDecoration(
-                color: const Color(0xFF6E56CF),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              todayDecoration: BoxDecoration(
-                color: const Color(0xFF6E56CF).withOpacity(0.3),
-                shape: BoxShape.circle,
-              ),
-              markersAlignment: Alignment.center,
-              markerMargin: const EdgeInsets.all(0),
-            ),
-            headerStyle: const HeaderStyle(
-              formatButtonVisible: true,
-              titleCentered: true,
-              formatButtonShowsNext: false,
-              formatButtonDecoration: BoxDecoration(
-                color: Color(0xFF6E56CF),
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-              ),
-              formatButtonTextStyle: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-              ),
-            ),
-            onDaySelected: _onDaySelected,
-            onFormatChanged: (format) {
-              if (_calendarFormat != format) {
-                setState(() => _calendarFormat = format);
-              }
-            },
-            onPageChanged: (focusedDay) {
-              setState(() => _focusedDay = focusedDay);
-            },
-            selectedDayPredicate: (day) {
-              return isSameDay(_selectedDay, day);
-            },
-            calendarBuilders: CalendarBuilders(
-              markerBuilder: (context, date, events) {
-                if (events.isNotEmpty) {
-                  final color = _getDayColor(date);
-                  if (color == Colors.transparent) return null;
-
-                  return Positioned(
-                    bottom: 1,
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  );
-                }
-                return null;
+          Flexible(
+            child: TableCalendar<String>(
+              firstDay: DateTime.utc(2020, 1, 1),
+              lastDay: DateTime.utc(2030, 12, 31),
+              focusedDay: _focusedDay,
+              calendarFormat: _calendarFormat,
+              eventLoader: (day) {
+                final status = _statusByDay[DateTime(day.year, day.month, day.day)];
+                return status != null ? [status] : [];
               },
-              defaultBuilder: (context, date, _) {
-                final isInRange = _isInSelectedRange(date);
-                final color = _getDayColor(date);
-
-                if (isInRange && !widget.isOwner) {
-                  return Container(
-                    margin: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF6E56CF).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: const Color(0xFF6E56CF).withOpacity(0.5),
-                        width: 1,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${date.day}',
-                        style: const TextStyle(
-                          color: Color(0xFF6E56CF),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  );
+              startingDayOfWeek: StartingDayOfWeek.monday,
+              calendarStyle: CalendarStyle(
+                outsideDaysVisible: false,
+                markersMaxCount: 1,
+                markerDecoration: const BoxDecoration(),
+                selectedDecoration: BoxDecoration(
+                  color: const Color(0xFF6E56CF),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                todayDecoration: BoxDecoration(
+                  color: const Color(0xFF6E56CF).withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
+                markersAlignment: Alignment.center,
+                markerMargin: const EdgeInsets.all(0),
+                cellMargin: const EdgeInsets.all(2),
+                cellPadding: EdgeInsets.zero,
+              ),
+              headerStyle: const HeaderStyle(
+                formatButtonVisible: true,
+                titleCentered: true,
+                formatButtonShowsNext: false,
+                formatButtonDecoration: BoxDecoration(
+                  color: Color(0xFF6E56CF),
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
+                formatButtonTextStyle: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+                headerPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                titleTextStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              onDaySelected: _onDaySelected,
+              onFormatChanged: (format) {
+                if (_calendarFormat != format) {
+                  setState(() => _calendarFormat = format);
                 }
+              },
+              onPageChanged: (focusedDay) {
+                setState(() => _focusedDay = focusedDay);
+              },
+              selectedDayPredicate: (day) {
+                return isSameDay(_selectedDay, day);
+              },
+              calendarBuilders: CalendarBuilders(
+                markerBuilder: (context, date, events) {
+                  if (events.isNotEmpty) {
+                    final color = _getDayColor(date);
+                    if (color == Colors.transparent) return null;
 
-                if (color != Colors.transparent) {
-                  return Container(
-                    margin: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: color.withOpacity(0.3), width: 1),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${date.day}',
-                        style: TextStyle(
+                    return Positioned(
+                      bottom: 1,
+                      child: Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
                           color: color,
-                          fontWeight: FontWeight.w500,
+                          shape: BoxShape.circle,
                         ),
                       ),
-                    ),
-                  );
-                }
+                    );
+                  }
+                  return null;
+                },
+                defaultBuilder: (context, date, _) {
+                  final isInRange = _isInSelectedRange(date);
+                  final color = _getDayColor(date);
 
-                return null;
-              },
+                  if (isInRange && !widget.isOwner) {
+                    return Container(
+                      margin: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6E56CF).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: const Color(0xFF6E56CF).withOpacity(0.5),
+                          width: 1,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${date.day}',
+                          style: const TextStyle(
+                            color: Color(0xFF6E56CF),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  if (color != Colors.transparent) {
+                    return Container(
+                      margin: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: color.withOpacity(0.3), width: 1),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${date.day}',
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return null;
+                },
+              ),
             ),
           ),
 
@@ -347,6 +372,7 @@ class _AvailabilityCalendarWidgetState extends State<AvailabilityCalendarWidget>
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 _buildCalendarLegend(),
                 if (!widget.isOwner && _selectedRange != null) ...[

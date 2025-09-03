@@ -4,7 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unistay/viewmodels/home_vm.dart';
 import 'package:unistay/models/room.dart';
-import 'package:unistay/views/property_detail.dart';
+import 'package:unistay/views/property_detail_backup.dart';
 import 'package:unistay/widgets/availability_calendar.dart';
 import 'package:unistay/services/booking_service.dart';
 import 'package:unistay/models/booking_request.dart';

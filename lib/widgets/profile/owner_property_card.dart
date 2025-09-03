@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:unistay/models/room.dart';
-import 'package:unistay/views/property_detail.dart';
+import 'package:unistay/views/property_detail_backup.dart';
 
 class OwnerPropertyCard extends StatelessWidget {
   final Room room;

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unistay/models/review.dart';
 import 'package:unistay/services/review_service.dart';
+import 'package:unistay/models/booking_request.dart';
 
 class ReviewFormWidget extends StatefulWidget {
   final String propertyId;
@@ -163,13 +164,12 @@ class _ReviewFormWidgetState extends State<ReviewFormWidget> {
       );
     }
 
-    return FutureBuilder<QuerySnapshot>(
-      future: _firestore
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
           .collection('booking_requests')
           .where('studentUid', isEqualTo: currentUser.uid)
           .where('propertyId', isEqualTo: widget.propertyId)
-          .where('status', isEqualTo: 'accepted')
-          .get(),
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -190,15 +190,18 @@ class _ReviewFormWidgetState extends State<ReviewFormWidget> {
           );
         }
 
-        final bookings = snapshot.data?.docs ?? [];
+        final docs = snapshot.data?.docs ?? [];
+
+        final requests = docs.map((d) {
+          return BookingRequest.fromFirestore(d as DocumentSnapshot<Map<String, dynamic>>);
+        }).toList();
+
         final now = DateTime.now();
-        
-        // Check if user has completed booking for this property
-        final hasCompletedBooking = bookings.any((booking) {
-          final data = booking.data() as Map<String, dynamic>;
-          final endDate = (data['endDate'] as Timestamp).toDate();
-          return endDate.isBefore(now);
-        });
+
+        // Use same logic as history tab
+        final hasCompletedBooking = requests.any((r) =>
+          r.status == 'accepted' && r.endDate.isBefore(now)
+        );
 
         if (!hasCompletedBooking) {
           return Container(

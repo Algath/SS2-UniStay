@@ -21,6 +21,7 @@ class _AmenitiesSelectorState extends State<AmenitiesSelector> {
     'Internet',
     'Private bathroom',
     'Kitchen access',
+    'Parking',
   ];
 
   List<String> get _availableAmenities {

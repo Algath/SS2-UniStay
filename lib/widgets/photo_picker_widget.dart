@@ -132,7 +132,7 @@ class _PhotoPickerWidgetState extends State<PhotoPickerWidget> {
 
       return downloadUrl;
     } catch (e) {
-      print('Failed to upload image: $e');
+      // Upload failed
       return null;
     }
   }
@@ -152,7 +152,7 @@ class _PhotoPickerWidgetState extends State<PhotoPickerWidget> {
     try {
       await StorageService.deletePropertyImage(imageUrl);
     } catch (e) {
-      print('Failed to delete image from Firebase: $e');
+      // Delete failed
     }
   }
 

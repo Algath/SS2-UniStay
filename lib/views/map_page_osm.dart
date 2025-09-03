@@ -1,9 +1,11 @@
-import 'dart:math' show sin, cos, sqrt, atan2;
+import 'dart:math' show sin, cos, sqrt, atan2, asin, pi;
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as ll;
 import 'package:unistay/models/room.dart';
+import 'package:unistay/services/institutions.dart';
 
 class MapPageOSM extends StatefulWidget {
   static const route = '/map';
@@ -63,48 +65,31 @@ class _TrianglePainter extends CustomPainter {
 }
 
 class _MapPageOSMState extends State<MapPageOSM> {
-  // Universities in Valais
-  static const List<University> _universities = [
-    University(
-      name: 'HES-SO Valais-Wallis - Sion',
-      shortName: 'HES-SO Sion',
-      location: ll.LatLng(46.2276, 7.3589),
-    ),
-    University(
-      name: 'HES-SO Valais-Wallis - Sierre',
-      shortName: 'HES-SO Sierre',
-      location: ll.LatLng(46.2910, 7.5360),
-    ),
-    University(
-      name: 'UNIL Campus Sion',
-      shortName: 'UNIL Sion',
-      location: ll.LatLng(46.2333, 7.3667),
-    ),
-    University(
-      name: 'UniDistance Suisse - Brig',
-      shortName: 'UniDistance',
-      location: ll.LatLng(46.3167, 7.9833),
-    ),
-    University(
-      name: 'César Ritz Colleges - Le Bouveret',
-      shortName: 'César Ritz',
-      location: ll.LatLng(46.3833, 6.8500),
-    ),
-    University(
-      name: 'Les Roches - Crans-Montana',
-      shortName: 'Les Roches',
-      location: ll.LatLng(46.3167, 7.4667),
-    ),
-  ];
+  // Universities list derived from signup institutions
+  late final List<University> _universities;
 
   final _mapCtrl = MapController();
   final _markers = <Marker>[];
   University? _selectedUniversity;
   ll.LatLng? _selectedLocation;
+  ll.LatLng? _focusedPoint; // Point to focus/zoom to (from widget params or route args)
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _roomsSub;
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _lastDocs = [];
+  bool _appliedRouteArgs = false;
+  double _radiusKm = 4.0; // filter radius around selected university
+  int _listingsInRadius = 0;
 
   @override
   void initState() {
     super.initState();
+    // Build universities list from shared institutions source
+    _universities = institutions
+        .map((i) => University(
+              name: i.nom,
+              shortName: _shortenName(i.nom),
+              location: ll.LatLng(i.latitude, i.longitude),
+            ))
+        .toList();
     if (widget.selectMode) {
       // In select mode, use initial position if provided
       if (widget.initialLat != null && widget.initialLng != null) {
@@ -112,14 +97,87 @@ class _MapPageOSMState extends State<MapPageOSM> {
       }
     } else {
       // Default to first university for normal mode
-      _selectedUniversity = _universities.first;
-      _loadMarkers();
+      _selectedUniversity = _universities.isNotEmpty ? _universities.first : null;
+      _subscribeMarkers();
+    }
+
+    // If a specific location is provided, zoom in to it after first frame
+    if (widget.initialLat != null && widget.initialLng != null) {
+      _focusedPoint = ll.LatLng(widget.initialLat!, widget.initialLng!);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _mapCtrl.move(_focusedPoint!, 17);
+      });
     }
   }
 
-  Future<void> _loadMarkers() async {
-    final snap = await FirebaseFirestore.instance.collection('rooms').get();
+  String _shortenName(String name) {
+    // Heuristic: take part before ' – ' or ' (' if present
+    if (name.contains(' – ')) return name.split(' – ').first;
+    if (name.contains(' - ')) return name.split(' - ').first;
+    if (name.contains('(')) return name.split('(').first.trim();
+    return name;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Read route arguments if provided via pushNamed, and apply once
+    if (!_appliedRouteArgs) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map) {
+        final latAny = args['initialLat'];
+        final lngAny = args['initialLng'];
+        final radiusAny = args['radiusKm'];
+        final double? lat = latAny is num ? latAny.toDouble() : (latAny is String ? double.tryParse(latAny) : null);
+        final double? lng = lngAny is num ? lngAny.toDouble() : (lngAny is String ? double.tryParse(lngAny) : null);
+        final double? rkm = radiusAny is num ? radiusAny.toDouble() : (radiusAny is String ? double.tryParse(radiusAny) : null);
+        if (lat != null && lng != null) {
+          _focusedPoint = ll.LatLng(lat, lng);
+          if (rkm != null && rkm > 0) {
+            _radiusKm = rkm;
+          }
+          _appliedRouteArgs = true;
+          // Pick nearest university to focused point for filtering
+          _selectedUniversity = _nearestUniversityTo(_focusedPoint!);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _mapCtrl.move(_focusedPoint!, 17);
+            // Re-filter markers against the (possibly) new selected university
+            setState(() {
+              _updateMarkersFromDocs();
+            });
+          });
+        }
+      }
+    }
+  }
+
+  University _nearestUniversityTo(ll.LatLng p) {
+    University best = _universities.first;
+    double bestDist = _distanceKm(best.location, p);
+    for (final u in _universities.skip(1)) {
+      final d = _distanceKm(u.location, p);
+      if (d < bestDist) {
+        best = u;
+        bestDist = d;
+      }
+    }
+    return best;
+  }
+
+  void _subscribeMarkers() {
+    _roomsSub?.cancel();
+    _roomsSub = FirebaseFirestore.instance
+        .collection('rooms')
+        .snapshots()
+        .listen((snap) {
+      _lastDocs = snap.docs;
+      _updateMarkersFromDocs();
+    });
+  }
+
+  void _updateMarkersFromDocs() {
     final m = <Marker>[];
+    int countInRadius = 0;
 
     // Add selected university marker
     if (_selectedUniversity != null) {
@@ -173,17 +231,25 @@ class _MapPageOSMState extends State<MapPageOSM> {
       );
     }
 
-    // Add property markers
-    for (final d in snap.docs) {
+    // Add property markers (only active)
+    for (final d in _lastDocs) {
       final r = d.data();
-      final lat = (r['lat'] ?? 0.0) as double;
-      final lng = (r['lng'] ?? 0.0) as double;
+      if ((r['status'] ?? 'active') != 'active') {
+        continue;
+      }
+      final lat = ((r['lat'] ?? 0.0) as num).toDouble();
+      final lng = ((r['lng'] ?? 0.0) as num).toDouble();
       final pos = ll.LatLng(lat, lng);
       final title = (r['title'] ?? '') as String;
       final price = (r['price'] ?? 0);
       final distKm = _selectedUniversity != null
           ? _distanceKm(_selectedUniversity!.location, pos)
           : 0.0;
+
+      // Filter by radius if a university is selected
+      if (_selectedUniversity != null && distKm > _radiusKm) {
+        continue;
+      }
 
       m.add(
         Marker(
@@ -216,6 +282,7 @@ class _MapPageOSMState extends State<MapPageOSM> {
           ),
         ),
       );
+      countInRadius += 1;
     }
 
     if (!mounted) return;
@@ -223,6 +290,7 @@ class _MapPageOSMState extends State<MapPageOSM> {
       _markers
         ..clear()
         ..addAll(m);
+      _listingsInRadius = countInRadius;
     });
   }
 
@@ -238,13 +306,34 @@ class _MapPageOSMState extends State<MapPageOSM> {
     return R * c;
   }
 
+  List<ll.LatLng> _buildCirclePolygonPoints(ll.LatLng center, double radiusMeters, int pointsCount) {
+    const double earthRadius = 6371000.0; // meters
+    final double latRad = center.latitude * (pi / 180.0);
+    final double lngRad = center.longitude * (pi / 180.0);
+    final double angularDistance = radiusMeters / earthRadius;
+    final List<ll.LatLng> points = [];
+
+    for (int i = 0; i < pointsCount; i++) {
+      final double bearing = (2 * pi * i) / pointsCount;
+      final double lat2 = asin(sin(latRad) * cos(angularDistance) + cos(latRad) * sin(angularDistance) * cos(bearing));
+      final double lng2 = lngRad + atan2(
+        sin(bearing) * sin(angularDistance) * cos(latRad),
+        cos(angularDistance) - sin(latRad) * sin(lat2),
+      );
+      points.add(ll.LatLng(lat2 * (180.0 / pi), lng2 * (180.0 / pi)));
+    }
+
+    return points;
+  }
+
   void _onUniversitySelected(University? university) {
     if (university != null) {
       setState(() {
         _selectedUniversity = university;
       });
       _mapCtrl.move(university.location, 14);
-      _loadMarkers();
+      // Recompute distances and refresh markers with cached docs
+      _updateMarkersFromDocs();
     }
   }
 
@@ -639,10 +728,12 @@ class _MapPageOSMState extends State<MapPageOSM> {
           FlutterMap(
             mapController: _mapCtrl,
             options: MapOptions(
-              initialCenter: widget.selectMode && _selectedLocation != null
-                  ? _selectedLocation!
-                  : _selectedUniversity?.location ?? ll.LatLng(46.2276, 7.3589),
-              initialZoom: 13,
+              initialCenter: (_focusedPoint != null)
+                  ? _focusedPoint!
+                  : (widget.selectMode && _selectedLocation != null
+                      ? _selectedLocation!
+                      : _selectedUniversity?.location ?? ll.LatLng(46.2276, 7.3589)),
+              initialZoom: (_focusedPoint != null) ? 17 : 13,
               minZoom: 8,
               maxZoom: 18,
               interactionOptions: const InteractionOptions(
@@ -662,6 +753,55 @@ class _MapPageOSMState extends State<MapPageOSM> {
                 subdomains: const ['a', 'b', 'c'],
                 userAgentPackageName: 'com.unistay.app',
               ),
+              if (!widget.selectMode && _selectedUniversity != null)
+                PolygonLayer<Polygon>(
+                  polygons: [
+                    Polygon(
+                      points: _buildCirclePolygonPoints(
+                        _selectedUniversity!.location,
+                        _radiusKm * 1000.0,
+                        96,
+                      ),
+                      borderColor: Colors.amber.withOpacity(0.8),
+                      borderStrokeWidth: 2,
+                      color: Colors.amber.withOpacity(0.15),
+                    ),
+                  ],
+                ),
+              if (!widget.selectMode && _focusedPoint != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _focusedPoint!,
+                      width: 46,
+                      height: 54,
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.purple,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.place, color: Colors.white, size: 20),
+                          ),
+                          CustomPaint(
+                            size: const Size(8, 8),
+                            painter: _TrianglePainter(Colors.purple),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               if (!widget.selectMode) ...[
                 // University markers
                 MarkerLayer(
@@ -740,6 +880,84 @@ class _MapPageOSMState extends State<MapPageOSM> {
                 ),
             ],
           ),
+          if (!widget.selectMode && _selectedUniversity != null)
+            Positioned(
+              bottom: 16,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.radar, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Radius around university: ${_radiusKm.toStringAsFixed(1)} km',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.home, size: 16, color: Colors.black54),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Listings in radius: ${_listingsInRadius}',
+                          style: const TextStyle(color: Colors.black87),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Icon(Icons.info_outline, size: 16, color: Colors.black45),
+                        SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Note: Listings outside the selected radius are hidden on the map.',
+                            style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.2),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: _radiusKm,
+                      min: 1.0,
+                      max: 20.0,
+                      divisions: 19,
+                      label: '${_radiusKm.toStringAsFixed(1)} km',
+                      activeColor: Theme.of(context).colorScheme.primary,
+                      inactiveColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                      onChanged: (v) {
+                        setState(() {
+                          _radiusKm = v;
+                          _updateMarkersFromDocs();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
           if (widget.selectMode)
             Positioned(
               bottom: 16,
@@ -770,6 +988,12 @@ class _MapPageOSMState extends State<MapPageOSM> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _roomsSub?.cancel();
+    super.dispose();
   }
 }
 

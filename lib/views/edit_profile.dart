@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:unistay/services/utils.dart';
+import 'package:unistay/services/institutions.dart';
 import 'package:unistay/views/main_navigation.dart';
 
 class EditProfilePage extends StatefulWidget {
@@ -88,12 +88,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   // Helper method to find university key from address
   String? _getUniversityKeyFromAddress(String address) {
     if (address.isEmpty) return null;
-
-    // Find the university key that matches the saved address
-    for (var entry in institutionCoords.entries) {
-      if (entry.value == address) {
-        return entry.key;
-      }
+    for (final inst in institutions) {
+      if (inst.adresse == address) return inst.nom;
     }
     return null;
   }
@@ -109,9 +105,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           _localImageFile = file;
         });
       }
-    } catch (e) {
-      print('Error loading local profile picture: $e');
-    }
+    } catch (e) {}
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
@@ -150,9 +144,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       setState(() {
         _localImageFile = localFile;
       });
-    } catch (e) {
-      print('Error saving image locally: $e');
-    }
+    } catch (e) {}
   }
 
   void _showPhotoOptions() {
@@ -205,9 +197,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       setState(() {
         _localImageFile = null;
       });
-    } catch (e) {
-      print('Error removing photo: $e');
-    }
+    } catch (e) {}
   }
 
   String? _validateUniversity(String? value) {
@@ -234,10 +224,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
     try {
-      // Get the university address from the selected key
-      final uniAddress = _selectedUniversity != null
-          ? institutionCoords[_selectedUniversity!] ?? ''
-          : '';
+      // Get the university address from the selected name
+      String uniAddress = '';
+      if (_selectedUniversity != null) {
+        final found = institutions.firstWhere(
+          (i) => i.nom == _selectedUniversity,
+          orElse: () => const Institution(nom: '', adresse: '', latitude: 0, longitude: 0),
+        );
+        uniAddress = found.adresse;
+      }
 
       // Save profile data to Firestore
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
@@ -327,7 +322,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Widget _buildUniversityField() {
-    final universities = institutionCoords.keys.toList();
+    final universities = institutions.map((i) => i.nom).toList();
 
     if (_userRole == 'student') {
       // For students, university is required - show dropdown with validation

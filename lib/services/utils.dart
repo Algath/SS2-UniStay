@@ -19,8 +19,8 @@ int cyclingMinsFromKm(double km) => (km / 15.0 * 60).round();
 const double hesSoValaisLat = 46.2276;
 const double hesSoValaisLng = 7.3589;
 
-/// Toutes les HES, universités et antennes en Valais
-/// Coordonnées WGS84 des institutions
+/// All HES, universities and branches in Valais
+/// WGS84 coordinates of institutions
 const Map<String, (double, double)> institutionCoords = {
   'HES-SO Valais-Wallis (Sion - HEI, ingénierie)': (46.226395, 7.359848),
   'HES-SO Valais-Wallis (Sion - HEdS, santé)': (46.22518, 7.37132),

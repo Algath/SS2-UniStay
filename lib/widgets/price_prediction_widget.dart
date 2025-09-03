@@ -33,25 +33,20 @@ class _PricePredictionWidgetState extends State<PricePredictionWidget> {
   @override
   void initState() {
     super.initState();
-    rootBundle.load('assets/ss2_unistay_price.tflite').then((value) {
-      debugPrint("✅ Modèle trouvé (${value.lengthInBytes} bytes)");
-    }).catchError((e) {
-      debugPrint("❌ Erreur chargement asset: $e");
-    });
+    rootBundle.load('assets/ss2_unistay_price.tflite').then((value) {}).catchError((e) {});
   }
 
   Future<void> loadModel() async {
     try {
       interpreter = await Interpreter.fromAsset('assets/ss2_unistay_price.tflite');
-      debugPrint("✅ Modèle chargé !");
     } catch (e) {
-      debugPrint("❌ Erreur chargement modèle: $e");
+      // Model load error
     }
   }
 
   void performPrediction() {
     if (interpreter == null) {
-      widget.predictionController.text = "⚠️ Modèle pas encore chargé";
+      widget.predictionController.text = "Model not loaded";
       return;
     }
 
@@ -62,7 +57,7 @@ class _PricePredictionWidgetState extends State<PricePredictionWidget> {
       final proxim = widget.proximValue;
 
       if (selectedType == null) {
-        widget.predictionController.text = "⚠️ Choisis un type !";
+        widget.predictionController.text = "Choose a type";
         return;
       }
 
@@ -89,7 +84,7 @@ class _PricePredictionWidgetState extends State<PricePredictionWidget> {
       final price = output[0][0];
       widget.predictionController.text = "CHF ${price.toStringAsFixed(0)}.-";
     } catch (e) {
-      widget.predictionController.text = "❌ Erreur prédiction";
+      widget.predictionController.text = "Prediction error";
     }
   }
 

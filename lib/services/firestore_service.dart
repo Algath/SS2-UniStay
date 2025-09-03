@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unistay/models/user_profile.dart'; // Adjust path as needed
 
+/// Service for Firestore database operations and admin functions
 class FirestoreService {
   final _fs = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
@@ -11,7 +12,6 @@ class FirestoreService {
     try {
       return _auth.currentUser?.uid;
     } catch (e) {
-      print('Error getting current user ID: $e');
       return null;
     }
   }
@@ -25,7 +25,6 @@ class FirestoreService {
       final userProfile = await getUserProfile(currentUserId);
       return userProfile?.isAdmin ?? false;
     } catch (e) {
-      print('Error checking admin status: $e');
       return false;
     }
   }
@@ -60,7 +59,6 @@ class FirestoreService {
       }
       return null;
     } catch (e) {
-      print('Error getting user profile: $e');
       return null;
     }
   }
@@ -73,7 +71,6 @@ class FirestoreService {
       final query = await _fs.collection('users').count().get();
       return query.count ?? 0; // Handle null case
     } catch (e) {
-      print('Error getting users count: $e');
       return 0;
     }
   }
@@ -131,7 +128,6 @@ class FirestoreService {
         'adminUpdatedBy': currentUserId, // Track who made the change
       });
     } catch (e) {
-      print('Error updating admin status: $e');
       rethrow;
     }
   }
@@ -156,7 +152,6 @@ class FirestoreService {
         'admins': adminCount,
       };
     } catch (e) {
-      print('Error getting users statistics: $e');
       return {
         'totalUsers': 0,
         'students': 0,

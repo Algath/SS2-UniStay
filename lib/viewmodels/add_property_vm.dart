@@ -6,8 +6,9 @@ import 'package:latlong2/latlong.dart' as ll;
 import 'package:unistay/models/address_suggestion.dart';
 import 'package:unistay/models/property_data.dart';
 import 'package:unistay/services/property_service.dart';
-import 'package:unistay/widgets/amenities_selector.dart';
 
+
+/// ViewModel for add property functionality with form validation and photo management
 class AddPropertyViewModel extends ChangeNotifier {
   // Form controllers
   final titleController = TextEditingController();
@@ -30,11 +31,12 @@ class AddPropertyViewModel extends ChangeNotifier {
   // Photos - UPDATED: Now store Firebase Storage URLs instead of raw files
   final List<String> _photoUrls = [];
 
-  // Amenities - Only the original three from the original file
+  // Amenities
   Map<String, bool> _amenities = {
     'Internet': false,
     'Private bathroom': false,
     'Kitchen access': false,
+    'Parking': false,
   };
 
   // Availability
@@ -338,6 +340,7 @@ class AddPropertyViewModel extends ChangeNotifier {
       'Internet': false,
       'Private bathroom': false,
       'Kitchen access': false,
+      'Parking': false,
     };
 
     _availabilityRanges.clear();

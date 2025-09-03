@@ -62,3 +62,6 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/ss2_unistay_price.tflite
+    - assets/PointExploitation.csv

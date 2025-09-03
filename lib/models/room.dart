@@ -1,15 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart' show DateTimeRange;
 
+/// Room model for property listings with availability ranges
 class Room {
   final String id;
   final String title;
   final num price;
-  final String street; // Cadde
-  final String houseNumber; // Kapı kodu
-  final String city; // Şehir
-  final String postcode; // Posta kodu
-  final String country; // Ülke (varsayılan: Switzerland)
+  final String street;
+  final String houseNumber;
+  final String city;
+  final String postcode;
+  final String country; // Default: Switzerland
   final String description;
   final double lat;
   final double lng;
@@ -54,7 +55,7 @@ class Room {
     this.status = 'active',
   });
 
-  // Tam adres string'i oluştur
+  // Generate full address string
   String get fullAddress => '$street $houseNumber, $postcode $city, $country';
 
   // Check if a date is available within any range
@@ -81,63 +82,46 @@ class Room {
   factory Room.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final m = doc.data() ?? {};
     
-    print('DEBUG: Parsing room ${doc.id}');
-    print('DEBUG: Raw availabilityRanges data: ${m['availabilityRanges']}');
-    
     // Parse availability ranges
     List<DateTimeRange> ranges = [];
     final rangesData = m['availabilityRanges'] as List?;
-    print('DEBUG: rangesData type: ${rangesData.runtimeType}, length: ${rangesData?.length}');
     
     if (rangesData != null) {
-      for (int i = 0; i < rangesData.length; i++) {
-        final rangeData = rangesData[i];
-        print('DEBUG: Processing range $i: $rangeData (type: ${rangeData.runtimeType})');
-        
+      for (final rangeData in rangesData) {
         if (rangeData is Map<String, dynamic>) {
           final start = rangeData['start'];
           final end = rangeData['end'];
-          print('DEBUG: start: $start (type: ${start.runtimeType})');
-          print('DEBUG: end: $end (type: ${end.runtimeType})');
           
           if (start != null && end != null) {
-            DateTime startDate;
-            DateTime endDate;
+            DateTime? startDate;
+            DateTime? endDate;
             
             // Handle both Timestamp and DateTime
             if (start is Timestamp) {
               startDate = start.toDate();
             } else if (start is DateTime) {
               startDate = start;
-            } else {
-              print('DEBUG: Unknown start type: ${start.runtimeType}');
-              continue;
             }
             
             if (end is Timestamp) {
               endDate = end.toDate();
             } else if (end is DateTime) {
               endDate = end;
-            } else {
-              print('DEBUG: Unknown end type: ${end.runtimeType}');
-              continue;
             }
             
-            ranges.add(DateTimeRange(
-              start: startDate,
-              end: endDate,
-            ));
-            print('DEBUG: Added range: $startDate to $endDate');
+            if (startDate != null && endDate != null) {
+              ranges.add(DateTimeRange(
+                start: startDate,
+                end: endDate,
+              ));
+            }
           }
         }
       }
     }
     
-    print('DEBUG: Final ranges count: ${ranges.length}');
-    
     // Migration: If no availability ranges and this is an old property, create a default range
     if (ranges.isEmpty && m['availabilityFrom'] != null && m['availabilityTo'] != null) {
-      print('DEBUG: Migrating old availability format');
       final availFrom = m['availabilityFrom'] as Timestamp?;
       final availTo = m['availabilityTo'] as Timestamp?;
       
@@ -146,13 +130,11 @@ class Room {
           start: availFrom.toDate(),
           end: availTo.toDate(),
         ));
-        print('DEBUG: Migrated range: ${availFrom.toDate()} to ${availTo.toDate()}');
       }
     }
     
     // If still no ranges, create a default 30-day range starting from today
     if (ranges.isEmpty) {
-      print('DEBUG: No availability data found, creating default 30-day range');
       final now = DateTime.now();
       final startDate = DateTime(now.year, now.month, now.day);
       final endDate = startDate.add(const Duration(days: 30));
@@ -161,7 +143,6 @@ class Room {
         start: startDate,
         end: endDate,
       ));
-      print('DEBUG: Created default range: $startDate to $endDate');
     }
 
     return Room(

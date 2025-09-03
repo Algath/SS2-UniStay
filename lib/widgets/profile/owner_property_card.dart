@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:unistay/models/room.dart';
 import 'package:unistay/views/property_detail.dart';
-import 'package:unistay/views/add_property.dart';
+import 'package:unistay/views/edit_room.dart';
 
 class OwnerPropertyCard extends StatelessWidget {
   final Room room;
@@ -134,7 +134,7 @@ class OwnerPropertyCard extends StatelessWidget {
   void _navigateToEditProperty(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => AddPropertyPage(propertyId: room.id),
+        builder: (_) => EditRoomPage(roomId: room.id),
       ),
     );
   }

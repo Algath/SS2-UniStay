@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unistay/widgets/profile/student_booking_card.dart';
 import 'package:unistay/models/booking_request.dart';
+import 'package:unistay/views/property_detail.dart';
 
 class StudentBookingsSection extends StatelessWidget {
   final String studentUid;
@@ -104,7 +105,6 @@ class StudentBookingsSection extends StatelessWidget {
       },
     );
   }
-
 
   Widget _buildEmptyState() {
     return Container(
@@ -237,6 +237,8 @@ class _TabbedStudentBookingsState extends State<_TabbedStudentBookings> with Sin
     final history = list.where((r) => !r.requestedRange.end.isAfter(now)).toList();
 
     return ListView(
+      shrinkWrap: true,
+      physics: const BouncingScrollPhysics(),
       children: [
         if (future.isNotEmpty) ...[
           _subheader('Upcoming'),
@@ -286,6 +288,8 @@ class _TabbedStudentBookingsState extends State<_TabbedStudentBookings> with Sin
     }
 
     return ListView(
+      shrinkWrap: true,
+      physics: const BouncingScrollPhysics(),
       children: history.map((r) => _HistoryBookingTile(req: r)).toList(),
     );
   }
@@ -317,103 +321,112 @@ class _HistoryBookingTile extends StatelessWidget {
         final room = snap.data?.data();
         final title = (room?['title'] ?? 'Property').toString();
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE9ECEF)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
+        return GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PropertyDetailPage(roomId: req.propertyId),
               ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF2C3E50),
+            );
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE9ECEF)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2C3E50),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${_formatDate(req.startDate)} - ${_formatDate(req.endDate)}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF6C757D),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${_formatDate(req.startDate)} - ${_formatDate(req.endDate)}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF6C757D),
+                            ),
                           ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF28A745).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Text(
+                        'Completed',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF28A745),
                         ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF28A745).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Text(
-                      'Completed',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF28A745),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'CHF ${req.totalPrice.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF2C3E50),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'CHF ${req.totalPrice.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2C3E50),
+                        ),
                       ),
                     ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // Navigate to property detail page
-                      Navigator.of(context).pushNamed(
-                        '/property-detail',
-                        arguments: req.propertyId,
-                      );
-                    },
-                    icon: const Icon(Icons.rate_review, size: 16),
-                    label: const Text('Add Review'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6E56CF),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // Navigate to property detail page
+                        Navigator.of(context).pushNamed(
+                          '/property-detail',
+                          arguments: req.propertyId,
+                        );
+                      },
+                      icon: const Icon(Icons.rate_review, size: 16),
+                      label: const Text('Add Review'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6E56CF),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -443,13 +456,29 @@ class _BookingTile extends StatelessWidget {
         final address = _formatAddress(room);
         final dateText = _formatRange(req.requestedRange);
 
-        return StudentBookingCard(
-          imageUrl: imageUrl,
-          propertyName: title,
-          address: address,
-          status: req.status,
-          isTablet: false,
-          dateRangeText: dateText,
+        return GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PropertyDetailPage(roomId: req.propertyId),
+              ),
+            );
+          },
+          child: StudentBookingCard(
+            imageUrl: imageUrl,
+            propertyName: title,
+            address: address,
+            status: req.status,
+            isTablet: false,
+            dateRangeText: dateText,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PropertyDetailPage(roomId: req.propertyId),
+                ),
+              );
+            },
+          ),
         );
       },
     );

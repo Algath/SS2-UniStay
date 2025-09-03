@@ -5,6 +5,7 @@ import 'package:unistay/models/room.dart';
 import 'package:unistay/services/booking_service.dart';
 import 'package:unistay/views/edit_room.dart';
 import 'package:unistay/widgets/property_detail/index.dart';
+import 'package:unistay/widgets/property_detail/availability_summary_widget.dart';
 
 class PropertyDetailPage extends StatefulWidget {
   final String roomId;
@@ -37,8 +38,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
             return SingleChildScrollView(
               child: Column(
                 children: [
-                  PropertyImageWidget(
-                    imageUrl: room.photoUrls.isNotEmpty ? room.photoUrls.first : null,
+                  PropertyGalleryWidget(
+                    photoUrls: room.photoUrls,
                     isTablet: _isTablet,
                   ),
                   _buildContentContainer(room),
@@ -94,22 +95,40 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     return screenWidth > 600;
   }
 
-  bool get _isOwner {
+  bool _isOwner = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOwnerStatus();
+  }
+
+  Future<void> _checkOwnerStatus() async {
     final currentUser = FirebaseAuth.instance.currentUser;
-    return widget.isOwnerView ||
-        (currentUser != null &&
-            FirebaseFirestore.instance
-                .collection('rooms')
-                .doc(widget.roomId)
-                .snapshots()
-                .first
-                .then((doc) {
-              if (doc.exists) {
-                final room = Room.fromFirestore(doc);
-                return currentUser.uid == room.ownerUid;
-              }
-              return false;
-            }) as bool);
+    if (widget.isOwnerView) {
+      setState(() {
+        _isOwner = true;
+      });
+      return;
+    }
+    
+    if (currentUser != null) {
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('rooms')
+            .doc(widget.roomId)
+            .get();
+        
+        if (doc.exists) {
+          final room = Room.fromFirestore(doc);
+          setState(() {
+            _isOwner = currentUser.uid == room.ownerUid;
+          });
+        }
+      } catch (e) {
+        // Handle error silently
+      }
+    }
   }
 
   Widget _buildContentContainer(Room room) {
@@ -131,21 +150,28 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ConnectionsSectionWidget(room: room),
-          const SizedBox(height: 16),
-          PropertyDescriptionWidget(description: room.description),
-          const SizedBox(height: 16),
           PropertyHeaderWidget(room: room),
           const SizedBox(height: 24),
-          _buildResponsiveDetails(room),
+          WeatherSummaryWidget(room: room),
+          const SizedBox(height: 24),
+          PropertyFeaturesWidget(room: room),
+          const SizedBox(height: 24),
+          PropertyDescriptionWidget(description: room.description),
           const SizedBox(height: 24),
           PropertyAmenitiesWidget(amenities: room.amenities),
+          const SizedBox(height: 24),
+          PropertyAddressWidget(room: room),
+          const SizedBox(height: 24),
+          ConnectionsSectionWidget(room: room),
+          const SizedBox(height: 24),
+          if (room.availabilityRanges.isNotEmpty)
+            AvailabilitySummary(room: room, isOwner: _isOwner),
           const SizedBox(height: 24),
           _buildCalendarSection(room),
           const SizedBox(height: 24),
           PropertyActionsWidget(
             room: room,
-            isOwnerView: widget.isOwnerView,
+            isOwnerView: _isOwner,
             currentUserId: FirebaseAuth.instance.currentUser?.uid,
             selectedRange: _selectedRange,
             onBook: () => _bookProperty(room),
@@ -157,51 +183,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     );
   }
 
-  Widget _buildResponsiveDetails(Room room) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final left = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            PropertyAddressWidget(
-              room: room,
-              onMapTap: () => _navigateToMap(room),
-            ),
-            const SizedBox(height: 16),
-            if (room.availabilityRanges.isNotEmpty)
-              AvailabilitySummary(
-                room: room,
-                isOwner: _isOwner,
-              ),
-          ],
-        );
 
-        final right = PropertyFeaturesWidget(room: room);
-
-        if (constraints.maxWidth >= 720) {
-          return IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: left),
-                const SizedBox(width: 20),
-                Expanded(child: right),
-              ],
-            ),
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            left,
-            const SizedBox(height: 20),
-            right,
-          ],
-        );
-      },
-    );
-  }
 
   Widget _buildCalendarSection(Room room) {
     return Column(
@@ -264,15 +246,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     );
   }
 
-  void _navigateToMap(Room room) {
-    Navigator.of(context).pushNamed(
-      '/map',
-      arguments: {
-        'initialLat': room.lat,
-        'initialLng': room.lng,
-      },
-    );
-  }
+
 
   void _editProperty() {
     Navigator.of(context).push(

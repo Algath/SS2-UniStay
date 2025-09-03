@@ -269,7 +269,7 @@ class _BookingTile extends StatelessWidget {
       builder: (context, snap) {
         final room = snap.data?.data();
         final title = (room?['title'] ?? 'Property').toString();
-        final photos = (room?['photos'] as List?)?.cast<String>() ?? const [];
+        final photos = (room?['photoUrls'] as List?)?.cast<String>() ?? const [];
         final imageUrl = photos.isNotEmpty ? photos.first : '';
         final address = _formatAddress(room);
         final dateText = _formatRange(req.requestedRange);

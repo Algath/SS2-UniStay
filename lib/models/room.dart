@@ -158,7 +158,9 @@ class Room {
       lat: ((m['lat'] ?? 0.0) as num).toDouble(),
       lng: ((m['lng'] ?? 0.0) as num).toDouble(),
       ownerUid: (m['ownerUid'] ?? '') as String,
-      photoUrls: (m['photoUrls'] as List?)?.cast<String>() ?? const [],
+      photoUrls: ((m['photoUrls'] as List?)?.cast<String>() ??
+          (m['photos'] as List?)?.cast<String>() ??
+          const []),
       walkMins: (m['walkMins'] ?? 10) as int,
       type: (m['type'] ?? 'room') as String,
       furnished: (m['furnished'] ?? false) as bool,

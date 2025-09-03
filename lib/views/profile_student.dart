@@ -8,6 +8,7 @@ import 'package:unistay/widgets/profile/profile_avatar.dart';
 import 'package:unistay/widgets/profile/profile_info_section.dart';
 import 'package:unistay/widgets/profile/profile_edit_button.dart';
 import 'package:unistay/widgets/profile/settings_section.dart';
+import 'package:unistay/widgets/profile/favorites_section.dart';
 import 'package:unistay/widgets/profile/student_bookings_section.dart';
 
 class ProfileStudentPageRefactored extends StatefulWidget {
@@ -119,6 +120,10 @@ class _ProfileStudentPageRefactoredState extends State<ProfileStudentPageRefacto
                         isTablet: isTablet,
                         isLandscape: isLandscape,
                       ),
+                      SizedBox(height: isTablet ? (isLandscape ? 32 : 24) : 20),
+
+                      // Favorites Section
+                      FavoritesSection(isTablet: isTablet),
                       SizedBox(height: isTablet ? (isLandscape ? 32 : 24) : 20),
 
                       // Settings Section

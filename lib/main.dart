@@ -20,7 +20,7 @@ import 'views/profile_owner.dart';
 import 'views/about_page.dart';
 import 'views/add_property.dart';
 import 'views/main_navigation.dart';
-import 'views/property_detail_backup.dart';
+import 'views/property_detail.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

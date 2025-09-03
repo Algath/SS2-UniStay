@@ -10,6 +10,8 @@ import 'package:unistay/widgets/profile/profile_edit_button.dart';
 import 'package:unistay/widgets/profile/settings_section.dart';
 import 'package:unistay/widgets/profile/owner_properties_section.dart';
 import 'package:unistay/widgets/profile/owner_requests_section.dart';
+import 'package:unistay/widgets/profile/favorites_section.dart';
+import 'package:unistay/widgets/profile/student_bookings_section.dart';
 
 class ProfileOwnerPageRefactored extends StatefulWidget {
   static const route = '/profile-owner-refactored';
@@ -120,6 +122,17 @@ class _ProfileOwnerPageRefactoredState extends State<ProfileOwnerPageRefactored>
                       OwnerRequestsSection(
                         ownerUid: uid,
                         isTablet: isTablet,
+                      ),
+                      const SizedBox(height: 24),
+                      // Favorites Section (owner may save listings too)
+                      FavoritesSection(isTablet: isTablet),
+                      const SizedBox(height: 24),
+
+                      // My Bookings (Owner perspective) — list owner-related requests grouped
+                      StudentBookingsSection(
+                        studentUid: uid, // reuse widget; filtering will be adapted below if needed
+                        isTablet: isTablet,
+                        isLandscape: isLandscape,
                       ),
                       const SizedBox(height: 24),
 

@@ -112,7 +112,17 @@ Main collections:
 ## 🎥 Demonstration
 - 1-minute overview video (UI + main flows)
 - 5-minute detailed video (walkthrough of features)
-- Screenshots included for reference
+
+## 🖼️ Screenshots
+Here are a few key screens from UniStay:
+### Login Screen
+![Login Screen](images/login_page.png)
+
+### Home / Search Page
+![Home Page](images/home_page.png)
+
+### Student Profile
+![User Page](images/student_profil.png)
 
 ## 📝 Guides
 - User Guide: (Coming soon – see USER_GUIDE.md)

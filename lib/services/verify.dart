@@ -1,12 +1,24 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FaceVerificationService {
+  
+  static String baseUrl = "";
+
+  static Future<void> checkApiUrl() async {
+    print("CHECK URL FOR VERIFY");
+    if (baseUrl != "") {
+      return;
+    }
+    FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    final doc = await _firestore.collection("config").doc("app_settings").get();
+    baseUrl = (doc.data()?["api_base_url"] as String).trim();
+    print(baseUrl);
+  }
+
   // TODO: Update this URL to your deployed cloud endpoint
-  // static const String baseUrl = "https://76ea7ef89033.ngrok-free.app";
-  static const String baseUrl = "https://a22ea421e4ba.ngrok-free.app";
 
   /// Verifies two face images and returns Firebase custom token if successful
   static Future<Map<String, dynamic>> verifyFacesWithToken(
@@ -14,13 +26,16 @@ class FaceVerificationService {
       XFile loginImage,
       String profileFilename
       ) async {
+    await checkApiUrl();
     try {
+      print("URL TO MY API; $baseUrl");
       print('🔍 Starting face verification...');
       print('📁 Profile filename: $profileFilename');
       print('📱 Profile image path: ${profileImage.path}');
       print('📱 Login image path: ${loginImage.path}');
 
       // 1. Read bytes and encode to Base64
+
       final profileBytes = await profileImage.readAsBytes();
       final loginBytes = await loginImage.readAsBytes();
 
@@ -75,10 +90,6 @@ class FaceVerificationService {
 
           print('🔍 Verification result: $verified');
           print('🔑 Custom token received: ${customToken != null}');
-
-          if (customToken != null) {
-            print('🔑 Token preview: ${customToken.toString().substring(0, 50)}...');
-          }
 
           return {
             'success': true,
@@ -159,24 +170,6 @@ class FaceVerificationService {
       }
     } catch (e) {
       return {'success': false, 'error': 'Connection test failed: $e'};
-    }
-  }
-
-  /// Test token generation for a specific UID
-  static Future<Map<String, dynamic>> testTokenGeneration(String uid) async {
-    try {
-      final uri = Uri.parse("$baseUrl/test/$uid");
-      final resp = await http.get(uri).timeout(const Duration(seconds: 10));
-
-      if (resp.statusCode == 200) {
-        final jsonResponse = jsonDecode(resp.body);
-        return {'success': true, 'data': jsonResponse};
-      } else {
-        final errorBody = resp.body;
-        return {'success': false, 'error': 'Token test failed: $errorBody'};
-      }
-    } catch (e) {
-      return {'success': false, 'error': 'Token test error: $e'};
     }
   }
 

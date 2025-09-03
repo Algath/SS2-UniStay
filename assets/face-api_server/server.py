@@ -229,31 +229,6 @@ async def health():
         "firebase_sdk_version": firebase_admin.__version__
     }
 
-@app.get("/test/{uid}")
-async def test_token_generation(uid: str):
-    """Test endpoint to verify token generation works for a specific UID"""
-    try:
-        logger.info(f"🧪 Testing token generation for UID: {uid}")
-
-        # Check if user exists
-        user_record = auth.get_user(uid)
-        logger.info(f"✅ User found: {user_record.email}")
-
-        # Generate token using our compatible function
-        custom_token = create_firebase_token(uid)
-
-        return {
-            "uid": uid,
-            "email": user_record.email,
-            "token_length": len(custom_token),
-            "token_preview": custom_token[:50] + "...",
-            "firebase_sdk_version": firebase_admin.__version__,
-            "status": "success"
-        }
-    except Exception as e:
-        logger.error(f"❌ Test failed: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

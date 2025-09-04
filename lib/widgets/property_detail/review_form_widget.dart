@@ -33,7 +33,6 @@ class _ReviewFormWidgetState extends State<ReviewFormWidget> with AutomaticKeepA
   bool _isSubmitting = false;
   Review? _existingReview;
   bool _isLoading = true;
-  bool _hasCompletedStay = false;
   String? _errorMessage;
 
   @override
@@ -103,7 +102,6 @@ class _ReviewFormWidgetState extends State<ReviewFormWidget> with AutomaticKeepA
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _hasCompletedStay = hasCompletedBooking;
           if (!hasCompletedBooking) {
             _errorMessage = 'You can only review properties after completing your stay. Check your booking history.';
           }

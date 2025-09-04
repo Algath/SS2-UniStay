@@ -12,7 +12,6 @@ import 'package:http/http.dart' as http;
 import 'package:unistay/services/storage_service.dart';
 import 'package:unistay/services/booking_service.dart';
 import 'package:unistay/models/booking_request.dart';
-import 'package:unistay/models/booking_request.dart';
 
 // Address suggestion model (copied from add_property.dart)
 class AddressSuggestion {

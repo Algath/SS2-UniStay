@@ -167,27 +167,4 @@ class _AmenitiesSelectorState extends State<AmenitiesSelector> {
       ),
     );
   }
-
-  /// Helper method to get selected amenities as a list
-  static List<String> getSelectedAmenities(Map<String, bool> amenities) {
-    return amenities.entries
-        .where((entry) => entry.value)
-        .map((entry) => entry.key)
-        .toList();
-  }
-
-  /// Helper method to validate amenities selection
-  static String? validateAmenities(Map<String, bool> amenities) {
-    final selectedCount = amenities.values.where((selected) => selected).length;
-
-    if (selectedCount == 0) {
-      return 'Please select at least one amenity';
-    }
-
-    if (selectedCount > 15) {
-      return 'Please select no more than 15 amenities';
-    }
-
-    return null; // No validation errors
-  }
 }

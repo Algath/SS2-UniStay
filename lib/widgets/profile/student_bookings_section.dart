@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:unistay/widgets/profile/student_booking_card.dart';
 import 'package:unistay/models/booking_request.dart';
 import 'package:unistay/views/property_detail.dart';
 
@@ -581,9 +580,9 @@ class _RoomImage extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: DecoratedBox(
               decoration: BoxDecoration(color: Colors.grey[200]),
-              child: imageUrl != null && imageUrl!.isNotEmpty
+              child: imageUrl != null && imageUrl.isNotEmpty
                   ? Image.network(
-                      imageUrl!,
+                      imageUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Icon(
                         Icons.apartment,

@@ -187,7 +187,7 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
           },
           markerBuilder: (context, date, events) {
             if (events.isNotEmpty) {
-              final status = events.first as String;
+              final status = events.first;
               return Positioned(
                 bottom: 2,
                 child: Container(

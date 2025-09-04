@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unistay/models/property_data.dart';
 import 'package:unistay/models/room.dart';
-import 'package:unistay/services/storage_service.dart';
 
 /// Service for property CRUD operations and validation
 class PropertyService {

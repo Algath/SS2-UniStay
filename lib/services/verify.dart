@@ -8,17 +8,13 @@ class FaceVerificationService {
   static String baseUrl = "";
 
   static Future<void> checkApiUrl() async {
-    print("CHECK URL FOR VERIFY");
     if (baseUrl != "") {
       return;
     }
     FirebaseFirestore _firestore = FirebaseFirestore.instance;
     final doc = await _firestore.collection("config").doc("app_settings").get();
     baseUrl = (doc.data()?["api_base_url"] as String).trim();
-    print(baseUrl);
   }
-
-  // TODO: Update this URL to your deployed cloud endpoint
 
   /// Verifies two face images and returns Firebase custom token if successful
   static Future<Map<String, dynamic>> verifyFacesWithToken(
@@ -27,6 +23,7 @@ class FaceVerificationService {
       String profileFilename
       ) async {
     await checkApiUrl();
+
     try {
       print("URL TO MY API; $baseUrl");
       print('🔍 Starting face verification...');

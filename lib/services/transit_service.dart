@@ -1,7 +1,3 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:unistay/services/utils.dart';
-
 class TransitStop {
   final String id;
   final String name;

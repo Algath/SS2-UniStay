@@ -10,7 +10,7 @@ It provides separate interfaces for students (to book properties) and landlords 
 - **User Registration & Login**
   - Student accounts
   - Landlord accounts
-  - (In progress) Face authentication
+  - Face authentication
 
 - **Search & Booking**
   - Search for available housing
@@ -23,7 +23,7 @@ It provides separate interfaces for students (to book properties) and landlords 
 
 - **Additional Features**
   - Price prediction for properties
-  - Multiplatform support (Android + Web)
+  - Multiplatform support
 
 > ⚠️ Note: Payment system is not included in this project.
 
@@ -34,7 +34,7 @@ It provides separate interfaces for students (to book properties) and landlords 
 - **Frontend:** Flutter (Dart)
 - **Backend:** Firebase (Authentication, Firestore, Storage)
 - **Database:** Firestore (NoSQL)
-- **External APIs:** Price prediction, Map services
+- **External APIs:** Face reconition, Map services
 
 ---
 
@@ -57,7 +57,7 @@ It provides separate interfaces for students (to book properties) and landlords 
 4. ```bash
    flutter run
    ```
-   Can be run on Android device/emulator or in a browser (Edge).
+   Can be run on Android device/emulator.
 
 ### Using the App (Internal Testing)
 - Available via Google Play internal testing.
@@ -66,48 +66,47 @@ It provides separate interfaces for students (to book properties) and landlords 
 
 ## 📂 Project Structure
 Inside the `lib/` folder:
-- `screens/` -> Main UI screens (Login, Register, Home, Property Details, Booking)
-- `widgets/` -> Reusable UI components
-- `models/` -> Data models (User, Property, Reservation)
-- `services/` → Firebase interactions (AuthService, DatabaseService, StorageService)
-- `providers/` → State management
-- `utils/` → Helper functions
+- `views/` → Main UI screens (Login, Register, Home, Property Details, Booking)
+- `widgets/` → Reusable UI components
+- `models/` → Data models (User, Property, Reservation)
+- `services/` → Firebase interactions (AuthService, DatabaseService, StorageService)$
+- `viewmodels` → ???
 
 ## 🔐 Authentication
 - Managed via Firebase Authentication
 - Supports student and landlord accounts
 - Face authentication fully implemented and functional
+  - Note: it work only for account where the profil picture was saved on the device
 
 ## 🗄️ Database (Firestore)
 Main collections:
 - users → student & landlord profiles
-- properties → property listings
-- bookings → reservations linked to users & properties
+- rooms → property listings
+- booking_requests → reservations linked to users & properties
+- property_ratings → ratings information on the properties
+- reviews → reviews on the properties (who, rating, comment, which property)
+- student_reviews → reviews on the students (who, rating, comment, which student)
 
 ## 🖼️ Media Storage
 - Property images stored in Firebase Storage
 - Image URLs referenced in Firestore
 
-## 🌍 Platform Support
-- Android (internal testing)
-- Web (Edge browser)
-
 ## 📡 APIs & Services
 - Firebase services (auth, Firestore, storage)
-- External APIs for price prediction
+- External API for face reconition
 - Map integration
-
-## ⚙️ Architecture Overview
-- Flutter App ↔ Firebase Authentication ↔ Firestore ↔ Firebase Storage
-- External APIs for price prediction & map services
+- Nominatim for address recovery
+- Open-Meteo to have weather
+- OSRM (Open Source Routing Machine) to find public transport options
 
 ## 🎯 Target Users
-- Students looking for housing in Switzerland
-- Landlords seeking to rent properties to students
+- Students seeking accommodation in Switzerland
+- Property owners looking to rent to students
 
 ## 📄 Known Limitations
 - No payment system
 - Only internal testing on Google Play
+- Fully tested only on Android
 
 ## 🎥 Demonstration
 - 1-minute overview video (UI + main flows)
@@ -125,5 +124,5 @@ Here are a few key screens from UniStay:
 ![User Page](images/student_profil.png)
 
 ## 📝 Guides
-- User Guide: (Coming soon – see USER_GUIDE.md)
-- Technical Guide: (See TECHNICAL_GUIDE.md)
+- [User Guide](USER_GUIDE.md)
+- [Technical Guide](TECH_GUIDE.md)

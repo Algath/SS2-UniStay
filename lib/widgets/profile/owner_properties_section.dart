@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unistay/models/room.dart';
 import 'package:unistay/widgets/profile/owner_property_card.dart';
 import 'package:unistay/views/add_property.dart';
+import 'package:unistay/views/property_detail.dart';
 
 class OwnerPropertiesSection extends StatelessWidget {
   final bool isTablet;
@@ -296,51 +297,95 @@ class OwnerPropertiesSection extends StatelessWidget {
                 itemCount: docs.length,
                 itemBuilder: (context, index) {
                   final room = docs[index].data();
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    leading: room.photoUrls.isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: Image.network(
-                              room.photoUrls.first,
-                              width: 40,
-                              height: 40,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    color: Colors.grey[300],
-                                    child: const Icon(Icons.home, size: 16),
-                                  ),
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    elevation: 2,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      leading: room.photoUrls.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                room.photoUrls.first,
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                      width: 50,
+                                      height: 50,
+                                      color: Colors.grey[300],
+                                      child: const Icon(Icons.home, size: 20),
+                                    ),
+                              ),
+                            )
+                          : Container(
+                              width: 50,
+                              height: 50,
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.home, size: 20),
                             ),
-                          )
-                        : Container(
-                            width: 40,
-                            height: 40,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.home, size: 16),
+                      title: Text(
+                        room.title,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${room.city}, ${room.price} CHF',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
                           ),
-                    title: Text(
-                      room.title,
-                      style: const TextStyle(fontSize: 14),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      '${room.city}, ${room.price} CHF',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: () {
+                          const SizedBox(height: 2),
+                          Text(
+                            '${room.type} • ${room.sizeSqm} m²',
+                            style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      onTap: () {
                         Navigator.pop(context);
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => AddPropertyPage(propertyId: room.id),
+                            builder: (_) => PropertyDetailPage(
+                              roomId: room.id,
+                              isOwnerView: true,
+                            ),
                           ),
                         );
                       },
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.visibility, size: 20),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => PropertyDetailPage(
+                                    roomId: room.id,
+                                    isOwnerView: true,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => AddPropertyPage(propertyId: room.id),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },

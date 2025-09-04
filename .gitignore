@@ -19,6 +19,7 @@ lib/firebase_options.dart
 
 android/build.gradle.kts
 android/app/build.gradle.kts
+android/app/proguard-rules.pro
 
 # IntelliJ related
 *.iml

@@ -12,11 +12,6 @@ class Review {
   final DateTime? updatedAt;
   final String status; // 'active', 'hidden', 'deleted'
 
-  // NEW FIELDS for user reviews
-  final String? revieweeId; // Who is being reviewed (for user reviews)
-  final String? revieweeType; // 'student' or 'owner'
-  final String reviewType; // 'property' or 'user'
-
   Review({
     required this.id,
     required this.propertyId,
@@ -28,14 +23,11 @@ class Review {
     required this.createdAt,
     this.updatedAt,
     this.status = 'active',
-    this.revieweeId, // NEW
-    this.revieweeType, // NEW
-    this.reviewType = 'property', // NEW - default to property for backward compatibility
   });
 
   factory Review.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
-
+    
     return Review(
       id: doc.id,
       propertyId: data['propertyId'] ?? '',
@@ -47,9 +39,6 @@ class Review {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
       status: data['status'] ?? 'active',
-      revieweeId: data['revieweeId'], // NEW
-      revieweeType: data['revieweeType'], // NEW
-      reviewType: data['reviewType'] ?? 'property', // NEW - default for existing data
     );
   }
 
@@ -64,9 +53,6 @@ class Review {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'status': status,
-      if (revieweeId != null) 'revieweeId': revieweeId, // NEW
-      if (revieweeType != null) 'revieweeType': revieweeType, // NEW
-      'reviewType': reviewType, // NEW
     };
   }
 
@@ -81,9 +67,6 @@ class Review {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? status,
-    String? revieweeId, // NEW
-    String? revieweeType, // NEW
-    String? reviewType, // NEW
   }) {
     return Review(
       id: id ?? this.id,
@@ -96,13 +79,6 @@ class Review {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       status: status ?? this.status,
-      revieweeId: revieweeId ?? this.revieweeId, // NEW
-      revieweeType: revieweeType ?? this.revieweeType, // NEW
-      reviewType: reviewType ?? this.reviewType, // NEW
     );
   }
-
-  // Helper methods
-  bool get isPropertyReview => reviewType == 'property';
-  bool get isUserReview => reviewType == 'user';
 }

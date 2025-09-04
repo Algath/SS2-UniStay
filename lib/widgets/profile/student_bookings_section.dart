@@ -216,7 +216,7 @@ class _TabbedStudentBookingsState extends State<_TabbedStudentBookings> with Sin
               _buildListFor(pending, color: Colors.orange),
               _buildListFor(accepted, color: Colors.green),
               _buildListFor(refused, color: Colors.red),
-              _buildListFor(history, color: Colors.grey)
+              _buildHistoryList(history),
             ],
           ),
         ),

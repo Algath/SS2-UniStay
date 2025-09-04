@@ -29,10 +29,10 @@ class ProfileInfoSection extends StatelessWidget {
         const SizedBox(height: 12),
 
         // University info (only show if set, optional for owners)
-        if (userProfile?.uniAddress?.isNotEmpty == true) ...[
+        if (userProfile?.uniAddress.isNotEmpty == true) ...[
           _buildInfoRow(
             icon: Icons.school_outlined,
-            text: _getUniversityNameFromAddress(userProfile!.uniAddress!),
+            text: _getUniversityNameFromAddress(userProfile!.uniAddress),
             isTablet: isTablet,
           ),
           const SizedBox(height: 8),

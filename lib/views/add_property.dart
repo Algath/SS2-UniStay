@@ -396,6 +396,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       } catch (_) {
         interpreter = await Interpreter.fromAsset('assets/ss2_unistay_price.tflite');
       }
+      // ignore: unnecessary_null_comparison
       if (interpreter == null) return null;
 
       double parseDouble(String s) => double.tryParse(s.trim()) ?? 0.0;
@@ -410,7 +411,6 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       final isRoom = vm.type == 'room';
       final furnished = vm.furnished;
       final wifi = vm.selectedAmenities.contains('Internet');
-      final carPark = false; // Şu an formda alan yok
 
       final features = <double>[
         postal,
@@ -423,8 +423,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
         furnished ? 1.0 : 0.0,
         wifi ? 0.0 : 1.0,
         wifi ? 1.0 : 0.0,
-        carPark ? 0.0 : 1.0,
-        carPark ? 1.0 : 0.0,
+        0.0,
       ];
 
       final input = [features];

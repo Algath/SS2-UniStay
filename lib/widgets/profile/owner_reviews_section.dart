@@ -135,7 +135,7 @@ class OwnerReviewsSection extends StatelessWidget {
           Row(
             children: [
               Expanded(
-log                                   child: FutureBuilder<DocumentSnapshot>(
+                     child: FutureBuilder<DocumentSnapshot>(
                      future: FirebaseFirestore.instance
                          .collection('rooms')
                          .doc(review.propertyId)

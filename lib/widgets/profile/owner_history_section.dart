@@ -330,9 +330,9 @@ class _RoomImage extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: DecoratedBox(
               decoration: BoxDecoration(color: Colors.grey[200]),
-              child: imageUrl != null && imageUrl!.isNotEmpty
+              child: imageUrl != null && imageUrl.isNotEmpty
                   ? Image.network(
-                      imageUrl!,
+                      imageUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Icon(
                         Icons.apartment,

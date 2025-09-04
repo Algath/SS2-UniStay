@@ -248,4 +248,9 @@ class ReviewService {
     if (snap.docs.isEmpty) return null;
     return StudentReview.fromFirestore(snap.docs.first);
   }
+
+  Stream<List<Review>>? getReviewsForOwnerProperties(String ownerUid) {
+    // TODO: ?
+    return null;
+  }
 }

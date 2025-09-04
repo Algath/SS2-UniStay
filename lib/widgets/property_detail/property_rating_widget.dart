@@ -159,32 +159,6 @@ class PropertyRatingWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildStarRating(double rating) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(5, (index) {
-        if (index < rating.floor()) {
-          return const Icon(
-            Icons.star,
-            color: Color(0xFFFFD700),
-            size: 24,
-          );
-        } else if (index == rating.floor() && rating % 1 > 0) {
-          return Icon(
-            Icons.star_half,
-            color: const Color(0xFFFFD700),
-            size: 24,
-          );
-        } else {
-          return const Icon(
-            Icons.star_border,
-            color: Color(0xFFD3D3D3),
-            size: 24,
-          );
-        }
-      }),
-    );
-  }
 
   Widget _buildRatingDistribution(Map<String, int> distribution) {
     final totalReviews = distribution.values.fold(0, (sum, count) => sum + count);

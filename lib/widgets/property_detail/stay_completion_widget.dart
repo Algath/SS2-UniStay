@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:unistay/models/booking_request.dart';
 import 'package:unistay/services/booking_service.dart';
 
 class StayCompletionWidget extends StatefulWidget {

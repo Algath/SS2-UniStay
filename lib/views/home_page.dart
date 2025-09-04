@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math' show min;
-import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unistay/viewmodels/home_vm.dart';
 import 'package:unistay/models/room.dart';
@@ -95,7 +93,7 @@ class _HomePageState extends State<HomePage> {
         } else {
           final expected = prev!.add(const Duration(days: 1));
           if (expected.year != day.year || expected.month != day.month || expected.day != day.day) {
-            out.add(DateTimeRange(start: start, end: prev!));
+            out.add(DateTimeRange(start: start, end: prev));
             start = day;
           }
           prev = day;
@@ -808,90 +806,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Helper method for modern date range picker (TableCalendar-based)
-  void _showDateRangePicker(BuildContext ctx, StateSetter setM) async {
-    final picked = await showModalBottomSheet<DateTimeRange>(
-      context: ctx,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (bctx) {
-        final screenH = MediaQuery.of(bctx).size.height;
-        final sheetH = min(520.0, screenH * 0.8);
-        List<DateTimeRange> ranges = _avail == null ? [] : [ _avail! ];
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-            child: SizedBox(
-              height: sheetH,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)]),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.calendar_month, color: Colors.white, size: 18),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text('Select Availability', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Color(0xFF2C3E50))),
-                      const Spacer(),
-                      TextButton(onPressed: () => Navigator.pop(bctx), child: const Text('Cancel')),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE9ECEF)),
-                      ),
-                      child: AvailabilityCalendar(
-                        onRangesSelected: (rs) { ranges = rs; },
-                        initialRanges: ranges,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      OutlinedButton(
-                        onPressed: () => Navigator.pop(bctx, null),
-                        child: const Text('Clear'),
-                      ),
-                      const Spacer(),
-                      FilledButton(
-                        onPressed: ranges.isNotEmpty
-                            ? () {
-                                // collapse multi-ranges to a single filter window
-                                DateTime minStart = ranges.map((r) => r.start).reduce((a, b) => a.isBefore(b) ? a : b);
-                                DateTime maxEnd = ranges.map((r) => r.end).reduce((a, b) => a.isAfter(b) ? a : b);
-                                Navigator.pop(bctx, DateTimeRange(start: minStart, end: maxEnd));
-                              }
-                            : null,
-                        child: const Text('Apply'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-
-    if (picked != null) setM(() => _avail = picked);
-  }
-
   // Helper method for filter cards
   Widget _buildFilterCard({required String title, required Widget child}) {
     return Container(
@@ -1007,48 +921,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-    );
-  }
-
-  // Helper method for modern text fields
-  Widget _buildModernTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required Function(String) onChanged,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: TextInputType.number,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        floatingLabelBehavior: FloatingLabelBehavior.auto,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF6E56CF), width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
-        ),
-        labelStyle: TextStyle(color: Colors.grey[600]),
-        hintStyle: TextStyle(color: Colors.grey[400]),
-      ),
-      onChanged: onChanged,
     );
   }
 

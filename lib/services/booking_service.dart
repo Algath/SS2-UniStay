@@ -152,4 +152,8 @@ class BookingService {
           return pastBookings;
         });
   }
+
+  Future<void> markStayAsCompleted(String bookingId) async {
+    // TODO: ? mark the stax as completed
+  }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:unistay/services/firestore_service.dart';
 import 'package:unistay/models/user_profile.dart';
-import 'package:unistay/services/institutions.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});

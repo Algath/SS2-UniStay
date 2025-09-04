@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:unistay/models/room.dart';
 import 'package:unistay/models/booking_request.dart';
@@ -132,7 +131,7 @@ class _AvailabilitySummaryState extends State<AvailabilitySummary> {
       } else if (date.difference(prev!).inDays == 1) {
         prev = date;
       } else {
-        ranges.add(DateTimeRange(start: start, end: prev!));
+        ranges.add(DateTimeRange(start: start, end: prev));
         start = date;
         prev = date;
       }
@@ -195,7 +194,6 @@ class _AvailabilitySummaryState extends State<AvailabilitySummary> {
           ...liveAvailable.take(3).map((range) {
             final start = range.start;
             final end = range.end;
-            final isSameMonth = start.month == end.month && start.year == end.year;
 
             String formatDate(DateTime date) {
               final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',

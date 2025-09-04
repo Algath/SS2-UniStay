@@ -98,7 +98,6 @@ class _MapPageOSMState extends State<MapPageOSM> {
         final lat = args['initialLat'] as double?;
         final lng = args['initialLng'] as double?;
         final title = args['title'] as String?;
-        final address = args['address'] as String?;
         
         if (lat != null && lng != null) {
           _focusedPoint = ll.LatLng(lat, lng);
@@ -412,7 +411,6 @@ class _MapPageOSMState extends State<MapPageOSM> {
   }
 
   void _showPropertyDetails(Room room) {
-    final scheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -694,41 +692,7 @@ class _MapPageOSMState extends State<MapPageOSM> {
     );
   }
 
-  Widget _chip(String label) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: scheme.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
 
-  Widget _iconRow({required IconData icon, required String text}) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18, color: scheme.primary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(color: scheme.onSurfaceVariant),
-          ),
-        ),
-      ],
-    );
-  }
 
   @override
   Widget build(BuildContext context) {

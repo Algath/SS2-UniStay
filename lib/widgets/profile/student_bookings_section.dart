@@ -579,22 +579,52 @@ class _RoomImage extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: DecoratedBox(
-              decoration: BoxDecoration(color: Colors.grey[200]),
-              child: imageUrl != null && imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Icons.apartment,
-                        size: size * 0.5,
-                        color: Colors.grey[400],
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: snapshot.connectionState == ConnectionState.waiting
+                  ? Center(
+                      child: SizedBox(
+                        width: size * 0.3,
+                        height: size * 0.3,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.grey[400],
+                        ),
                       ),
                     )
-                  : Icon(
-                      Icons.apartment,
-                      size: size * 0.5,
-                      color: Colors.grey[400],
-                    ),
+                  : imageUrl != null && imageUrl!.isNotEmpty
+                      ? Image.network(
+                          imageUrl!,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: SizedBox(
+                                width: size * 0.3,
+                                height: size * 0.3,
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  strokeWidth: 2,
+                                  color: Colors.grey[400],
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (_, __, ___) => Icon(
+                            Icons.apartment,
+                            size: size * 0.5,
+                            color: Colors.grey[400],
+                          ),
+                        )
+                      : Icon(
+                          Icons.apartment,
+                          size: size * 0.5,
+                          color: Colors.grey[400],
+                        ),
             ),
           ),
         );

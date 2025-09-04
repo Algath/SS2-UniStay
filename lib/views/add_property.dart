@@ -6,7 +6,8 @@ import 'package:unistay/widgets/address_autocomplete.dart';
 import 'package:unistay/widgets/amenities_selector.dart';
 import 'package:unistay/widgets/photo_picker_widget.dart';
 import 'package:unistay/widgets/availability_calendar.dart';
-import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:unistay/models/room.dart';
+import 'package:unistay/services/price_prediction_service.dart';
 
 class AddPropertyPage extends StatefulWidget {
   static const route = '/add-property';
@@ -389,50 +390,34 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
   Future<double?> _predictPriceIfPossible(AddPropertyViewModel vm) async {
     try {
-      Interpreter? interpreter;
-      try {
-        // Most assets in tflite_flutter use asset key without the 'assets/' prefix
-        interpreter = await Interpreter.fromAsset('ss2_unistay_price.tflite');
-      } catch (_) {
-        interpreter = await Interpreter.fromAsset('assets/ss2_unistay_price.tflite');
-      }
-      // ignore: unnecessary_null_comparison
-      if (interpreter == null) return null;
+      // Create a temporary Room object to use PricePredictionService
+      // This ensures consistency with property detail page
+      final tempRoom = Room(
+        id: '',
+        title: vm.titleController.text,
+        price: num.tryParse(vm.priceController.text) ?? 0,
+        street: vm.streetController.text,
+        houseNumber: vm.houseNumberController.text,
+        city: vm.cityController.text,
+        postcode: vm.postcodeController.text,
+        type: vm.type,
+        furnished: vm.furnished,
+        sizeSqm: int.tryParse(vm.sizeSqmController.text) ?? 0,
+        rooms: int.tryParse(vm.roomsController.text) ?? 1,
+        bathrooms: int.tryParse(vm.bathroomsController.text) ?? 1,
+        description: vm.descriptionController.text,
+        lat: 0.0,
+        lng: 0.0,
+        ownerUid: '',
+        photoUrls: vm.photoUrls,
+        walkMins: 10,
+        utilitiesIncluded: vm.utilitiesIncluded,
+        amenities: vm.selectedAmenities,
+        availabilityRanges: vm.availabilityRanges,
+      );
 
-      double parseDouble(String s) => double.tryParse(s.trim()) ?? 0.0;
-      int parseInt(String s) => int.tryParse(s.trim()) ?? 0;
-
-      final postal = parseInt(vm.postcodeController.text).toDouble();
-      final surface = parseDouble(vm.sizeSqmController.text);
-      final rooms = parseInt(vm.roomsController.text).toDouble();
-      final proxim = 0.0; // İleri aşamada üniversiteye km hesaplayıp besleyebiliriz
-
-      final isEntire = vm.type == 'whole';
-      final isRoom = vm.type == 'room';
-      final furnished = vm.furnished;
-      final wifi = vm.selectedAmenities.contains('Internet');
-
-      final features = <double>[
-        postal,
-        surface,
-        rooms,
-        proxim,
-        isEntire ? 1.0 : 0.0,
-        isRoom ? 1.0 : 0.0,
-        furnished ? 0.0 : 1.0,
-        furnished ? 1.0 : 0.0,
-        wifi ? 0.0 : 1.0,
-        wifi ? 1.0 : 0.0,
-        0.0,
-      ];
-
-      final input = [features];
-      final output = List.filled(1, 0.0).reshape([1, 1]);
-      interpreter.run(input, output);
-      final price = (output[0][0] as num).toDouble();
-      interpreter.close();
-      if (price.isNaN || price.isInfinite) return null;
-      return price;
+      // Use the same service as property detail page
+      return await PricePredictionService().predictPrice(tempRoom);
     } catch (_) {
       return null;
     }
@@ -447,18 +432,108 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       barrierDismissible: false,
       builder: (ctx) {
         return AlertDialog(
-          title: const Text('Suggested price'),
+          title: const Text('Price Comparison'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (predicted != null)
-                Text('Predicted: CHF ${predicted.toStringAsFixed(0)}.-', style: const TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
+              if (predicted != null) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF28A745), Color(0xFF20C997)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Your Price',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              'CHF ${vm.priceController.text.isEmpty ? "0" : vm.priceController.text}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Text(
+                              '/month',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFD7E14), Color(0xFFFF8C42)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Predicted Price',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              'CHF ${predicted.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Text(
+                              '/month',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
               TextField(
                 controller: ctrl,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Listing price (CHF)'),
+                decoration: const InputDecoration(
+                  labelText: 'Final listing price (CHF)',
+                  border: OutlineInputBorder(),
+                ),
               ),
             ],
           ),

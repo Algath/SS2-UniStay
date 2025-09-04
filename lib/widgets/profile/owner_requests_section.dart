@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:unistay/models/booking_request.dart';
 import 'package:unistay/services/booking_service.dart';
 import 'package:unistay/widgets/profile/booking_request_card.dart';
+import 'package:unistay/widgets/profile/student_reputation_sheet.dart';
 
 class OwnerRequestsSection extends StatelessWidget {
   final String ownerUid;
@@ -108,13 +109,48 @@ class OwnerRequestsSection extends StatelessWidget {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      children: requests
-          .map((request) => BookingRequestCard(
-        request: request,
-        onAccept: () => _acceptRequest(context, request.id),
-        onReject: () => _rejectRequest(context, request.id),
-      ))
-          .toList(),
+      children: requests.map((request) {
+        return Column(
+          children: [
+            BookingRequestCard(
+              request: request,
+              onAccept: () => _acceptRequest(context, request.id),
+              onReject: () => _rejectRequest(context, request.id),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    builder: (_) => DraggableScrollableSheet(
+                      expand: false,
+                      initialChildSize: 0.6,
+                      minChildSize: 0.4,
+                      maxChildSize: 0.9,
+                      builder: (ctx, ctrl) {
+                        return SingleChildScrollView(
+                          controller: ctrl,
+                          child: StudentReputationSheet(
+                            studentId: request.studentUid,
+                            studentName: request.studentName,
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.person_search),
+                label: const Text('View student reputation'),
+              ),
+            ),
+          ],
+        );
+      }).toList(),
     );
   }
 

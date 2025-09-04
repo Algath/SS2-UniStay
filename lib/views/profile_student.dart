@@ -226,7 +226,7 @@ class _ProfileStudentPageRefactoredState extends State<ProfileStudentPageRefacto
               child: TabBarView(
                 children: [
                   // Bookings Tab
-                  SingleChildScrollView(
+                  Padding(
                     padding: const EdgeInsets.all(20),
                     child: StudentBookingsSection(
                       studentUid: uid,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unistay/widgets/profile/student_booking_card.dart';
 import 'package:unistay/models/booking_request.dart';
 import 'package:unistay/views/property_detail.dart';
@@ -37,7 +38,9 @@ class StudentBookingsSection extends StatelessWidget {
         children: [
           _buildSectionHeader(),
           SizedBox(height: isTablet ? 20 : 16),
-          _buildBookingsList(),
+          Expanded(
+            child: _buildBookingsList(),
+          ),
         ],
       ),
     );
@@ -206,8 +209,7 @@ class _TabbedStudentBookingsState extends State<_TabbedStudentBookings> with Sin
           ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          height: widget.isTablet ? 360 : 380,
+        Expanded( // Bu Expanded eklendi - TabBarView için zorunlu
           child: TabBarView(
             controller: _tabController,
             children: [
@@ -237,7 +239,6 @@ class _TabbedStudentBookingsState extends State<_TabbedStudentBookings> with Sin
     final history = list.where((r) => !r.requestedRange.end.isAfter(now)).toList();
 
     return ListView(
-      shrinkWrap: true,
       physics: const BouncingScrollPhysics(),
       children: [
         if (future.isNotEmpty) ...[
@@ -288,7 +289,6 @@ class _TabbedStudentBookingsState extends State<_TabbedStudentBookings> with Sin
     }
 
     return ListView(
-      shrinkWrap: true,
       physics: const BouncingScrollPhysics(),
       children: history.map((r) => _HistoryBookingTile(req: r)).toList(),
     );
@@ -315,117 +315,137 @@ class _HistoryBookingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      future: FirebaseFirestore.instance.collection('rooms').doc(req.propertyId).get(),
-      builder: (context, snap) {
-        final room = snap.data?.data();
-        final title = (room?['title'] ?? 'Property').toString();
-
-        return GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => PropertyDetailPage(roomId: req.propertyId),
-              ),
-            );
-          },
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE9ECEF)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 5,
-                  offset: const Offset(0, 2),
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PropertyDetailPage(roomId: req.propertyId),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE9ECEF)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _RoomImage(propertyId: req.propertyId, size: 72),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        req.propertyTitle ?? 'Property',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2C3E50),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_formatDate(req.startDate)} - ${_formatDate(req.endDate)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6C757D),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF28A745).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text(
+                    'Completed',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF28A745),
+                    ),
+                  ),
                 ),
               ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 12),
+            Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF2C3E50),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${_formatDate(req.startDate)} - ${_formatDate(req.endDate)}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF6C757D),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF28A745).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Text(
-                        'Completed',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF28A745),
-                        ),
-                      ),
-                    ),
-                  ],
+                Expanded(
+                  child: _RoomPriceText(propertyId: req.propertyId, fallbackTotal: req.totalPrice),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'CHF ${req.totalPrice.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF2C3E50),
-                        ),
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        // Navigate to property detail page
-                        Navigator.of(context).pushNamed(
-                          '/property-detail',
-                          arguments: req.propertyId,
-                        );
-                      },
-                      icon: const Icon(Icons.rate_review, size: 16),
-                      label: const Text('Add Review'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6E56CF),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                _buildReviewButton(context),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReviewButton(BuildContext context) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return const SizedBox.shrink();
+
+    return FutureBuilder<QueryDocumentSnapshot<Map<String, dynamic>>?>(
+      future: FirebaseFirestore.instance
+          .collection('reviews')
+          .where('propertyId', isEqualTo: req.propertyId)
+          .where('reviewerId', isEqualTo: currentUser.uid)
+          .limit(1)
+          .get()
+          .then((snapshot) => snapshot.docs.isNotEmpty ? snapshot.docs.first : null),
+      builder: (context, snapshot) {
+        // Null-safe handling
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(width: 120, height: 36);
+        }
+        
+        if (snapshot.hasError) {
+          return const SizedBox.shrink();
+        }
+        
+        final hasReview = snapshot.data != null;
+        
+        return ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 36, maxWidth: 160),
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PropertyDetailPage(roomId: req.propertyId),
+                ),
+              );
+            },
+            icon: Icon(hasReview ? Icons.edit : Icons.rate_review, size: 16),
+            label: Text(hasReview ? 'Edit Review' : 'Add Review'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: hasReview ? const Color(0xFF6C757D) : const Color(0xFF6E56CF),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(0, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         );
@@ -446,57 +466,84 @@ class _BookingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      future: FirebaseFirestore.instance.collection('rooms').doc(req.propertyId).get(),
-      builder: (context, snap) {
-        final room = snap.data?.data();
-        final title = (room?['title'] ?? 'Property').toString();
-        final photos = (room?['photoUrls'] as List?)?.cast<String>() ?? const [];
-        final imageUrl = photos.isNotEmpty ? photos.first : '';
-        final address = _formatAddress(room);
-        final dateText = _formatRange(req.requestedRange);
-
-        return GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => PropertyDetailPage(roomId: req.propertyId),
-              ),
-            );
-          },
-          child: StudentBookingCard(
-            imageUrl: imageUrl,
-            propertyName: title,
-            address: address,
-            status: req.status,
-            isTablet: false,
-            dateRangeText: dateText,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => PropertyDetailPage(roomId: req.propertyId),
-                ),
-              );
-            },
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PropertyDetailPage(roomId: req.propertyId),
           ),
         );
       },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE9ECEF)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _RoomImage(propertyId: req.propertyId, size: 72),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        req.propertyTitle ?? 'Property',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2C3E50),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatRange(req.requestedRange),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6C757D),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    req.status.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _RoomPriceText(propertyId: req.propertyId, fallbackTotal: req.totalPrice, isLarge: false),
+          ],
+        ),
+      ),
     );
-  }
-
-  String _formatAddress(Map<String, dynamic>? room) {
-    if (room == null) return '';
-    final street = (room['street'] ?? '').toString();
-    final houseNumber = (room['houseNumber'] ?? '').toString();
-    final postcode = (room['postcode'] ?? '').toString();
-    final city = (room['city'] ?? '').toString();
-    final country = (room['country'] ?? 'Switzerland').toString();
-    final parts = [
-      [street, houseNumber].where((s) => s.isNotEmpty).join(' '),
-      [postcode, city].where((s) => s.isNotEmpty).join(' '),
-      country,
-    ].where((s) => s.trim().isNotEmpty).toList();
-    return parts.join(', ');
   }
 
   String _formatRange(DateTimeRange range) {
@@ -504,5 +551,95 @@ class _BookingTile extends StatelessWidget {
     final s = '${two(range.start.day)}.${two(range.start.month)}.${range.start.year}';
     final e = '${two(range.end.day)}.${two(range.end.month)}.${range.end.year}';
     return '$s → $e';
+  }
+}
+
+class _RoomImage extends StatelessWidget {
+  final String propertyId;
+  final double size;
+
+  const _RoomImage({required this.propertyId, this.size = 72});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      future: FirebaseFirestore.instance.collection('rooms').doc(propertyId).get(),
+      builder: (context, snapshot) {
+        String? imageUrl;
+        if (snapshot.hasData) {
+          final data = snapshot.data!.data();
+          if (data != null) {
+            final photos = (data['photoUrls'] as List?)?.cast<String>() ?? const [];
+            if (photos.isNotEmpty) imageUrl = photos.first;
+          }
+        }
+
+        return SizedBox(
+          width: size,
+          height: size,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: DecoratedBox(
+              decoration: BoxDecoration(color: Colors.grey[200]),
+              child: imageUrl != null && imageUrl!.isNotEmpty
+                  ? Image.network(
+                      imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.apartment,
+                        size: size * 0.5,
+                        color: Colors.grey[400],
+                      ),
+                    )
+                  : Icon(
+                      Icons.apartment,
+                      size: size * 0.5,
+                      color: Colors.grey[400],
+                    ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RoomPriceText extends StatelessWidget {
+  final String propertyId;
+  final double fallbackTotal;
+  final bool isLarge;
+
+  const _RoomPriceText({
+    required this.propertyId,
+    required this.fallbackTotal,
+    this.isLarge = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      future: FirebaseFirestore.instance.collection('rooms').doc(propertyId).get(),
+      builder: (context, snapshot) {
+        double? price;
+        if (snapshot.hasData) {
+          final data = snapshot.data!.data();
+          if (data != null) {
+            final p = data['pricePerNight'] ?? data['price'] ?? data['monthlyPrice'];
+            if (p is int) price = p.toDouble();
+            if (p is double) price = p;
+          }
+        }
+
+        final value = price ?? fallbackTotal;
+        return Text(
+          'CHF ${value.toStringAsFixed(0)}',
+          style: TextStyle(
+            fontSize: isLarge ? 18 : 16,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF2C3E50),
+          ),
+        );
+      },
+    );
   }
 }

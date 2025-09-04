@@ -39,6 +39,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
             if (!snapshot.hasData) return _buildLoading();
             final room = Room.fromFirestore(snapshot.data!);
             return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              physics: const BouncingScrollPhysics(),
               child: Column(
                 children: [
                   PropertyGalleryWidget(
@@ -197,9 +199,10 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
             onDelete: () => _deleteProperty(room),
           ),
           const SizedBox(height: 24),
-          _buildReviewsSection(room),
-          const SizedBox(height: 24),
+          // Yıldızlı puanlama (rating summary) üstte, yorumlar ve form altta
           _buildRatingSection(room),
+          const SizedBox(height: 24),
+          _buildReviewsSection(room),
         ],
       ),
     );
@@ -296,14 +299,18 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
         
         // Review form at the bottom (for all users - validation is handled inside the widget)
         if (currentUser != null) ...[
-          ReviewFormWidget(
-            propertyId: room.id,
-            userType: userType,
-            onReviewSubmitted: () {
-              setState(() {
-                // Refresh the page to show new review
-              });
-            },
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: ReviewFormWidget(
+              key: ValueKey('review_form_${room.id}_${currentUser.uid}'),
+              propertyId: room.id,
+              userType: userType,
+              onReviewSubmitted: () {
+                setState(() {
+                  // Refresh the page to show new review
+                });
+              },
+            ),
           ),
         ],
 

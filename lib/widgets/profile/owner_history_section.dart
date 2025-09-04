@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unistay/views/property_detail.dart';
 import 'package:unistay/models/booking_request.dart';
 import 'package:unistay/services/booking_service.dart';
+import 'package:unistay/widgets/profile/student_review_form.dart';
 
 class OwnerHistorySection extends StatelessWidget {
   final String ownerUid;
@@ -236,7 +237,46 @@ class _OwnerHistoryTile extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              _RoomPriceText(propertyId: req.propertyId, fallbackTotal: req.totalPrice, isLarge: false),
+              Row(
+                children: [
+                  Expanded(
+                    child: _RoomPriceText(
+                      propertyId: req.propertyId,
+                      fallbackTotal: req.totalPrice,
+                      isLarge: false,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () async {
+                      await showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                        ),
+                        builder: (_) => DraggableScrollableSheet(
+                          expand: false,
+                          initialChildSize: 0.55,
+                          minChildSize: 0.4,
+                          maxChildSize: 0.9,
+                          builder: (ctx, ctrl) {
+                            return SingleChildScrollView(
+                              controller: ctrl,
+                              child: StudentReviewForm(
+                                studentId: req.studentUid,
+                                studentName: req.studentName ?? 'Student',
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.star_rate),
+                    label: const Text('Rate student'),
+                  ),
+                ],
+              ),
             ],
           ),
         );

@@ -2,6 +2,27 @@
 
 > App not publicly available, only for registered testers.
 
+## 📑 Table of Contents
+
+1. [Getting Started](#1-getting-started)  
+   - [Installation](#11-installation)  
+   - [Account Setup](#12-account-setup)  
+2. [Logging In](#2-logging-in)  
+3. [Searching for Accommodations](#3-searching-for-accommodations)  
+   - [Browsing Properties](#31-browsing-properties)  
+   - [Applying Filters](#32-applying-filters)  
+   - [Map View](#33-map-view)  
+4. [Viewing Property Details](#4-viewing-property-details)  
+5. [Booking a Stay](#5-booking-a-stay)  
+6. [Managing Your Bookings](#6-managing-your-bookings)  
+7. [Hosting Your Property](#7-hosting-your-property-homeowner-profile-only)  
+   - [Create a New Property](#71-create-a-new-property)  
+   - [Manage Requests](#72-manage-requests)  
+8. [Leaving a Review](#8-leaving-a-review)  
+9. [Profile & Settings](#9-profile--settings)  
+10. [Troubleshooting & FAQs](#10-troubleshooting--faqs)
+
+
 ## Welcome to UniStay
 
 UniStay is a cross-platform mobile application that connects students with hosts offering accommodations around Switzerland. Whether you’re planning a weekend getaway or an extended stay, UniStay streamlines finding, booking, and managing your stays with security and ease.
@@ -35,8 +56,14 @@ UniStay is a cross-platform mobile application that connects students with hosts
 1. Tap **Sign Up** on the welcome screen.  
 2. Enter your email and choose a secure password.  
 3. Choose your account type: **Student** or **Homeowner**.
+
+![Signup Screen](images/sign_up_page.png)
+
 4. Provide your name, profile photo, and contact details.  
 5. Validate your information to complete registration.
+
+![Create Account Screen](images/edit_profil_page.png)
+
 
 ---
 
@@ -47,6 +74,8 @@ UniStay is a cross-platform mobile application that connects students with hosts
 - Enter your registered email and password. 
 - Tap **Log In** to access the main page.
 
+![Login Screen](images/login_page.png)
+
 ### 2.2 Face Authentication
 
 > Face Authentication works only on the device where you enrolled your face.
@@ -56,6 +85,8 @@ UniStay is a cross-platform mobile application that connects students with hosts
 3. Ensure your face is alone and fully visible in the frame.  
 4. If recognition fails, you can retry or switch back to email login.
 
+![Face Recognition](images/face_recognition_api.png)
+
 ---
 
 ## 3. Searching for Accommodations
@@ -64,6 +95,8 @@ UniStay is a cross-platform mobile application that connects students with hosts
 
 - From the home page, scroll through the latest available properties.  
 - Tap any card to open full details.
+
+![Main Page](images/home_page.png)
 
 ### 3.2 Applying Filters
 
@@ -76,12 +109,16 @@ UniStay is a cross-platform mobile application that connects students with hosts
 3. Set your desired availability dates.  
 4. Tap **Apply** to update the results.
 
+![Filters](images/filters.png)
+
 ### 3.3 Map View
 
 - Switch to **Map** mode via the bottom toggle.
 - Select the university you want to find property around.
 - Pinch to zoom and tap pins to preview listings.  
 - Select a pin to jump to that property’s detail page.
+
+![Map](images/map.png)
 
 ---
 
@@ -94,14 +131,17 @@ UniStay is a cross-platform mobile application that connects students with hosts
 - Consult public transport options to reach your university.  
 - Check availability, ratings, and past guest reviews.
 
+![Property Page](images/property_page.png)
+
 ---
 
 ## 5. Booking a Stay
 
 1. On a property page, pick your check-in and check-out dates.  
 2. Tap **Book This Period** to send a booking request to the host.  
-3. Monitor your request under **My Bookings** for status updates (Pending, Accepted, Refused).  
-4. Once accepted, you’ll see the confirmed stay in your upcoming bookings.
+3. Once booked, you’ll see the propertie into your booking.
+
+![Property Page Availability](images/property_page_calandar.png)
 
 ---
 
@@ -111,6 +151,8 @@ UniStay is a cross-platform mobile application that connects students with hosts
 - Under **Bookings**, view all your current and past reservations.  
 - View all current and past reservations (Pending, Accepted, Refused, History).
 - Tap any booking to see detailed info.
+
+![Booking Tab](images/booking_tab.png)
 
 ---
 
@@ -125,11 +167,15 @@ UniStay is a cross-platform mobile application that connects students with hosts
 6. Review suggested price vs. your asking price.  
 7. Confirm to make you property live.
 
+![Homeowner Properties Tabs](images/homeowner_properties_tab.png)
+
 ### 7.2 Manage Requests
 
 - In **Profile → Requests**, see all incoming booking inquiries.  
 - Review guest profiles and ratings.  
 - Tap **Accept** or **Reject** to respond.
+
+![Homeowner Requests Tab](images/homeowner_requests_tab.png)
 
 ---
 
@@ -139,9 +185,12 @@ UniStay is a cross-platform mobile application that connects students with hosts
 - Provide a star rating (1–5) and write a brief review.  
 - Submit to help future users make informed decisions.
 
+![Review](images/review.png)
+
 ---
 
 ## 9. Profile & Settings
+
 
 ### 9.1 Edit Profile
 
@@ -149,11 +198,15 @@ UniStay is a cross-platform mobile application that connects students with hosts
 - Update your name, photo, university.  
 - Tap **Save** to apply changes.
 
+![Student Profil View](images/student_profile.png)
+
 ### 9.2 Settings
 
 - From **Profile**, select **Settings**.  
 - Access **About Us** for app information.  
 - Tap **Log Out** to end your session.
+
+![Settings](images/settings_tab.png)
 
 ---
 

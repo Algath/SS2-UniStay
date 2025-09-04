@@ -39,6 +39,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
             if (!snapshot.hasData) return _buildLoading();
             final room = Room.fromFirestore(snapshot.data!);
             return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              physics: const BouncingScrollPhysics(),
               child: Column(
                 children: [
                   PropertyGalleryWidget(
@@ -296,14 +298,18 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
         
         // Review form at the bottom (for all users - validation is handled inside the widget)
         if (currentUser != null) ...[
-          ReviewFormWidget(
-            propertyId: room.id,
-            userType: userType,
-            onReviewSubmitted: () {
-              setState(() {
-                // Refresh the page to show new review
-              });
-            },
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: ReviewFormWidget(
+              key: ValueKey('review_form_${room.id}_${currentUser.uid}'),
+              propertyId: room.id,
+              userType: userType,
+              onReviewSubmitted: () {
+                setState(() {
+                  // Refresh the page to show new review
+                });
+              },
+            ),
           ),
         ],
 

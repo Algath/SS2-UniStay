@@ -214,17 +214,18 @@ class _AvailabilityCalendarWidgetState extends State<AvailabilityCalendarWidget>
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 12,
-            height: 12,
+            width: 16,
+            height: 16,
             decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: color.withOpacity(0.4), width: 1.5),
             ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF6C757D)),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF2C3E50)),
           ),
         ],
       ));
@@ -287,8 +288,8 @@ class _AvailabilityCalendarWidgetState extends State<AvailabilityCalendarWidget>
                   color: const Color(0xFF6E56CF).withOpacity(0.3),
                   shape: BoxShape.circle,
                 ),
-                markersAlignment: Alignment.center,
-                markerMargin: const EdgeInsets.all(0),
+                markersAlignment: Alignment.bottomCenter,
+                markerMargin: const EdgeInsets.only(top: 2),
                 cellMargin: const EdgeInsets.all(2),
                 cellPadding: EdgeInsets.zero,
               ),
@@ -326,13 +327,14 @@ class _AvailabilityCalendarWidgetState extends State<AvailabilityCalendarWidget>
                     if (color == Colors.transparent) return null;
 
                     return Positioned(
-                      bottom: 1,
+                      bottom: 2,
                       child: Container(
-                        width: 6,
-                        height: 6,
+                        width: 8,
+                        height: 8,
                         decoration: BoxDecoration(
                           color: color,
                           shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1),
                         ),
                       ),
                     );
@@ -371,17 +373,17 @@ class _AvailabilityCalendarWidgetState extends State<AvailabilityCalendarWidget>
                     return Container(
                       margin: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: color.withOpacity(0.3), width: 1),
+                        color: color.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: color.withOpacity(0.4), width: 1.5),
                       ),
                       child: Center(
                         child: Text(
                           '${date.day}',
                           style: TextStyle(
                             color: color,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
                           ),
                         ),
                       ),

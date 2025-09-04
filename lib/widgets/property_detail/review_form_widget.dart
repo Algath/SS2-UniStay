@@ -303,12 +303,7 @@ class _ReviewFormWidgetState extends State<ReviewFormWidget> with AutomaticKeepA
           _commentFocusNode.requestFocus();
         }
       },
-      onChanged: (value) {
-        // Keep focus while typing
-        if (!_commentFocusNode.hasFocus) {
-          _commentFocusNode.requestFocus();
-        }
-      },
+      // Focus typing sırasında doğal kalsın; ekstra odak zorlamayalım
     );
   }
 
@@ -401,6 +396,15 @@ class _ReviewFormWidgetState extends State<ReviewFormWidget> with AutomaticKeepA
       );
 
       widget.onReviewSubmitted?.call();
+      
+      // Formu temizle ve klavyeyi kapat
+      if (mounted) {
+        setState(() {
+          _commentController.clear();
+          _rating = 0.0;
+        });
+        FocusScope.of(context).unfocus();
+      }
       
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

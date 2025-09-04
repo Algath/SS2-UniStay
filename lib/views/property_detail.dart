@@ -199,9 +199,10 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
             onDelete: () => _deleteProperty(room),
           ),
           const SizedBox(height: 24),
-          _buildReviewsSection(room),
-          const SizedBox(height: 24),
+          // Yıldızlı puanlama (rating summary) üstte, yorumlar ve form altta
           _buildRatingSection(room),
+          const SizedBox(height: 24),
+          _buildReviewsSection(room),
         ],
       ),
     );

@@ -1,23 +1,24 @@
 # UniStay User Guide
 
----
+> App not publicly available, only for registered testers.
 
 ## Welcome to UniStay
 
-UniStay is your go-to mobile app for finding and listing student housing across Switzerland. Whether you’re a student searching for your next home away from home or a homeowner with spare rooms to rent, this guide walks you through every step—from installation to booking and hosting.
+UniStay is a cross-platform mobile application that connects students with hosts offering accommodations around Switzerland. Whether you’re planning a weekend getaway or an extended stay, UniStay streamlines finding, booking, and managing your stays with security and ease.
+
+> A payment system is not implemented in this app.
 
 ---
 
-## Key Features
+## Feature Overview
 
-| Feature             | Student View                                            | Landlord View                                |
-|---------------------|---------------------------------------------------------|-----------------------------------------------|
-| Search & Filters    | Find listings by date, price, distance, and amenities   | —                                             |
-| Map Search          | See property pins and campus proximity on an interactive map  | —                                             |
-| Booking Requests    | Submit reservation requests, track approval status      | Review and accept or decline booking requests |
-| Calendar Management | View and manage your confirmed stays                   | Define availability and block dates          |
-| Reviews & Ratings   | Rate stays and read host feedback                       | Read guest feedback and build trust          |
-| Price Prediction    | Compare listed price with market-based estimate         | Get suggested pricing based on similar listings |
+| Feature             | Description                                                  |
+|---------------------|--------------------------------------------------------------|
+| Search & Filters    | Discover listings by date, price, and amenities              |
+| Map Search          | Find accommodation close to your university                  |
+| Booking             | Reserve listings when enabled by the host who will confirm   |
+| Reviews & Ratings   | Read and leave feedback to build community trust             |
+| Calendar Management | Sync stays and manage availability in one place              |
 
 ---
 
@@ -31,20 +32,20 @@ UniStay is your go-to mobile app for finding and listing student housing across 
 
 ### 1.2 Account Setup
 
-1. On the welcome screen, tap **Sign Up**.  
-2. Choose your account type: **Student** or **Landlord**.  
-3. Fill in your name, email, password, and contact details.  
-4. Upload a clear profile photo (required for Face Authentication).  
-5. Tap **Next** to complete registration.
+1. Tap **Sign Up** on the welcome screen.  
+2. Enter your email and choose a secure password.  
+3. Choose your account type: **Student** or **Homeowner**.
+4. Provide your name, profile photo, and contact details.  
+5. Validate your information to complete registration.
 
 ---
 
-## 2. Signing In
+## 2. Logging In
 
 ### 2.1 Email & Password
 
-- Enter your registered email and password.  
-- Tap **Log In** to access your dashboard.
+- Enter your registered email and password. 
+- Tap **Log In** to access the main page.
 
 ### 2.2 Face Authentication
 
@@ -52,30 +53,33 @@ UniStay is your go-to mobile app for finding and listing student housing across 
 
 1. On the login screen, select **Continue with Face ID**.  
 2. Follow the prompts to scan your face in good lighting.  
-3. If recognition fails, you can retry or switch back to email login.
+3. Ensure your face is alone and fully visible in the frame.  
+4. If recognition fails, you can retry or switch back to email login.
 
 ---
 
-## 3. Finding Your Accommodation
+## 3. Searching for Accommodations
 
-### 3.1 Browsing Listings
+### 3.1 Browsing Properties
 
-- From **Home**, scroll through the latest available properties.  
+- From the home page, scroll through the latest available properties.  
 - Tap any card to open full details.
 
 ### 3.2 Applying Filters
 
-1. Tap the **Filter** icon in the top-right corner.  
+1. Tap the **Filter** icon in the top-left corner.
 2. Set your:
    - Date range  
    - Price min/max  
-   - Room type (entire place or private room)  
-   - Amenities (Wi-Fi, kitchen, parking, etc.)  
-3. Tap **Apply** to refresh results.
+   - Room type (entire place or room only)  
+   - Amenities (Wi-Fi, kitchen, parking, etc.)
+3. Set your desired availability dates.  
+4. Tap **Apply** to update the results.
 
 ### 3.3 Map View
 
-- Switch to **Map** mode via the bottom toggle.  
+- Switch to **Map** mode via the bottom toggle.
+- Select the university you want to find property around.
 - Pinch to zoom and tap pins to preview listings.  
 - Select a pin to jump to that property’s detail page.
 
@@ -83,11 +87,12 @@ UniStay is your go-to mobile app for finding and listing student housing across 
 
 ## 4. Viewing Property Details
 
-- Swipe through high-resolution photos.  
-- Read the full description, amenities list, and house rules.  
-- Compare the host’s asking price against our predicted market rate.  
-- Check the availability calendar.  
-- Tap **Book This Period** to start a reservation request.
+- Tap any property card to open its details.
+- Swipe through photos and read the full description.
+- Compare the host’s asking price against our predicted market rate.
+- View the property on the map.  
+- Consult public transport options to reach your university.  
+- Check availability, ratings, and past guest reviews.
 
 ---
 
@@ -95,73 +100,56 @@ UniStay is your go-to mobile app for finding and listing student housing across 
 
 1. On a property page, pick your check-in and check-out dates.  
 2. Tap **Book This Period** to send a booking request to the host.  
-3. Monitor your request under **My Bookings** for status updates (Pending, Accepted, Rejected).  
+3. Monitor your request under **My Bookings** for status updates (Pending, Accepted, Refused).  
 4. Once accepted, you’ll see the confirmed stay in your upcoming bookings.
 
 ---
 
 ## 6. Managing Your Bookings
 
-- Go to **Profile → My Bookings**.  
-- View all current and past reservations.  
-- Tap any booking to see detailed status, payment notes (if any), and host contact info.
+- Tap **Profile** in the bottom menu.  
+- Under **Bookings**, view all your current and past reservations.  
+- View all current and past reservations (Pending, Accepted, Refused, History).
+- Tap any booking to see detailed info.
 
 ---
 
-## 7. Hosting Your Property
+## 7. Hosting Your Property (Homeowner Profile only)
 
-### 7.1 Create a Listing
+### 7.1 Create a New Property
 
-1. Switch to **Landlord** mode or sign in with a landlord account.  
-2. Tap the **+** button at the bottom.  
-3. Enter title, description, address, and pricing.  
-4. Upload up to 10 photos.  
-5. Define availability on the integrated calendar.  
+1. Go to **Profile** and select the **Properties** tab.  
+2. Tap **Add New Property**.  
+3. Enter property details: title, description, photos, location, and pricing.  
+5. Define availability on the integrated calendar. 
 6. Review suggested price vs. your asking price.  
-7. Tap **Publish** to make your listing live.
+7. Confirm to make you property live.
 
 ### 7.2 Manage Requests
 
 - In **Profile → Requests**, see all incoming booking inquiries.  
 - Review guest profiles and ratings.  
-- Tap **Accept** or **Decline** to respond.
+- Tap **Accept** or **Reject** to respond.
 
 ---
 
-## 8. Price Prediction
+## 8. Leaving a Review
 
-Our built-in model analyzes location, size, and amenities to estimate a fair monthly rate.
-
-1. On any listing detail page, tap **Predict Price**.  
-2. Review the predicted price alongside the host’s asking rate.  
-3. Use this insight to negotiate or adjust your listing.
+- After check-out, you can leave a review and rating.  
+- Provide a star rating (1–5) and write a brief review.  
+- Submit to help future users make informed decisions.
 
 ---
 
-## 9. Reviews & Ratings
+## 9. Profile & Settings
 
-### 9.1 Leaving a Review (Students)
-
-- After check-out, you’ll receive a prompt to rate your stay.  
-- Choose 1–5 stars and write a brief comment.  
-- Submit to help future students and hosts.
-
-### 9.2 Receiving Reviews (Landlords)
-
-- In **Profile → Listings → Reviews**, read feedback left by guests.  
-- Use insights to improve your hosting experience.
-
----
-
-## 10. Profile & Settings
-
-### 10.1 Edit Profile
+### 9.1 Edit Profile
 
 - Tap **Profile → Edit Profile**.  
-- Update your name, photo, university (students), or contact info (landlords).  
+- Update your name, photo, university.  
 - Tap **Save** to apply changes.
 
-### 10.2 App Settings
+### 9.2 Settings
 
 - From **Profile**, select **Settings**.  
 - Access **About Us** for app information.  
@@ -169,14 +157,16 @@ Our built-in model analyzes location, size, and amenities to estimate a fair mon
 
 ---
 
-## 11. Troubleshooting & FAQs
+## 10. Troubleshooting & FAQs
 
-- **Cannot Sign Up:** Ensure your email isn’t already registered.  
-- **Face ID Fails:** Re-enroll your face under **Profile → Face Authentication**.  
+- **Cannot Sign Up:** Ensure your email isn’t already registered. 
+- **Face ID Fails:** 
+    - Re-enroll your picture profile under **Profile → Edit Profile**.
+    - You should be alone on the pictures to make it work.
 - **Map Loads Slowly:** Check your internet connection and location permissions.  
-- **Booking Stuck on Pending:** Wait for the host’s response; you’ll get an in-app notification.  
-- **Still Need Help?** Contact support@unistay.app.
+- **Booking Stuck on Pending:** Wait for the host’s response; you will see it as an in-app change.
+- **Still Need Help?** Sorry we currently do not have a support.
 
 ---
 
-Thank you for choosing UniStay. We wish you a smooth and successful stay or hosting experience!
+Thank you for using UniStay. We hope this guide helps you every step of the way, from finding your stay to welcoming guests.

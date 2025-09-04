@@ -1,7 +1,7 @@
 # UniStay – Student Housing App (Switzerland)
 
 UniStay is a Flutter-based application designed to help students in Switzerland find housing easily.  
-It provides separate interfaces for students (to book properties) and landlords (to list properties).
+It provides separate interfaces for students (to book properties) and homeowners (to list properties).
 
 ---
 
@@ -9,7 +9,7 @@ It provides separate interfaces for students (to book properties) and landlords 
 
 - **User Registration & Login**
   - Student accounts
-  - Landlord accounts
+  - Homeowner accounts
   - Face authentication
 
 - **Search & Booking**
@@ -17,7 +17,7 @@ It provides separate interfaces for students (to book properties) and landlords 
   - Book properties
   - View property locations on map
 
-- **Landlord Management**
+- **Homeowner Management**
   - Create, update, and delete property listings
   - Manage bookings
 
@@ -34,7 +34,7 @@ It provides separate interfaces for students (to book properties) and landlords 
 - **Frontend:** Flutter (Dart)
 - **Backend:** Firebase (Authentication, Firestore, Storage)
 - **Database:** Firestore (NoSQL)
-- **External APIs:** Face reconition, Map services
+- **External APIs:** Face recognition, Map services
 
 ---
 
@@ -69,18 +69,17 @@ Inside the `lib/` folder:
 - `views/` → Main UI screens (Login, Register, Home, Property Details, Booking)
 - `widgets/` → Reusable UI components
 - `models/` → Data models (User, Property, Reservation)
-- `services/` → Firebase interactions (AuthService, DatabaseService, StorageService)$
-- `viewmodels` → ???
+- `services/` → Firebase interactions (AuthService, DatabaseService, StorageService)
 
 ## 🔐 Authentication
 - Managed via Firebase Authentication
-- Supports student and landlord accounts
+- Supports student and homeowner accounts
 - Face authentication fully implemented and functional
-  - Note: it work only for account where the profil picture was saved on the device
+  - Note: it works only for account where the profile e picture was saved on the device
 
 ## 🗄️ Database (Firestore)
 Main collections:
-- users → student & landlord profiles
+- users → student & homeowner profile e es
 - rooms → property listings
 - booking_requests → reservations linked to users & properties
 - property_ratings → ratings information on the properties
@@ -93,7 +92,7 @@ Main collections:
 
 ## 📡 APIs & Services
 - Firebase services (auth, Firestore, storage)
-- External API for face reconition
+- External API for face recognition
 - Map integration
 - Nominatim for address recovery
 - Open-Meteo to have weather
@@ -105,8 +104,9 @@ Main collections:
 
 ## 📄 Known Limitations
 - No payment system
-- Only internal testing on Google Play
+- App not publicly available, only for registered testers.
 - Fully tested only on Android
+- Partially working on Windows
 
 ## 🎥 Demonstration
 - 1-minute overview video (UI + main flows)
@@ -120,8 +120,8 @@ Here are a few key screens from UniStay:
 ### Home / Search Page
 ![Home Page](images/home_page.png)
 
-### Student Profile
-![User Page](images/student_profil.png)
+### Student profile e
+![User Page](images/student_profile.png)
 
 ## 📝 Guides
 - [User Guide](USER_GUIDE.md)

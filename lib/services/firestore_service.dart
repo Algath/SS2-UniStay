@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unistay/models/user_profile.dart'; // Adjust path as needed
+import 'package:unistay/services/institutions.dart';
 
 /// Service for Firestore database operations and admin functions
 class FirestoreService {
@@ -159,5 +160,32 @@ class FirestoreService {
         'admins': 0,
       };
     }
+  }
+
+// Add this method to get property count for a user
+  Future<int> getUserPropertyCount(String ownerUid) async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('rooms')
+          .where('ownerUid', isEqualTo: ownerUid)
+          .where('status', isEqualTo: 'active')
+          .get();
+      return querySnapshot.docs.length;
+    } catch (e) {
+      print('Error getting user property count: $e');
+      return 0;
+    }
+  }
+
+  // Add this method to get university name from address
+  String getUniversityNameFromAddress(String uniAddress) {
+    if (uniAddress.isEmpty) return '';
+
+    for (final inst in institutions) {
+      if (inst.adresse == uniAddress) {
+        return inst.nom;
+      }
+    }
+    return 'University'; // Fallback if not found
   }
 }

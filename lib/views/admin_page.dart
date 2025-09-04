@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:unistay/services/firestore_service.dart';
 import 'package:unistay/models/user_profile.dart';
+import 'package:unistay/services/institutions.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -440,6 +441,105 @@ class _AdminPageState extends State<AdminPage> {
     );
   }
 
+  // Helper method to build avatar fallback
+  Widget _buildAvatarFallback(UserProfile user) {
+    return Center(
+      child: Text(
+        user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : '?',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 24,
+        ),
+      ),
+    );
+  }
+
+// Helper method to build detail sections
+  Widget _buildDetailSection(String title, IconData icon, List<Widget> children) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6E56CF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: const Color(0xFF6E56CF), size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2C3E50),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+// Updated helper method to build detail rows
+  Widget _buildDetailRow(String label, String value, IconData icon, {Color? valueColor, bool isSelectable = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF6C757D),
+                fontSize: 14,
+              ),
+            ),
+          ),
+          Expanded(
+            child: isSelectable
+                ? SelectableText(
+              value.isEmpty ? 'Not provided' : value,
+              style: TextStyle(
+                color: valueColor ?? const Color(0xFF2C3E50),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            )
+                : Text(
+              value.isEmpty ? 'Not provided' : value,
+              style: TextStyle(
+                color: valueColor ?? const Color(0xFF2C3E50),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildUserCard(UserProfile user, bool isTablet) {
     // Check if this is the current user
     final isCurrentUser = _currentUserId != null && user.uid == _currentUserId;
@@ -658,56 +758,215 @@ class _AdminPageState extends State<AdminPage> {
     }
   }
 
-  void _showUserDetails(UserProfile user) {
+  void _showUserDetails(UserProfile user) async {
+    // Get property count for homeowners
+    int propertyCount = 0;
+    if (user.role.toLowerCase() == 'homeowner') {
+      propertyCount = await _firestoreService.getUserPropertyCount(user.uid);
+    }
+
+    // Get university name for students
+    String universityName = '';
+    if (user.role.toLowerCase() == 'student' && user.uniAddress.isNotEmpty) {
+      universityName = _firestoreService.getUniversityNameFromAddress(user.uniAddress);
+    }
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('User Details'),
-        content: SingleChildScrollView(
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDetailRow('Name', user.displayName),
-              _buildDetailRow('Email', user.email),
-              _buildDetailRow('Role', user.role),
-              _buildDetailRow('Home Address', user.homeAddress),
-              _buildDetailRow('University Address', user.uniAddress),
-              _buildDetailRow('Admin Status', user.isAdmin ? 'Yes' : 'No'),
-              _buildDetailRow('User ID', user.uid),
+              // Header with user avatar and close button
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF6E56CF), Color(0xFF9C88FF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // User Avatar
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.2),
+                        border: Border.all(color: Colors.white, width: 3),
+                      ),
+                      child: ClipOval(
+                        child: user.photos.isNotEmpty
+                            ? Image.network(
+                          user.photos,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildAvatarFallback(user),
+                        )
+                            : _buildAvatarFallback(user),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // User Name and Role
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.displayName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              user.role.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Close Button
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      // Basic Information Section
+                      _buildDetailSection(
+                        'Basic Information',
+                        Icons.person_outline,
+                        [
+                          _buildDetailRow('Email', user.email, Icons.email_outlined),
+                          _buildDetailRow('User ID', user.uid, Icons.fingerprint, isSelectable: true),
+                          if (user.isAdmin)
+                            _buildDetailRow('Admin Status', 'Yes', Icons.admin_panel_settings,
+                                valueColor: Colors.red),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Role-specific Information
+                      if (user.role.toLowerCase() == 'student') ...[
+                        _buildDetailSection(
+                          'Student Information',
+                          Icons.school_outlined,
+                          [
+                            if (universityName.isNotEmpty)
+                              _buildDetailRow('University', universityName, Icons.account_balance),
+                            if (user.uniAddress.isNotEmpty)
+                              _buildDetailRow('University Address', user.uniAddress, Icons.location_on_outlined),
+                          ],
+                        ),
+                      ] else if (user.role.toLowerCase() == 'homeowner') ...[
+                        _buildDetailSection(
+                          'Homeowner Information',
+                          Icons.home_outlined,
+                          [
+                            _buildDetailRow('Properties Listed', '$propertyCount', Icons.apartment,
+                                valueColor: propertyCount > 0 ? Colors.green : Colors.grey),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
+              // Footer
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F9FA),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(
-            child: Text(value.isEmpty ? 'Not provided' : value),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildDetailRow(String label, String value) {
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(vertical: 4.0),
+  //     child: Row(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         SizedBox(
+  //           width: 100,
+  //           child: Text(
+  //             '$label:',
+  //             style: const TextStyle(fontWeight: FontWeight.bold),
+  //           ),
+  //         ),
+  //         Expanded(
+  //           child: Text(value.isEmpty ? 'Not provided' : value),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   void _toggleAdminStatus(UserProfile user) {
     final newStatus = !user.isAdmin;

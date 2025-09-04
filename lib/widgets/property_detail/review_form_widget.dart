@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unistay/models/review.dart';
-import 'package:unistay/services/review_service.dart';
 import 'package:unistay/models/booking_request.dart';
+import 'package:unistay/services/review_service.dart';
 
 class ReviewFormWidget extends StatefulWidget {
   final String propertyId;
@@ -21,9 +21,10 @@ class ReviewFormWidget extends StatefulWidget {
   State<ReviewFormWidget> createState() => _ReviewFormWidgetState();
 }
 
-class _ReviewFormWidgetState extends State<ReviewFormWidget> {
+class _ReviewFormWidgetState extends State<ReviewFormWidget> with AutomaticKeepAliveClientMixin {
   final _formKey = GlobalKey<FormState>();
   final _commentController = TextEditingController();
+  final _commentFocusNode = FocusNode();
   final _reviewService = ReviewService();
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
@@ -31,31 +32,88 @@ class _ReviewFormWidgetState extends State<ReviewFormWidget> {
   double _rating = 0.0;
   bool _isSubmitting = false;
   Review? _existingReview;
+  bool _isLoading = true;
+  bool _hasCompletedStay = false;
+  String? _errorMessage;
+
+  @override
+  bool get wantKeepAlive => true; // Keep widget alive to preserve focus
 
   @override
   void initState() {
     super.initState();
     _loadExistingReview();
+    _checkStayCompletion();
   }
 
   @override
   void dispose() {
     _commentController.dispose();
+    _commentFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _loadExistingReview() async {
     final user = _auth.currentUser;
     if (user != null) {
-      final review = await _reviewService.getUserReviewForProperty(
-        user.uid,
-        widget.propertyId,
+      try {
+        final review = await _reviewService.getUserReviewForProperty(
+          user.uid,
+          widget.propertyId,
+        );
+        if (review != null && mounted) {
+          setState(() {
+            _existingReview = review;
+            _rating = review.rating;
+            _commentController.text = review.comment;
+          });
+        }
+      } catch (e) {
+        // Handle error silently
+      }
+    }
+  }
+
+  Future<void> _checkStayCompletion() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Please log in to write a review';
+      });
+      return;
+    }
+
+    try {
+      final docs = await FirebaseFirestore.instance
+          .collection('booking_requests')
+          .where('studentUid', isEqualTo: currentUser.uid)
+          .where('propertyId', isEqualTo: widget.propertyId)
+          .get();
+
+      final requests = docs.docs.map((d) {
+        return BookingRequest.fromFirestore(d as DocumentSnapshot<Map<String, dynamic>>);
+      }).toList();
+
+      final now = DateTime.now();
+      final hasCompletedBooking = requests.any((r) =>
+        r.status == 'accepted' && r.endDate.isBefore(now)
       );
-      if (review != null) {
+
+      if (mounted) {
         setState(() {
-          _existingReview = review;
-          _rating = review.rating;
-          _commentController.text = review.comment;
+          _isLoading = false;
+          _hasCompletedStay = hasCompletedBooking;
+          if (!hasCompletedBooking) {
+            _errorMessage = 'You can only review properties after completing your stay. Check your booking history.';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Error checking booking history';
         });
       }
     }
@@ -63,93 +121,25 @@ class _ReviewFormWidgetState extends State<ReviewFormWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<DocumentSnapshot>(
-      future: _firestore.collection('rooms').doc(widget.propertyId).get(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
 
-        if (snapshot.hasError || !snapshot.hasData) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.red[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red[200]!),
-            ),
-            child: const Text(
-              'Error loading property information',
-              style: TextStyle(color: Colors.red),
-            ),
-          );
-        }
+    if (_isLoading) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE9ECEF)),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6E56CF)),
+          ),
+        ),
+      );
+    }
 
-        final propertyData = snapshot.data!.data() as Map<String, dynamic>?;
-        if (propertyData == null) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.red[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red[200]!),
-            ),
-            child: const Text(
-              'Property not found',
-              style: TextStyle(color: Colors.red),
-            ),
-          );
-        }
-
-        // Check if user is the owner of this property
-        final ownerUid = propertyData['ownerUid'] as String?;
-        final currentUser = _auth.currentUser;
-        
-        if (currentUser != null && ownerUid == currentUser.uid) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue[200]!),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  color: Colors.blue[600],
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'You cannot review your own property. Reviews are only from students who have stayed at your property.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.blue[700],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        // For students, check if they have completed booking for this property
-        if (widget.userType == 'student') {
-          return _buildStudentReviewForm();
-        }
-
-        // For owners, allow review
-        return _buildReviewForm();
-      },
-    );
-  }
-
-  Widget _buildStudentReviewForm() {
-    final currentUser = _auth.currentUser;
-    if (currentUser == null) {
+    if (_errorMessage != null) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -157,87 +147,31 @@ class _ReviewFormWidgetState extends State<ReviewFormWidget> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.orange[200]!),
         ),
-        child: const Text(
-          'Please log in to write a review',
-          style: TextStyle(color: Colors.orange),
+        child: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: Colors.orange[600],
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _errorMessage!,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.orange[700],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('booking_requests')
-          .where('studentUid', isEqualTo: currentUser.uid)
-          .where('propertyId', isEqualTo: widget.propertyId)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.red[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red[200]!),
-            ),
-            child: const Text(
-              'Error checking booking history',
-              style: TextStyle(color: Colors.red),
-            ),
-          );
-        }
-
-        final docs = snapshot.data?.docs ?? [];
-
-        final requests = docs.map((d) {
-          return BookingRequest.fromFirestore(d as DocumentSnapshot<Map<String, dynamic>>);
-        }).toList();
-
-        final now = DateTime.now();
-
-        // Use same logic as history tab
-        final hasCompletedBooking = requests.any((r) =>
-          r.status == 'accepted' && r.endDate.isBefore(now)
-        );
-
-        if (!hasCompletedBooking) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.orange[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange[200]!),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  color: Colors.orange[600],
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'You can only review properties after completing your stay. Check your booking history.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.orange[700],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        // User has completed booking, show review form
-        return _buildReviewForm();
-      },
-    );
+    // User has completed booking, show review form
+    return _buildReviewForm();
   }
 
   Widget _buildReviewForm() {
@@ -336,15 +270,26 @@ class _ReviewFormWidgetState extends State<ReviewFormWidget> {
   Widget _buildCommentField() {
     return TextFormField(
       controller: _commentController,
+      focusNode: _commentFocusNode,
       maxLines: 4,
       maxLength: 500,
+      keyboardType: TextInputType.multiline,
+      textInputAction: TextInputAction.newline,
+      enableInteractiveSelection: true,
+      autocorrect: true,
+      enableSuggestions: false,
+      autofillHints: null,
+      textCapitalization: TextCapitalization.sentences,
       decoration: const InputDecoration(
         labelText: 'Your Review *',
         hintText: 'Share your experience with this property...',
         border: OutlineInputBorder(),
         focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFF6E56CF)),
+          borderSide: BorderSide(color: Color(0xFF6E56CF), width: 2),
         ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        filled: true,
+        fillColor: Color(0xFFF8F9FA),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
@@ -355,6 +300,13 @@ class _ReviewFormWidgetState extends State<ReviewFormWidget> {
         }
         return null;
       },
+      onTap: () {
+        // Ensure focus is maintained
+        if (!_commentFocusNode.hasFocus) {
+          _commentFocusNode.requestFocus();
+        }
+      },
+      // Focus typing sırasında doğal kalsın; ekstra odak zorlamayalım
     );
   }
 
@@ -447,6 +399,15 @@ class _ReviewFormWidgetState extends State<ReviewFormWidget> {
       );
 
       widget.onReviewSubmitted?.call();
+      
+      // Formu temizle ve klavyeyi kapat
+      if (mounted) {
+        setState(() {
+          _commentController.clear();
+          _rating = 0.0;
+        });
+        FocusScope.of(context).unfocus();
+      }
       
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

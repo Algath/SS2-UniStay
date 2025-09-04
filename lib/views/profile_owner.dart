@@ -218,7 +218,7 @@ class _ProfileOwnerPageRefactoredState extends State<ProfileOwnerPageRefactored>
                     text: 'History',
                   ),
                   Tab(
-                    icon: Icon(Icons.bookmark_outlined),
+                    icon: Icon(Icons.event_available),
                     text: 'Bookings',
                   ),
                   Tab(
@@ -260,8 +260,8 @@ class _ProfileOwnerPageRefactoredState extends State<ProfileOwnerPageRefactored>
                       isTablet: isTablet,
                     ),
                   ),
-                  // Bookings Tab
-                  SingleChildScrollView(
+                  // Bookings Tab (bounded, no scroll wrapper)
+                  Padding(
                     padding: const EdgeInsets.all(20),
                     child: StudentBookingsSection(
                       studentUid: uid,

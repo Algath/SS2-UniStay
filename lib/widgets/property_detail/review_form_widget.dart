@@ -277,6 +277,9 @@ class _ReviewFormWidgetState extends State<ReviewFormWidget> with AutomaticKeepA
       textInputAction: TextInputAction.newline,
       enableInteractiveSelection: true,
       autocorrect: true,
+      enableSuggestions: false,
+      autofillHints: null,
+      textCapitalization: TextCapitalization.sentences,
       decoration: const InputDecoration(
         labelText: 'Your Review *',
         hintText: 'Share your experience with this property...',

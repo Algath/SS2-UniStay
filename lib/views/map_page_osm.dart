@@ -328,8 +328,8 @@ class _MapPageOSMState extends State<MapPageOSM> {
       m.add(
         Marker(
           point: pos,
-          width: 44,
-          height: 44,
+          width: 28,
+          height: 28,
           child: GestureDetector(
             onTap: () {
               final room = Room.fromFirestore(d);
@@ -339,18 +339,18 @@ class _MapPageOSMState extends State<MapPageOSM> {
               message: '$title\nCHF $price · ${distKm.toStringAsFixed(2)} km to ${_selectedUniversity?.shortName ?? "campus"}',
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.red,
+                  color: const Color(0xFF64748B),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: const Color(0xFF8B5CF6), width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 4,
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 3,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: const Icon(Icons.home, color: Colors.white, size: 20),
+                child: const Icon(Icons.home, color: Colors.white, size: 14),
               ),
             ),
           ),

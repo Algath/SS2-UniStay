@@ -45,7 +45,7 @@ class StudentRatingWidget extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           FutureBuilder<Map<String, dynamic>>(
-            future: _reviewService.getUserRating(studentId),
+            future: _reviewService.getUserRaqting(studentId),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
